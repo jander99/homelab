@@ -6,14 +6,14 @@ services:
     networks: 
       physical_network:
         ipv4_address: 192.168.1.98
-        
+
 networks: 
-    physical_network:
-      driver: macvlan
-      driver_opts:
-        parent: ${IPINTERFACE}
-      ipam:
-        config:
-          - subnet: 192.168.1.0/24
-          - gateway: 192.168.1.1
-          - ip_range: 192.168.1.0/28
+  physical_network:
+    driver: macvlan
+    driver_opts:
+      parent: ${IPINTERFACE}
+    ipam:
+      config:
+        - subnet: 192.168.1.0/24
+          gateway: 192.168.1.1
+          ip_range: 192.168.1.0/28
