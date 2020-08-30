@@ -1,1 +1,4 @@
 secrets/** filter=git-crypt diff=git-crypt
+
+## Make sure that .gitattributes is never encrypted
+.gitattributes !filter !diff
