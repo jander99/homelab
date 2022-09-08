@@ -1,0 +1,17 @@
+version: "3.8" 
+services:
+  Sonarr:
+    image: linuxserver/sonarr:latest
+    container_name: sonarr
+    environment:
+      - PUID=1027
+      - PGID=100
+      - TZ=America/New_York
+    volumes:
+      - /volume1/docker/config/sonarr:/config
+      - /volume1/data:/data
+    ports:
+      - 8989:8989
+    network_mode: homelab_bridge_network
+    restart: unless-stopped
+

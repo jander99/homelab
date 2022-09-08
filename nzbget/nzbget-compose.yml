@@ -1,0 +1,18 @@
+version: "3.8"
+
+services:
+  nzbget:
+    image: linuxserver/nzbget:latest
+    container_name: nzbget
+    environment:
+      - PUID=1027
+      - PGID=100
+      - TZ=America/New_York
+    volumes:
+      - /volume1/docker/config/nzbget:/config
+      - /volume1/data/usenet:/data/usenet
+    ports:
+      - 6789:6789
+    network_mode: homelab_bridge_network
+    restart: unless-stopped
+
