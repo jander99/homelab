@@ -1,0 +1,16 @@
+version: "3.8"
+services:
+  radarr:
+    image: linuxserver/radarr:latest
+    container_name: radarr
+    environment:
+      - PUID=1027
+      - PGID=100
+      - TZ=America/New_York
+    volumes:
+      - /volume1/data:/data
+      - /volume1/docker/config/radarr:/config
+    ports:
+      - 7878:7878
+    network_mode: homelab_bridge_network
+    restart: unless-stopped
