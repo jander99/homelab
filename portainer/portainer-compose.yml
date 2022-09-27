@@ -4,13 +4,14 @@ services:
   portainer:
     image: portainer/portainer-ce:latest
     container_name: portainer
-    ports:
-      - "8000:8000"
-      - "9000:9000"
     environment:
       - TZ=America/New_York
     volumes:
-      - '/var/run/docker.sock:/var/run/docker.sock'
-      - '/volume1/docker/config/portainer/data:/data'
+      - /var/run/docker.sock:/var/run/docker.sock
+      - /volume1/docker/config/portainer/data:/data
+    ports:
+      - 8000:8000
+      - 9000:9000
+    network_mode: homelab_bridge_network
     restart: unless-stopped
 

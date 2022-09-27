@@ -9,8 +9,8 @@ services:
       - PGID=100
       - TZ=America/New_York
     volumes:
-      - /volume1/docker/config/nzbget:/config
       - /volume1/data/usenet:/data/usenet
+      - /volume1/docker/config/nzbget:/config
     ports:
       - 6789:6789
     network_mode: homelab_bridge_network

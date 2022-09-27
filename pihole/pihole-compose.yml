@@ -1,22 +1,20 @@
-version: '3'
+version: "3.8"
 
 services:
   pihole:
     container_name: pihole
     image: pihole/pihole:latest
-    ports:
-      - "53:53/tcp"
-      - "53:53/udp"
-      - "67:67/udp"
-      - "80:80/tcp"
     environment:
       TZ: 'America/New_York'
       WEBPASSWORD: admin
       ServerIP: 192.168.1.2
-    # Volumes store your data between container upgrades
     volumes:
       - '/volume1/docker/config/pihole/:/etc/pihole/'
       - '/volume1/docker/config/pihole/dnsmasq.d/:/etc/dnsmasq.d/'
+    ports:
+      - 53:53
+      - 67:67
+      - 80:80
     dns:
       - 127.0.0.1
       - 1.1.1.1

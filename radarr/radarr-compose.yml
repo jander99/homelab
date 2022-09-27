@@ -1,4 +1,5 @@
 version: "3.8"
+
 services:
   radarr:
     image: linuxserver/radarr:latest
