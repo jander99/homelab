@@ -1,0 +1,63 @@
+version: "3.8" 
+
+services:
+
+  nzbget:
+    image: linuxserver/nzbget:latest
+    container_name: nzbget
+    environment:
+      - PUID=1027
+      - PGID=100
+      - TZ=America/New_York
+    volumes:
+      - /volume1/data/usenet:/data/usenet
+      - /volume1/docker/config/nzbget:/config
+    ports:
+      - 6789:6789
+    network_mode: homelab_bridge_network
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "curl", "http://${NZBGET_USER}:${NZBGET_PASS}127.0.0.1:6789/jsonrpc/status"]
+      interval: 30s
+      timeout: 30s
+      retries: 5
+
+  radarr:
+    image: linuxserver/radarr:latest
+    container_name: radarr
+    environment:
+      - PUID=1027
+      - PGID=100
+      - TZ=America/New_York
+    volumes:
+      - /volume1/data:/data
+      - /volume1/docker/config/radarr:/config
+    ports:
+      - 7878:7878
+    network_mode: homelab_bridge_network
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "curl", "http://127.0.0.1:7878/api/v3/health?apiKey=${RADARR_API_KEY}"]
+      interval: 30s
+      timeout: 30s
+      retries: 5
+
+  sonarr:
+    image: linuxserver/sonarr:latest
+    container_name: sonarr
+    environment:
+      - PUID=1027
+      - PGID=100
+      - TZ=America/New_York
+    volumes:
+      - /volume1/data:/data
+      - /volume1/docker/config/sonarr:/config
+    ports:
+      - 8989:8989
+    network_mode: homelab_bridge_network
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "curl", "http://127.0.0.1:8989/api/v3/health?apiKey=${SONARR_API_KEY}"]
+      interval: 30s
+      timeout: 30s
+      retries: 5
