@@ -14,10 +14,6 @@ services:
       - 9000:9000
     network_mode: homelab_bridge_network
     restart: unless-stopped
-    healthcheck:
-      test: ["CMD", "curl", "-H X-API-KEY:${PORTAINER_API_KEY}", "http://127.0.0.1:9000/api/status/version"]
-      interval: 30s
-      timeout: 5s
-      retries: 3
+
 
 
