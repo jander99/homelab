@@ -17,7 +17,7 @@ services:
     network_mode: homelab_bridge_network
     restart: unless-stopped
     healthcheck:
-      test: ["CMD", "curl", "http://${NZBGET_USER}:${NZBGET_PASS}127.0.0.1:6789/jsonrpc/status"]
+      test: ["CMD", "curl", "http://${NZBGET_USER}:${NZBGET_PASS}@127.0.0.1:6789/jsonrpc/status"]
       interval: 30s
       timeout: 30s
       retries: 5
