@@ -14,7 +14,9 @@ services:
       - /volume1/docker/config/nzbget:/config
     ports:
       - 6789:6789
-    network_mode: homelab_bridge_network
+    networks: 
+      br:
+        ipv4_address: 172.20.0.5
     restart: unless-stopped
     healthcheck:
       test: ["CMD", "curl", "http://${NZBGET_USER}:${NZBGET_PASS}@127.0.0.1:6789/jsonrpc/status"]
@@ -34,7 +36,9 @@ services:
       - /volume1/docker/config/radarr:/config
     ports:
       - 7878:7878
-    network_mode: homelab_bridge_network
+    networks: 
+      br:
+        ipv4_address: 172.20.0.6
     restart: unless-stopped
     healthcheck:
       test: ["CMD", "curl", "http://127.0.0.1:7878/api/v3/health?apiKey=${RADARR_API_KEY}"]
@@ -54,10 +58,53 @@ services:
       - /volume1/docker/config/sonarr:/config
     ports:
       - 8989:8989
-    network_mode: homelab_bridge_network
+    networks: 
+      br:
+        ipv4_address: 172.20.0.7
     restart: unless-stopped
     healthcheck:
       test: ["CMD", "curl", "http://127.0.0.1:8989/api/v3/health?apiKey=${SONARR_API_KEY}"]
       interval: 30s
       timeout: 30s
       retries: 5
+
+  radarr-exporter:
+    image: ghcr.io/onedr0p/exportarr
+    command: ["radarr"]
+    environment:
+      - TZ=America/New_York
+      - PORT=9708
+      - URL="http://172.20.0.6:7878"
+      - APIKEY=${RADARR_API_KEY}
+    ports: 
+      - 9708:9708
+    networks: 
+      br:
+        ipv4_address: 172.20.1.6
+    restart: unless-stopped
+    depends_on:
+      - radarr
+
+    sonarr-exporter:
+    image: ghcr.io/onedr0p/exportarr
+    command: ["sonarr"]
+    environment:
+      - TZ=America/New_York
+      - PORT=9709
+      - URL="http://172.20.0.6:8989"
+      - APIKEY=${SONARR_API_KEY}
+    ports: 
+      - 9709:9709
+    networks: 
+      br:
+        ipv4_address: 172.20.1.7
+    restart: unless-stopped
+    depends_on:
+      - sonarr
+
+  
+
+  networks:
+  br:
+    external: 
+      name: homelab_bridge_network
