@@ -85,7 +85,7 @@ services:
     depends_on:
       - radarr
 
-    sonarr-exporter:
+  sonarr-exporter:
     image: ghcr.io/onedr0p/exportarr
     command: ["sonarr"]
     environment:
