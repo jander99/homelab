@@ -23,6 +23,24 @@ services:
       interval: 30s
       timeout: 30s
       retries: 5
+  nzbget-exporter:
+    image: frebib/nzbget-exporter
+    container_name: nzbget-exporter
+    tty: true
+    environment: 
+      - NZBGET_HOST=http://172.20.0.15:6789
+      - NZBGET_USERNAME=${NZBGET_USER}
+      - NZBGET_PASSWORD=${NZBGET_PASS}
+    ports:
+      - 9452:9452
+    networks: 
+      br:
+        ipv4_address: 172.20.1.15
+    restart: unless-stopped
+    depends_on:
+      - nzbget
+
+
 
   radarr:
     image: linuxserver/radarr:latest
@@ -45,6 +63,25 @@ services:
       interval: 30s
       timeout: 30s
       retries: 5
+  radarr-exporter:
+    image: ghcr.io/onedr0p/exportarr
+    container_name: radarr-exporter
+    command: ["radarr"]
+    environment:
+      - TZ=America/New_York
+      - PORT=9708
+      - URL=http://172.20.0.16:7878
+      - APIKEY=${RADARR_API_KEY}
+    ports: 
+      - 9708:9708
+    networks: 
+      br:
+        ipv4_address: 172.20.1.16
+    restart: unless-stopped
+    depends_on:
+      - radarr
+
+
 
   sonarr:
     image: linuxserver/sonarr:latest
@@ -67,43 +104,6 @@ services:
       interval: 30s
       timeout: 30s
       retries: 5
-
-  nzbget-exporter:
-    image: frebib/nzbget-exporter
-    container_name: nzbget-exporter
-    tty: true
-    environment: 
-      - NZBGET_HOST=http://172.20.0.15:6789
-      - NZBGET_USERNAME=${NZBGET_USER}
-      - NZBGET_PASSWORD=${NZBGET_PASS}
-    ports:
-      - 9452:9452
-    networks: 
-      br:
-        ipv4_address: 172.20.1.15
-    restart: unless-stopped
-    depends_on:
-      - nzbget
-    
-
-  radarr-exporter:
-    image: ghcr.io/onedr0p/exportarr
-    container_name: radarr-exporter
-    command: ["radarr"]
-    environment:
-      - TZ=America/New_York
-      - PORT=9708
-      - URL="http://172.20.0.16:7878"
-      - APIKEY=${RADARR_API_KEY}
-    ports: 
-      - 9708:9708
-    networks: 
-      br:
-        ipv4_address: 172.20.1.16
-    restart: unless-stopped
-    depends_on:
-      - radarr
-
   sonarr-exporter:
     image: ghcr.io/onedr0p/exportarr
     container_name: sonarr-exporter
@@ -111,7 +111,7 @@ services:
     environment:
       - TZ=America/New_York
       - PORT=9709
-      - URL="http://172.20.0.17:8989"
+      - URL=http://172.20.0.17:8989
       - APIKEY=${SONARR_API_KEY}
     ports: 
       - 9709:9709
