@@ -30,10 +30,10 @@ services:
     volumes:
       - '/volume1/docker/config/pihole/:/etc/pihole/'
       - '/volume1/docker/config/pihole/dnsmasq.d/:/etc/dnsmasq.d/'
-    ports:
-      - 53:53
-      - 67:67
-      - 80:80
+#    ports:
+#      - 53:53
+#      - 67:67
+#      - 80:80
     networks:
       default:
         ipv4_address: 192.168.1.2
