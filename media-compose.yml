@@ -105,6 +105,6 @@ services:
   
 
 networks:
-br:
-  external: 
-    name: homelab_bridge_network
+  br:
+    external: 
+      name: homelab_bridge_network
