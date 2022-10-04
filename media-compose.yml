@@ -70,6 +70,7 @@ services:
 
   nzbget-exporter:
     image: frebib/nzbget-exporter
+    container_name: nzbget-exporter
     tty: true
     environment: 
       - NZBGET_HOST=http://172.20.0.15:6789
@@ -87,6 +88,7 @@ services:
 
   radarr-exporter:
     image: ghcr.io/onedr0p/exportarr
+    container_name: radarr-exporter
     command: ["radarr"]
     environment:
       - TZ=America/New_York
@@ -104,6 +106,7 @@ services:
 
   sonarr-exporter:
     image: ghcr.io/onedr0p/exportarr
+    container_name: sonarr-exporter
     command: ["sonarr"]
     environment:
       - TZ=America/New_York
