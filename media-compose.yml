@@ -16,7 +16,7 @@ services:
       - 6789:6789
     networks: 
       br:
-        ipv4_address: 172.20.0.5
+        ipv4_address: 172.20.0.15
     restart: unless-stopped
     healthcheck:
       test: ["CMD", "curl", "http://${NZBGET_USER}:${NZBGET_PASS}@127.0.0.1:6789/jsonrpc/status"]
@@ -38,7 +38,7 @@ services:
       - 7878:7878
     networks: 
       br:
-        ipv4_address: 172.20.0.6
+        ipv4_address: 172.20.0.16
     restart: unless-stopped
     healthcheck:
       test: ["CMD", "curl", "http://127.0.0.1:7878/api/v3/health?apiKey=${RADARR_API_KEY}"]
@@ -60,13 +60,30 @@ services:
       - 8989:8989
     networks: 
       br:
-        ipv4_address: 172.20.0.7
+        ipv4_address: 172.20.0.17
     restart: unless-stopped
     healthcheck:
       test: ["CMD", "curl", "http://127.0.0.1:8989/api/v3/health?apiKey=${SONARR_API_KEY}"]
       interval: 30s
       timeout: 30s
       retries: 5
+
+  nzbget-exporter:
+    image: frebib/nzbget-exporter
+    tty: true
+    environment: 
+      - NZBGET_HOST=http://172.20.0.15:6789
+      - NZBGET_USERNAME=${NZBGET_USER}
+      - NZBGET_PASSWORD=${NZBGET_PASS}
+    ports:
+      - 9452:9452
+    networks: 
+      br:
+        ipv4_address: 172.20.1.15
+    restart: unless-stopped
+    depends_on:
+      - nzbget
+    
 
   radarr-exporter:
     image: ghcr.io/onedr0p/exportarr
@@ -80,7 +97,7 @@ services:
       - 9708:9708
     networks: 
       br:
-        ipv4_address: 172.20.1.6
+        ipv4_address: 172.20.1.16
     restart: unless-stopped
     depends_on:
       - radarr
@@ -97,7 +114,7 @@ services:
       - 9709:9709
     networks: 
       br:
-        ipv4_address: 172.20.1.7
+        ipv4_address: 172.20.1.17
     restart: unless-stopped
     depends_on:
       - sonarr
