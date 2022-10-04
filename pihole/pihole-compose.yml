@@ -12,8 +12,8 @@ services:
       - TUNNEL_DNS_ADDRESS=0.0.0.0
     command: proxy-dns
     networks:
-      internal:
-        ipv4_address: 172.30.9.2
+      br:
+        ipv4_address: 172.20.1.1
     restart: unless-stopped
 
 
@@ -30,25 +30,20 @@ services:
     volumes:
       - '/volume1/docker/config/pihole/:/etc/pihole/'
       - '/volume1/docker/config/pihole/dnsmasq.d/:/etc/dnsmasq.d/'
-#    ports:
-#      - 53:53
-#      - 67:67
-#      - 80:80
     networks:
       default:
         ipv4_address: 192.168.1.2
-      internal:
-        ipv4_address: 172.30.9.3
+      br:
+        ipv4_address: 172.20.1.2
     restart: unless-stopped
     depends_on:
       - cloudflared
 
 
 networks:
-  internal:
-    ipam:
-      config:
-        - subnet: 172.30.9.0/29
+  br:
+    external: 
+      name: homelab_bridge_network
   default:
     external: 
       name: homelab_physical_network
