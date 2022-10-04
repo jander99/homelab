@@ -10,13 +10,12 @@ services:
       - TUNNEL_DNS_UPSTREAM=https://1.1.1.1/dns-query,https://1.0.0.1/dns-query,https://9.9.9.9/dns-query,https://149.112.112.9/dns-query
       - TUNNEL_DNS_PORT=5053
       - TUNNEL_DNS_ADDRESS=0.0.0.0
+      - TUNNEL_METRICS=0.0.0.0:33301
     command: proxy-dns
     networks:
       br:
         ipv4_address: 172.20.1.1
     restart: unless-stopped
-
-
 
   pihole:
     container_name: pihole
@@ -25,7 +24,7 @@ services:
       - TZ='America/New_York'
       - WEBPASSWORD=admin
       - ServerIP=192.168.1.2
-      - DNS1=172.30.9.2#5053
+      - DNS1=172.20.1.1#5053
       - DNS2=no
     volumes:
       - '/volume1/docker/config/pihole/:/etc/pihole/'
@@ -38,7 +37,6 @@ services:
     restart: unless-stopped
     depends_on:
       - cloudflared
-
 
 networks:
   br:
