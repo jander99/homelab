@@ -38,6 +38,21 @@ services:
     depends_on:
       - cloudflared
 
+  pihole-exporter:
+    container_name: pihole-exporter
+    image: ekofr/pihole-exporter
+    environment: 
+      - TZ='America/New_York'
+      - PIHOLE_HOSTNAME=172.20.1.2
+      - PIHOLE_PASSWORD=admin
+      - PORT=33302
+    network_mode: homelab_bridge_network
+    restart: unless-stopped
+    depends_on:
+      - pihole
+
+        
+
 networks:
   br:
     external: 
