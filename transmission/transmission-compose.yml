@@ -2,7 +2,7 @@ version: "3.8"
 
 services:
   transmission-openvpn:
-    image: haugene/transmission-openvpn:dev
+    image: haugene/transmission-openvpn
     container_name: transmission
     hostname: transmission
     cap_add:
