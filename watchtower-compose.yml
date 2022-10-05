@@ -14,6 +14,8 @@ services:
       - WATCHTOWER_HTTP_API_METRICS=true
     volumes:
       - /var/run/docker.sock:/var/run/docker.sock
+    ports: 
+      - 8080:8080
     network_mode: homelab_bridge_network
     restart: unless-stopped
 

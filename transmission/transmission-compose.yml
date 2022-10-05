@@ -18,4 +18,5 @@ services:
       - /volume1/data/torrents:/data
     ports:
       - 9091:9091
+    network_mode: homelab_bridge_network
     restart: unless-stopped
