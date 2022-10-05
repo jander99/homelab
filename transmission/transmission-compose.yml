@@ -8,6 +8,8 @@ services:
       - NET_ADMIN
     environment:
       - TZ=America/New_York
+      - PUID=1027
+      - PGID=100
       - OPENVPN_PROVIDER=NORDVPN
       - OPENVPN_USERNAME=${NORDVPN_USER}
       - OPENVPN_PASSWORD=${NORDVPN_PASS}
