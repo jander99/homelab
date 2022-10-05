@@ -4,6 +4,7 @@ services:
   transmission-openvpn:
     image: haugene/transmission-openvpn
     container_name: transmission
+    hostname: transmission
     cap_add:
       - NET_ADMIN
     environment:
@@ -28,7 +29,7 @@ services:
     container_name: transmission-exporter
     environment: 
       - TZ=America/New_York
-      - TRANSMISSION_ADDR: http://transmission-openvpn:9091
+      - TRANSMISSION_ADDR=http://transmission:9091
     links:
     - transmission-openvpn
     ports:
