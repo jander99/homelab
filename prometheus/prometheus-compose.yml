@@ -5,6 +5,8 @@ services:
     image: prom/prometheus
     container_name: prometheus
     hostname: prometheus
+    ports:
+      - 9090:9090
     environment:
       - TZ=America/New_York
     user: 1027:100
