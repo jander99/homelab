@@ -1,0 +1,15 @@
+version: '3.8' 
+
+services:
+  prometheus: 
+    image: prom/prometheus
+    container-name: prometheus
+    hostname: prometheus
+    environment:
+      - TZ=America/New_York
+    volumes:
+      - /volume1/docker/homelab/prometheus/prometheus.yml:/etc/prometheus/prometheus.yml
+      - /volume1/docker/homelab/prometheus/alerts.yml:/etc/prometheus/alerts.yml
+      - /volume1/docker/config/prometheus:/etc/prometheus
+      - /volume/data/prometeheus:/prometheus
+    command: --web.enable-lifecycle --config.file=/etc/prometheus/prometheus.yml
