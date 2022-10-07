@@ -3,7 +3,7 @@ global:
   scrape_timeout: 10s
 
 rule_files:
-  - alert.yml
+  - alerts.yml
 
 scrape_configs:
   - job_name: services
