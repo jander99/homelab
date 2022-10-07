@@ -12,4 +12,6 @@ services:
       - /volume1/docker/homelab/prometheus/alerts.yml:/etc/prometheus/alerts.yml
       - /volume1/docker/config/prometheus:/etc/prometheus
       - /volume/data/prometeheus:/prometheus
+    network_mode: homelab_bridge_network
     command: --web.enable-lifecycle --config.file=/etc/prometheus/prometheus.yml
+    restart: unless-stopped
