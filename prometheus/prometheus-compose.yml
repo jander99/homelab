@@ -7,6 +7,8 @@ services:
     hostname: prometheus
     environment:
       - TZ=America/New_York
+      - PUID=1027
+      - PGID=100
     volumes:
       - /volume1/docker/config/prometheus:/etc/prometheus
       - /volume1/docker/homelab/prometheus/prometheus.yml:/etc/prometheus/prometheus.yml
