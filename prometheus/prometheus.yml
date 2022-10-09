@@ -10,7 +10,7 @@ scrape_configs:
     metrics_path: /metrics
     static_configs:
       - targets:
-          - 'prometheus:9090'
+          - 'localhost:9090'
 
 
   - job_name: synology
