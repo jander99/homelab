@@ -17,3 +17,4 @@ services:
       - /volume1/data/prometheus:/prometheus
     network_mode: homelab_bridge_network
     command: --web.enable-lifecycle --config.file=/etc/prometheus/prometheus.yml
+    restart: unless-stopped
