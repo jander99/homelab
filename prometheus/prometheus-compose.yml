@@ -1,7 +1,7 @@
-version: '3.8' 
+version: "3.8"
 
 services:
-  prometheus: 
+  prometheus:
     image: prom/prometheus
     container_name: prometheus
     hostname: prometheus
@@ -23,29 +23,28 @@ services:
     command: --web.enable-lifecycle --config.file=/etc/prometheus/prometheus.yml
     restart: unless-stopped
 
- node-exporter:
-    privileged: true
-    image: prom/node-exporter
-    container_name: syno_node_exporter
-    ports:
-      - 9100:9100
-    volumes:
-      - /proc:/host/proc:ro
-      - /sys:/host/sys:ro
-      - /:/rootfs:ro
-    network_mode: homelab_bridge_network
-    command: 
-      - "--path.procfs=/host/proc"
-      - "--path.sysfs=/host/sys"
-      - "--collector.filesystem.ignored-mount-points"
-      - "^/(rootfs/)?(dev|etc|host|proc|run|sys|volume1)($$|/)"
-    restart: unless-stopped
-
+node-exporter:
+  privileged: true
+  image: prom/node-exporter
+  container_name: syno_node_exporter
+  ports:
+    - 9100:9100
+  volumes:
+    - /proc:/host/proc:ro
+    - /sys:/host/sys:ro
+    - /:/rootfs:ro
+  network_mode: homelab_bridge_network
+  command:
+    - "--path.procfs=/host/proc"
+    - "--path.sysfs=/host/sys"
+    - "--collector.filesystem.ignored-mount-points"
+    - "^/(rootfs/)?(dev|etc|host|proc|run|sys|volume1)($$|/)"
+  restart: unless-stopped
 
 networks:
   br:
-    external: 
+    external:
       name: homelab_bridge_network
   default:
-    external: 
+    external:
       name: homelab_physical_network
