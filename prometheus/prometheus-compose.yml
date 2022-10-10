@@ -30,3 +30,6 @@ networks:
   default:
     external: 
       name: homelab_physical_network
+  host:
+    external:
+      name: host
