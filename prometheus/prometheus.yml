@@ -12,7 +12,6 @@ scrape_configs:
       - targets:
           - 'prometheus:9090'
 
-
   - job_name: synology
     metrics_path: /metrics
     static_configs:
@@ -48,3 +47,10 @@ scrape_configs:
     static_configs:
       - targets:
         - 'pihole-exporter:33302'
+  
+  - job_name: watchtower
+    metrics_path: /v1/metrics
+    bearer_token: 45e58d1b-a7ab-4b8c-aeaa-9986060a7138
+    static_configs:
+      - targets:
+        - 'watchtower:8080'
