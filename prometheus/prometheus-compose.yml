@@ -49,7 +49,7 @@ services:
     user: 1027:100
     volumes:
       - /volume1/docker/homelab/prometheus/snmp_exporter:/etc/snmp_exporter/
-    network_mode: homelab_bridge_network
+    network_mode: host
     command:
       - "--config.file=/etc/snmp_exporter/snmp.yml"
     restart: unless-stopped
