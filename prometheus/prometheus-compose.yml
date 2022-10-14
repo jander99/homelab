@@ -41,6 +41,19 @@ services:
       - "^/(rootfs/)?(dev|etc|host|proc|run|sys|volume1)($$|/)"
     restart: unless-stopped
 
+  snmp-exporter:
+    image: prom/snmp-exporter
+    container_name: snmp-exporter
+    ports:
+      - 9116:9116
+    volumes:
+      - /volume1/docker/homelab/prometheus/snmp_exporter:/etc/snmp_exporter/
+      - /volume1/docker/homelab/prometheus/snmp_exporter:/etc/snmp_exporter/snmp.yml
+    network_mode: homelab_bridge_network
+    command:
+      - "--config.file=/etc/snmp_exporter/snmp.yml"
+    restart: unless-stopped
+
 networks:
   br:
     external:
