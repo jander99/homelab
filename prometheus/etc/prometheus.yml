@@ -22,7 +22,7 @@ scrape_configs:
     metrics_path: /snmp
     static_configs:
       - targets:
-        - '192.168.1.20'
+        - 'snmp-exporter'
     params:
       module: [synology]
     relabel_configs:
