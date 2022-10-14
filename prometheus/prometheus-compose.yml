@@ -25,8 +25,6 @@ services:
     privileged: true
     image: prom/node-exporter
     container_name: syno_node_exporter
-    ports:
-      - 9100:9100
     volumes:
       - /proc:/host/proc:ro
       - /sys:/host/sys:ro
@@ -39,20 +37,20 @@ services:
       - "^/(rootfs/)?(dev|etc|host|proc|run|sys|volume1)($$|/)"
     restart: unless-stopped
 
-  snmp-exporter:
-    image: prom/snmp-exporter
-    container_name: snmp-exporter
-    ports:
-      - 9116:9116
-    environment:
-      - TZ=America/New_York
-    user: 1027:100
-    volumes:
-      - /volume1/docker/homelab/prometheus/snmp_exporter:/etc/snmp_exporter/
-    network_mode: host
-    command:
-      - "--config.file=/etc/snmp_exporter/snmp.yml"
-    restart: unless-stopped
+  # snmp-exporter:
+  #   image: prom/snmp-exporter
+  #   container_name: snmp-exporter
+  #   ports:
+  #     - 9116:9116
+  #   environment:
+  #     - TZ=America/New_York
+  #   user: 1027:100
+  #   volumes:
+  #     - /volume1/docker/homelab/prometheus/snmp_exporter:/etc/snmp_exporter/
+  #   network_mode: host
+  #   command:
+  #     - "--config.file=/etc/snmp_exporter/snmp.yml"
+  #   restart: unless-stopped
 
 networks:
   br:
