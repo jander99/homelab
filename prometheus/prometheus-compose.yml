@@ -11,9 +11,7 @@ services:
       - TZ=America/New_York
     user: 1027:100
     volumes:
-      - /volume1/docker/config/prometheus:/etc/prometheus
-      - /volume1/docker/homelab/prometheus/prometheus.yml:/etc/prometheus/prometheus.yml
-      - /volume1/docker/homelab/prometheus/alerts.yml:/etc/prometheus/alerts.yml
+      - /volume1/docker/homelab/prometheus/etc:/etc/prometheus
       - /volume1/data/prometheus:/prometheus
     networks:
       default:
