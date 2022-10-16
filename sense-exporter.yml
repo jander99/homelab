@@ -1,0 +1,18 @@
+version: '3.8'
+
+services: 
+  sense-exporter: 
+    image: ejsuncy/sense_energy_prometheus_exporter:latest
+    container_name: sense-exporter
+    hostname: sense-exporter
+    ports: 
+      - 9993:9993
+    environment:
+      - TZ=America/New_York
+      - EXPORTER_LOG_LEVEL=INFO
+      - SENSE_ACCOUNT_NAME_1=Whiteoak
+      - SENSE_ACCOUNT_USERNAME_1=${SENSE_ACCOUNT_USERNAME_1}
+      - SENSE_ACCOUNT_PASSWORD_1=${SENSE_ACCOUNT_PASSWORD_1}
+    user: 1027:100
+    network_mode: homelab_bridge_network
+    restart: unless-stopped
