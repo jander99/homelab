@@ -13,6 +13,8 @@ services:
       - SENSE_ACCOUNT_NAME_1=Whiteoak
       - SENSE_ACCOUNT_USERNAME_1=${SENSE_ACCOUNT_USERNAME_1}
       - SENSE_ACCOUNT_PASSWORD_1=${SENSE_ACCOUNT_PASSWORD_1}
+    volumes:
+      - ./config.yaml:/etc/sense_energy_prometheus_exporter/config.yaml
     user: 1027:100
     network_mode: homelab_bridge_network
     restart: unless-stopped
