@@ -71,3 +71,9 @@ scrape_configs:
     static_configs:
       - targets:
         - 'watchtower:8080'
+  
+  - job_name: sense
+    metrics_path: /
+    static_configs:
+      - targets:
+        - 'sense-exporter:9993'
