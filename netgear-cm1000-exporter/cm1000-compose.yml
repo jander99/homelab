@@ -1,0 +1,19 @@
+version: "3.8"
+
+services:
+  cm1000-exporter:
+    image: hsnodgrass3/prom_cm1000_exporter
+    container_name: cm1000-exporter
+    hostname: cm1000-exporter
+    ports:
+      - 9527:9527
+    environment:
+      - TZ=America/New_York
+      - PCM_modem_ip=192.168.100.1
+      - PCM_username=admin
+      - PCM_password=${CM1000_PASSWORD}
+      - PPE_export_port=9527
+      - PPE_interval=10
+    user: 1027:100
+    network_mode: homelab_bridge_network
+    restart: unless-stopped
