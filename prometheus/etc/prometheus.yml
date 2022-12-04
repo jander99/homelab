@@ -77,3 +77,9 @@ scrape_configs:
     static_configs:
       - targets:
         - 'sense-exporter:9993'
+        
+  - job_name: cm1000
+    metrics_path: /
+    static_configs:
+      - targets:
+        - 'cm1000-exporter:9527'
