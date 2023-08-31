@@ -138,7 +138,7 @@ services:
       - 9696:9696
     networks:
       br:
-        ipv1_address: 172.20.0.18
+        ipv4_address: 172.20.0.18
     restart: unless-stopped
     # healthcheck:
     #   test: []
