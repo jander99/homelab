@@ -122,6 +122,30 @@ services:
     depends_on:
       - sonarr
 
+
+
+  prowlarr:
+    image: linuxserver/prowlarr:latest
+    container_name: prowlarr
+    environment:
+      - PUID=1027
+      - PGID=100
+      - TZ=America/New_York
+    volumes:
+      - /volume1/data:/data
+      - /volume1/docker/config/prowlarr:/config
+    ports:
+      - 9696:9696
+    networks:
+      br:
+        ipv1_address: 172.20.0.18
+    restart: unless-stopped
+    # healthcheck:
+    #   test: []
+    #   interval: 30s
+    #   timeout: 30s
+    #   retries: 5
+
   
 
 networks:
