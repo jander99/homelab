@@ -2,7 +2,7 @@ version: "3.8"
 
 services:
   transmission-openvpn:
-    image: haugene/transmission-openvpn:4.3.2
+    image: haugene/transmission-openvpn:4.1
     container_name: transmission
     hostname: transmission
     cap_add:
@@ -17,7 +17,6 @@ services:
       - LOCAL_NETWORK=192.168.1.0/24,172.20.0.0/16
       - NORDVPN_COUNTRY=US
       - NORDVPN_CATEGORY=P2P
-      - NORDVPN_PROTCOL=tcp
       - CREATE_TUN_DEVICE=true
     volumes:
       - /volume1/data/torrents:/data
