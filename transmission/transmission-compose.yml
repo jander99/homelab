@@ -17,6 +17,7 @@ services:
       - LOCAL_NETWORK=192.168.1.0/24,172.20.0.0/16
       - NORDVPN_COUNTRY=US
       - NORDVPN_CATEGORY=P2P
+      - NORDVPN_PROTCOL=tcp
     volumes:
       - /volume1/data/torrents:/data
       - /volume1/docker/config/transmission:/config
@@ -25,20 +26,20 @@ services:
     network_mode: homelab_bridge_network
     restart: unless-stopped
 
-  transmission-exporter:
-    image: metalmatze/transmission-exporter
-    container_name: transmission-exporter
-    environment: 
-      - TZ=America/New_York
-      - TRANSMISSION_ADDR=http://transmission:9091
-    links:
-    - transmission-openvpn
-    ports:
-      - 19091:19091
-    network_mode: homelab_bridge_network
-    restart: unless-stopped
-    depends_on:
-      - transmission-openvpn
+  # transmission-exporter:
+  #   image: metalmatze/transmission-exporter
+  #   container_name: transmission-exporter
+  #   environment: 
+  #     - TZ=America/New_York
+  #     - TRANSMISSION_ADDR=http://transmission:9091
+  #   links:
+  #   - transmission-openvpn
+  #   ports:
+  #     - 19091:19091
+  #   network_mode: homelab_bridge_network
+  #   restart: unless-stopped
+  #   depends_on:
+  #     - transmission-openvpn
     
 # Notes
 # 
