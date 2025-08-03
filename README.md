@@ -1,59 +1,121 @@
-# My Homelab Setup #
+# Homelab Infrastructure
 
-This repository will house the compose files and scripts that I use to build my Homelab along with an export of my current network map.
+This repository manages both Docker-based services and a K3s Kubernetes cluster for my homelab environment. The infrastructure includes monitoring, media automation, networking services, and is transitioning to a GitOps-managed Kubernetes setup.
 
-## Directory Structure ## 
+## Architecture Overview
 
-1. ./\<container-name>/docker-compose.yml - The docker compose file used by the script to run the container. 
-1. ./\<container-name>/run.sh - Shell script to load any envvars, check any dependencies, pull, and execute the container. 
+### Current Setup
+- **Docker Services**: Legacy services running on Docker with macvlan networking
+- **K3s Cluster**: 3-node HA Kubernetes cluster with Longhorn storage and Flux CD GitOps
+- **Monitoring**: Comprehensive observability with Prometheus, Grafana, and custom exporters
+- **Network**: 192.168.1.0/24 physical network with bridge networking for containers
 
-### The `secrets` directory ###
+### Repository Structure
 
-It's a secret. 
+```
+homelab/
+├── docker-services/           # Docker Compose services
+│   ├── media/                # Media automation stack (Sonarr, Radarr, etc.)
+│   ├── prometheus/           # Monitoring and metrics collection
+│   ├── grafana/              # Dashboards and visualization
+│   ├── pihole/               # DNS ad-blocking
+│   ├── transmission/         # BitTorrent client
+│   ├── portainer/            # Docker management UI
+│   ├── watchtower/           # Automated container updates
+│   ├── sense-exporter/       # Energy monitoring metrics
+│   └── netgear-cm1000-exporter/ # Modem metrics
+├── k3s/                      # Kubernetes cluster configuration
+├── scripts/                  # Infrastructure automation
+└── k3s.md                   # Detailed K3s cluster documentation
+```
 
-## Local-Network Containers ##  
-These Docker containers will run on the local network, i.e. same network as the host(s) (192.168.1.x)  
-Use of the macvlan driver is required to allow Docker to assign MAC addresses on the host's interface in the Local network and therefore separate IP addresses. The amount of ports required for some of the apps will eventually cause a collision, for instance 80, 8080, 443, etc so we prefer to assign the containers requiring emulation of the Local network an IP address on the same subnet as the rest of the physical devices. 
+## K3s Kubernetes Cluster
 
-### Pihole ###  
-![Docker Stars](https://img.shields.io/docker/stars/pihole/pihole)  
-  
-Project  
-![Docker Image Version (tag latest semver)](https://img.shields.io/docker/v/pihole/pihole/v4.4)  
-Latest  
-![Docker Image Version (latest semver)](https://img.shields.io/docker/v/pihole/pihole?sort=semver)
+### Quick Overview
+- **Nodes**: 3x Dell Optiplex (192.168.1.40-42)
+- **Storage**: Longhorn distributed storage with 3-way replication
+- **GitOps**: Flux CD v2 with CDK8s TypeScript manifests  
+- **Monitoring**: Prometheus + Grafana + Loki stack
+- **Networking**: Nginx Ingress with Let's Encrypt certificates
 
+See [k3s.md](k3s.md) for comprehensive documentation on cluster architecture, deployment, and operations.
 
-Pihole is a DNS server that can be used to block advertiser domain names. Browsers, apps, and devices simple never receive routing information about the domain names in the pihole list by sending the DNS queries into a blackhole. Originally built to run on a Raspberry Pi, a docker image has been created to allow users to run it in a virtual environment. 
+## Docker Services
 
-### Unifi ###
-![Docker Stars](https://img.shields.io/docker/stars/jacobalberty/unifi)  
-  
-Project  
-![Docker Image Version (tag latest semver)](https://img.shields.io/docker/v/jacobalberty/unifi/stable)  
-Latest  
-![Docker Image Version (tag latest semver)](https://img.shields.io/docker/v/jacobalberty/unifi?sort=semver)
+### Infrastructure Services
 
-The Unifi controller is an integral part of the Unifi network ecosystem, acting as the command and control center for Unifi routers, switches, and access points. 
+#### Prometheus Stack
+Comprehensive monitoring and alerting:
+- **Prometheus**: Metrics collection and storage
+- **Node Exporter**: System metrics from Synology NAS
+- **Custom Exporters**: Service-specific metrics
 
-### Træfik ###
-![Docker Stars](https://img.shields.io/docker/stars/_/traefik)  
-  
-Project  
-![Docker Image Version (tag latest semver)](https://img.shields.io/docker/v/_/traefik/v2.2.1)  
-Latest  
-![Docker Image Version (tag latest semver)](https://img.shields.io/docker/v/_/traefik?sort=semver)  
+#### Grafana
+Visualization and dashboards with Prometheus datasource integration.
 
-Traefik is a CNCF member project that is working to build a cloud native edge router in Go. For this project, Traefik will act an HTTP proxy and it's IP address will be the only one open to the outside world. All Host-Network Containers will proxy through Traefik. 
+#### Pi-hole
+Network-wide ad blocking DNS server running on physical network IP.
 
-## Docker-Network Containers ##  
-These Docker cotnainers will run on a Docker host network 
+### Media Automation
 
-## ENVVars ##
+Complete media management pipeline:
+- **Sonarr**: TV series management and automation
+- **Radarr**: Movie management and automation  
+- **Prowlarr**: Indexer management for *arr applications
+- **NZBGet**: Usenet downloader
+- **Transmission**: BitTorrent client
 
-The following environment variables should be set for each container
+Each service includes dedicated Prometheus exporters for monitoring.
 
-IP_ADDR  
-HOSTNAME  
+### Utility Services
+
+- **Portainer**: Docker container management interface
+- **Watchtower**: Automated container updates
+- **Sense Exporter**: Home energy monitoring integration
+- **Netgear CM1000 Exporter**: Cable modem metrics
+
+## Network Configuration
+
+### Docker Networks
+Services use dual networking approach:
+- **Physical Network**: `homelab_physical_network` (macvlan, 192.168.1.0/24)
+- **Bridge Network**: `homelab_bridge_network` (internal container communication)
+
+### Setup
+Initialize Docker networks:
+```bash
+./scripts/network-setup.sh
+```
+
+### Required Environment Variables
+- `IP_ADDR`: Host IP address
+- `HOSTNAME`: Host hostname  
+- Service-specific API keys and credentials
+
+## Getting Started
+
+### Docker Services
+Each service directory contains a `*-compose.yml` file:
+```bash
+cd <service-directory>
+docker-compose -f <service>-compose.yml up -d
+```
+
+### K3s Cluster
+Bootstrap the entire cluster:
+```bash
+cd k3s/bootstrap/ansible/
+ansible-playbook -i inventory/hosts site.yml
+```
+
+## Migration to K3s
+
+The repository supports gradual migration from Docker to Kubernetes with:
+- Data migration tooling
+- Service-by-service transition capability
+- Rollback procedures
+- Comprehensive testing workflows
+
+See [k3s.md](k3s.md) for detailed migration procedures and GitOps workflows.  
 
 
