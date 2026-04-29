@@ -1,0 +1,12 @@
+---
+# bootstrap-k3s.yml
+# Installs K3s on provisioned nodes.
+# Run AFTER provision-nodes.yml completes successfully.
+#
+# Usage: ansible-playbook -i inventory/hosts.yml playbooks/bootstrap-k3s.yml -v
+
+- name: Bootstrap K3s cluster
+  hosts: all
+  become: true
+  roles:
+    - k3s-server

@@ -1,0 +1,15 @@
+---
+# site.yml
+# Full cluster bootstrap — runs all phases in order.
+# Use for a fresh cluster bring-up from scratch.
+#
+# Usage: ansible-playbook -i inventory/hosts.yml playbooks/site.yml -v
+
+- name: Phase 1 — Provision nodes
+  ansible.builtin.import_playbook: provision-nodes.yml
+
+- name: Phase 2 — Bootstrap K3s
+  ansible.builtin.import_playbook: bootstrap-k3s.yml
+
+- name: Phase 3 — Bootstrap Flux CD
+  ansible.builtin.import_playbook: bootstrap-flux.yml

@@ -1,0 +1,40 @@
+---
+# Variables applied to all hosts
+
+timezone: America/New_York
+
+# Packages installed on every node
+common_packages:
+  - curl
+  - wget
+  - git
+  - vim
+  - htop
+  - unzip
+  - jq
+  - nfs-common      # required for NFS mounts (Longhorn, etc.)
+  - open-iscsi      # required for Longhorn distributed storage
+  - python3-pip
+
+# UFW rules — K3s required ports + SSH
+k3s_firewall_rules:
+  - { port: 22,    proto: tcp, comment: "SSH" }
+  - { port: 6443,  proto: tcp, comment: "Kubernetes API server" }
+  - { port: 10250, proto: tcp, comment: "Kubelet API" }
+  - { port: 8472,  proto: udp, comment: "Flannel VXLAN" }
+  - { port: 51820, proto: udp, comment: "Flannel WireGuard (optional)" }
+  - { port: 2379,  proto: tcp, comment: "etcd client requests" }
+  - { port: 2380,  proto: tcp, comment: "etcd peer communication" }
+
+# Kernel modules required for K3s / Kubernetes networking + Longhorn
+k3s_kernel_modules:
+  - br_netfilter
+  - overlay
+  - iscsi_tcp
+
+# sysctl settings required for Kubernetes networking
+k3s_sysctl_params:
+  net.bridge.bridge-nf-call-iptables: 1
+  net.bridge.bridge-nf-call-ip6tables: 1
+  net.ipv4.ip_forward: 1
+  vm.swappiness: 0

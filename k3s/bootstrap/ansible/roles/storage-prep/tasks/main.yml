@@ -1,0 +1,23 @@
+---
+# roles/storage-prep/tasks/main.yml
+# Prepares NVMe disk for Longhorn distributed storage.
+# Placeholder — expand when cluster is ready for Longhorn.
+
+- name: Check for storage device
+  ansible.builtin.stat:
+    path: "{{ k3s_storage_device }}"
+  register: storage_device_stat
+
+- name: Warn if storage device is not present
+  ansible.builtin.debug:
+    msg: >
+      WARNING: Storage device {{ k3s_storage_device }} not found on {{ inventory_hostname }}.
+      Longhorn will not function without a dedicated disk. Check host_vars for the correct device path.
+  when: not storage_device_stat.stat.exists
+
+- name: Ensure /var/lib/longhorn mount point exists
+  ansible.builtin.file:
+    path: /var/lib/longhorn
+    state: directory
+    mode: "0750"
+  when: storage_device_stat.stat.exists
