@@ -4,7 +4,6 @@
 k3s_kernel_modules:
   - br_netfilter
   - overlay
-  - iscsi_tcp
 
 k3s_sysctl_params:
   net.bridge.bridge-nf-call-iptables: 1

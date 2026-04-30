@@ -12,8 +12,6 @@ common_packages:
   - htop
   - unzip
   - jq
-  - nfs-common      # required for NFS mounts (Longhorn, etc.)
-  - open-iscsi      # required for Longhorn distributed storage
   - python3-pip
 
 # UFW rules — K3s required ports + SSH
@@ -26,11 +24,10 @@ k3s_firewall_rules:
   - { port: 2379,  proto: tcp, comment: "etcd client requests" }
   - { port: 2380,  proto: tcp, comment: "etcd peer communication" }
 
-# Kernel modules required for K3s / Kubernetes networking + Longhorn
+# Kernel modules required for K3s / Kubernetes networking
 k3s_kernel_modules:
   - br_netfilter
   - overlay
-  - iscsi_tcp
 
 # sysctl settings required for Kubernetes networking
 k3s_sysctl_params:

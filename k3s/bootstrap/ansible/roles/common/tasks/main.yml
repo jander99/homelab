@@ -43,8 +43,3 @@
     state: enabled
   notify: Reload UFW
 
-- name: Enable and start open-iscsi (required by Longhorn)
-  ansible.builtin.systemd:
-    name: iscsid
-    enabled: true
-    state: started
