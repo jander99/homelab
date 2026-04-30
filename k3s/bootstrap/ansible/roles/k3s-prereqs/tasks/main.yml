@@ -2,9 +2,14 @@
 # roles/k3s-prereqs/tasks/main.yml
 # Kubernetes prerequisites: swap, kernel modules, sysctl, container runtime deps
 
+- name: Check whether swap is currently enabled
+  ansible.builtin.command: cat /proc/swaps
+  register: k3s_active_swaps
+  changed_when: false
+
 - name: Disable swap immediately
   ansible.builtin.command: swapoff -a
-  changed_when: false
+  when: k3s_active_swaps.stdout_lines | length > 1
 
 - name: Remove swap entries from /etc/fstab
   ansible.builtin.replace:

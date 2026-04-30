@@ -18,7 +18,7 @@ homelab/
 ├── watchtower/         # Auto-update containers, daily 2am schedule
 ├── sense-exporter/     # Sense home energy monitor Prometheus exporter
 ├── netgear-cm1000-exporter/  # Netgear CM1000 cable modem exporter
-├── k3s/                # K3s DOCUMENTATION ONLY — no manifests implemented
+├── k3s/                # Ansible bootstrap initialized; K3s/Flux stubs only
 ├── scripts/            # network-setup.sh: creates macvlan Docker network
 ├── CLAUDE.md           # AI agent instructions
 └── README.md
@@ -59,7 +59,7 @@ Two external Docker networks (must exist before services start):
 - **Do not** use standard `docker-compose.yml` naming — breaks the `<service>-compose.yml` convention.
 - **Do not** hardcode secrets in compose files — use `${VAR}` referencing `.env`.
 - **Do not** use host networking or named volumes — bind mounts to `/volume1/` only.
-- **Do not** assume K3s infrastructure exists — `k3s/` is plans, not code.
+- **Do not** assume K3s cluster exists — `k3s/bootstrap/ansible/` provisions OS; K3s is not yet installed.
 - **snmp.yml is auto-generated** — do not hand-edit it (`WARNING: This file was auto-generated`).
 - **Typo in watchtower**: `WATHCTOWER_REVIVE_STOPPED` (misspelled) — do not "fix" it, it may break things.
 
@@ -85,7 +85,7 @@ docker-compose -f prometheus-compose.yml up -d
 ```
 
 ## NOTES
-- **K3s docs describe a future state**: `k3s/BOOTSTRAP.md` (805 lines) and `k3s.md` detail Ansible + Flux CD + CDK8s plans. No Ansible playbooks, Flux configs, or TypeScript CDK8s code exist in this repo.
+- **K3s partially initialized**: `k3s/bootstrap/ansible/` has Ansible for OS provisioning; `provision-nodes.yml` is runnable. `bootstrap-k3s.yml` and `bootstrap-flux.yml` are stubs — K3s server role, Flux configs, and CDK8s TypeScript are not yet created.
 - **Prowlarr healthcheck is commented out** — its health endpoint wasn't stable.
 - **SNMP scrape is commented out** in `prometheus-compose.yml` — the config exists but the job is disabled.
 - **Nginx proxy config** (`prometheus/syno-prom-proxy.conf`) is co-located with Prometheus, not in a separate nginx service.
