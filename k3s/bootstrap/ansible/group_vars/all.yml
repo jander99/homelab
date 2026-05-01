@@ -5,6 +5,8 @@ timezone: America/New_York
 
 # Packages installed on every node
 common_packages:
+  - python3
+  - python3-pip
   - curl
   - wget
   - git
@@ -12,7 +14,6 @@ common_packages:
   - htop
   - unzip
   - jq
-  - python3-pip
 
 # UFW rules — K3s required ports + SSH
 k3s_firewall_rules:
