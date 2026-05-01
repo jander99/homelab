@@ -1,0 +1,147 @@
+---
+# roles/k3s-server/tasks/main.yml
+# Installs and configures K3s server on a node.
+#
+# Single-node (default): k3s_init_cluster: false — uses SQLite, no join needed.
+# First HA node:         k3s_init_cluster: true  — initializes embedded etcd.
+# Joining a cluster:     set k3s_server_url and k3s_token.
+
+- name: Validate required variables
+  ansible.builtin.assert:
+    that:
+      - k3s_version is defined
+      - k3s_version | length > 0
+    fail_msg: >-
+      k3s_version must be defined. Add it to group_vars/all.yml or pass it
+      via -e k3s_version=vX.Y.Z+k3sN on the command line.
+    quiet: true
+
+- name: Create K3s configuration directory
+  ansible.builtin.file:
+    path: "{{ k3s_config_dir }}"
+    state: directory
+    owner: root
+    group: root
+    mode: "0755"
+
+- name: Write K3s server configuration
+  ansible.builtin.copy:
+    dest: "{{ k3s_config_file }}"
+    content: |
+      # K3s server configuration — managed by Ansible, do not edit manually.
+      # Re-run bootstrap-k3s.yml to apply changes.
+
+      # Permit reading the kubeconfig without sudo
+      write-kubeconfig-mode: "0644"
+      {% if k3s_init_cluster %}
+
+      # Start cluster with embedded etcd (HA mode)
+      cluster-init: true
+      {% endif %}
+      {% if k3s_server_url | length > 0 %}
+
+      # Join an existing cluster
+      server: "{{ k3s_server_url }}"
+      {% endif %}
+      {% if k3s_token | length > 0 %}
+      token: "{{ k3s_token }}"
+      {% endif %}
+    owner: root
+    group: root
+    mode: "0600"
+  notify: Restart k3s
+
+- name: Download K3s install script
+  ansible.builtin.get_url:
+    url: "{{ k3s_install_script_url }}"
+    dest: /tmp/k3s-install.sh
+    mode: "0700"
+    force: true
+
+- name: Check whether K3s binary is already present
+  ansible.builtin.stat:
+    path: /usr/local/bin/k3s
+  register: k3s_binary
+
+- name: Check installed K3s version (if binary exists)
+  ansible.builtin.command: k3s --version
+  register: k3s_installed_version
+  changed_when: false
+  failed_when: false
+  when: k3s_binary.stat.exists
+
+- name: Install K3s
+  ansible.builtin.command:
+    cmd: /tmp/k3s-install.sh
+  environment:
+    INSTALL_K3S_VERSION: "{{ k3s_version }}"
+    INSTALL_K3S_SKIP_START: "true"
+  when: >
+    not k3s_binary.stat.exists or
+    (k3s_installed_version.stdout is defined and
+     k3s_version not in k3s_installed_version.stdout)
+  changed_when: true
+
+- name: Enable and start K3s service
+  ansible.builtin.systemd:
+    name: k3s
+    state: started
+    enabled: true
+    daemon_reload: true
+
+- name: Wait for K3s API server port to open
+  ansible.builtin.wait_for:
+    host: 127.0.0.1
+    port: 6443
+    delay: 10
+    timeout: 120
+    state: started
+
+- name: Wait for node to reach Ready state
+  ansible.builtin.command: k3s kubectl get nodes --no-headers
+  register: k3s_nodes
+  until: k3s_nodes.stdout is search('Ready')
+  retries: 12
+  delay: 10
+  changed_when: false
+
+- name: Read node token (needed to join additional nodes later)
+  ansible.builtin.slurp:
+    src: "{{ k3s_token_file }}"
+  register: k3s_node_token_raw
+
+- name: Display node token
+  ansible.builtin.debug:
+    msg: >-
+      K3s node token (save this to join more nodes later):
+      {{ k3s_node_token_raw.content | b64decode | trim }}
+
+- name: Ensure local kubeconfig directory exists
+  ansible.builtin.file:
+    path: "{{ k3s_kubeconfig_local_dir }}"
+    state: directory
+    mode: "0700"
+  delegate_to: localhost
+  become: false
+
+- name: Fetch kubeconfig from node to control machine
+  ansible.builtin.fetch:
+    src: /etc/rancher/k3s/k3s.yaml
+    dest: "{{ k3s_kubeconfig_local_file }}"
+    flat: true
+
+- name: Fix kubeconfig server address (replace loopback with node IP)
+  ansible.builtin.replace:
+    path: "{{ k3s_kubeconfig_local_file }}"
+    regexp: 'https://127\.0\.0\.1:6443'
+    replace: "https://{{ ansible_host }}:6443"
+  delegate_to: localhost
+  become: false
+
+- name: Show kubeconfig location
+  ansible.builtin.debug:
+    msg: >-
+      Kubeconfig written to {{ k3s_kubeconfig_local_file }}.
+      Use it with: KUBECONFIG={{ k3s_kubeconfig_local_file }} kubectl get nodes
+  delegate_to: localhost
+  become: false

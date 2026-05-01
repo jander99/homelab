@@ -37,3 +37,7 @@ k3s_sysctl_params:
   net.bridge.bridge-nf-call-ip6tables: 1
   net.ipv4.ip_forward: 1
   vm.swappiness: 0
+
+# K3s version installed on all nodes — pin to a specific release.
+# Find the latest: https://github.com/k3s-io/k3s/releases
+k3s_version: "v1.32.4+k3s1"
