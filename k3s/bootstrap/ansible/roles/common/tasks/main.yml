@@ -22,11 +22,26 @@
     update_cache: true
     upgrade: dist
     cache_valid_time: 3600
+  register: apt_upgrade_result
+
+- name: Check if reboot is required after package upgrade
+  ansible.builtin.stat:
+    path: /var/run/reboot-required
+  register: reboot_required_file
+
+- name: Reboot node if kernel was upgraded
+  ansible.builtin.reboot:
+    msg: "Rebooting to activate newly installed kernel"
+    reboot_timeout: 300
+    pre_reboot_delay: 5
+    post_reboot_delay: 30
+  when: reboot_required_file.stat.exists
 
 - name: Install common packages
   ansible.builtin.apt:
     name: "{{ common_packages }}"
     state: present
+
 - name: Configure passwordless sudo for k3s user
   ansible.builtin.copy:
     dest: /etc/sudoers.d/k3s-nopasswd
