@@ -14,6 +14,7 @@ common_packages:
   - htop
   - unzip
   - jq
+  - update-notifier-common
 
 # UFW rules — K3s required ports + SSH
 k3s_firewall_rules:
