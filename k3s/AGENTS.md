@@ -11,14 +11,14 @@ k3s/
 └── bootstrap/ansible/   # ✅ Initialized — OS provisioning for testbed (192.168.1.128)
     ├── ansible.cfg
     ├── inventory/hosts.yml      # Testbed node; add cluster nodes here
-    ├── group_vars/all.yml       # Common vars: packages, UFW rules, kernel modules
+    ├── inventory/group_vars/all.yml  # Common vars: packages, UFW rules, kernel modules
     ├── playbooks/
     │   ├── provision-nodes.yml  # OS hardening + K3s prereqs (runnable now)
     │   ├── bootstrap-k3s.yml    # K3s install stub (not yet runnable)
     │   ├── bootstrap-flux.yml   # Flux CD stub (not yet runnable)
     │   └── site.yml             # Full entrypoint (runs all phases)
     └── roles/
-        ├── common/              # apt upgrade, packages, timezone, UFW, passwordless sudo
+        ├── common/              # apt upgrade, packages, timezone, UFW, passwordless sudo; asserts vars non-empty
         └── k3s-prereqs/         # swap disable, kernel modules, sysctl
 ```
 
@@ -51,3 +51,4 @@ k3s/
 - **Testbed node** (i7-4770k) at 192.168.1.128 is the first node to provision. Re-IP to 192.168.1.4x before joining the cluster.
 - `provision-nodes.yml` is the only runnable playbook today — runs `common` + `k3s-prereqs` roles.
 - `bootstrap-k3s.yml` and `bootstrap-flux.yml` are stubs; K3s server role (`roles/k3s-server/`) does not yet exist.
+- `group_vars/` lives at `inventory/group_vars/all.yml` (not at the ansible root) — required for `ansible-playbook` variable loading to work correctly.
