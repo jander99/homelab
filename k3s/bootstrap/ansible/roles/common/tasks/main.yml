@@ -2,6 +2,21 @@
 # roles/common/tasks/main.yml
 # Base OS hardening and package management for all K3s nodes
 
+- name: Validate required variables are defined and non-empty
+  ansible.builtin.assert:
+    that:
+      - k3s_firewall_rules is defined
+      - k3s_firewall_rules | length > 0
+      - common_packages is defined
+      - common_packages | length > 0
+      - timezone is defined
+      - timezone | length > 0
+    fail_msg: >-
+      Required variables are missing or empty. Ensure you are running
+      ansible-playbook from k3s/bootstrap/ansible/ so that ansible.cfg
+      and group_vars/all.yml are picked up correctly.
+    quiet: true
+
 - name: Update apt cache and upgrade all packages
   ansible.builtin.apt:
     update_cache: true
