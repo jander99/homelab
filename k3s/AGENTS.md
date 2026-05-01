@@ -18,9 +18,8 @@ k3s/
     │   ├── bootstrap-flux.yml   # Flux CD stub (not yet runnable)
     │   └── site.yml             # Full entrypoint (runs all phases)
     └── roles/
-        ├── common/              # apt upgrade, packages, timezone, UFW, open-iscsi
-        ├── k3s-prereqs/         # swap disable, kernel modules, sysctl
-        └── storage-prep/        # Longhorn device check + /var/lib/longhorn
+        ├── common/              # apt upgrade, packages, timezone, UFW, passwordless sudo
+        └── k3s-prereqs/         # swap disable, kernel modules, sysctl
 ```
 
 ## PLANNED ARCHITECTURE (not yet created)

@@ -70,11 +70,12 @@ This applies the `common` and `k3s-prereqs` roles, which:
 ### Full bootstrap (not yet runnable)
 
 ```bash
-# Phase 2 and 3 are stubs — these will fail with a clear message.
+# Phase 1 runs successfully; Phase 2 (K3s install) and Phase 3 (Flux)
+# are stubs that will fail with clear messages until implemented.
 ansible-playbook -i inventory/hosts.yml playbooks/site.yml -v
 ```
 
-K3s install (`bootstrap-k3s.yml`) and Flux CD (`bootstrap-flux.yml`) require `roles/k3s-server/` which is not yet implemented.
+K3s install (`bootstrap-k3s.yml`) and Flux CD (`bootstrap-flux.yml`) are stubs that will fail with clear messages until their respective implementations are added.
 
 ---
 

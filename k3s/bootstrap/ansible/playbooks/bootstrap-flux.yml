@@ -14,6 +14,9 @@
     github_owner: jander99
     github_repo: homelab
   tasks:
-    - name: Placeholder — Flux CD bootstrap not yet implemented
-      ansible.builtin.debug:
-        msg: "Flux bootstrap steps go here. See k3s/BOOTSTRAP.md Phase 5."
+    - name: Fail until the Flux CD role is implemented
+      ansible.builtin.fail:
+        msg: >-
+          bootstrap-flux.yml is currently a stub. Flux CD bootstrap is not
+          implemented yet, so this playbook cannot run yet.
+          Implement Flux CD bootstrap before using this entrypoint.
