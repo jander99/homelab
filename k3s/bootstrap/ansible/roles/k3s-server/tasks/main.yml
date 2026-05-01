@@ -33,6 +33,22 @@
 
       # Permit reading the kubeconfig without sudo
       write-kubeconfig-mode: "0644"
+
+      # CNI backend — vxlan is the universal default; use host-gw for L2-only networks.
+      flannel-backend: "{{ k3s_flannel_backend }}"
+      {% if k3s_node_ip | length > 0 %}
+
+      # Pin cluster traffic to this IP (important on multi-NIC hosts)
+      node-ip: "{{ k3s_node_ip }}"
+      {% endif %}
+      {% if k3s_tls_san | length > 0 %}
+
+      # Extra TLS SANs (load balancer VIP, DNS alias, etc.)
+      tls-san:
+      {% for san in k3s_tls_san %}
+        - "{{ san }}"
+      {% endfor %}
+      {% endif %}
       {% if k3s_init_cluster %}
 
       # Start cluster with embedded etcd (HA mode)
