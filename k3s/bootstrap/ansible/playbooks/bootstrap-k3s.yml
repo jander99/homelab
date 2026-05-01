@@ -1,0 +1,17 @@
+---
+# bootstrap-k3s.yml
+# Installs K3s on provisioned nodes.
+# Run AFTER provision-nodes.yml completes successfully.
+#
+# Usage: ansible-playbook -i inventory/hosts.yml playbooks/bootstrap-k3s.yml -v
+
+- name: Bootstrap K3s cluster (stub — not yet runnable)
+  hosts: all
+  become: true
+  tasks:
+    - name: Fail until the k3s-server role is implemented
+      ansible.builtin.fail:
+        msg: >-
+          bootstrap-k3s.yml is currently a stub. The k3s-server role is not
+          present in this repository, so this playbook cannot run yet.
+          Implement roles/k3s-server/ before using this entrypoint.

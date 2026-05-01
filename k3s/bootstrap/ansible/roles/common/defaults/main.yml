@@ -1,0 +1,7 @@
+---
+# roles/common/defaults/main.yml
+# Override these in group_vars/all.yml or host_vars/
+
+timezone: America/New_York
+common_packages: []
+k3s_firewall_rules: []

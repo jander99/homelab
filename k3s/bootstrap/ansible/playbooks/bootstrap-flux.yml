@@ -1,0 +1,22 @@
+---
+# bootstrap-flux.yml
+# Installs Flux CD on a running K3s cluster.
+# Run AFTER bootstrap-k3s.yml completes successfully.
+#
+# Usage: ansible-playbook -i inventory/hosts.yml playbooks/bootstrap-flux.yml -v \
+#          -e github_token=$GITHUB_TOKEN
+
+- name: Bootstrap Flux CD
+  hosts: k3s_servers[0]  # Run only on first server (any server has cluster access)
+  become: false
+  vars:
+    github_token: "{{ lookup('env', 'GITHUB_TOKEN') }}"
+    github_owner: jander99
+    github_repo: homelab
+  tasks:
+    - name: Fail until the Flux CD role is implemented
+      ansible.builtin.fail:
+        msg: >-
+          bootstrap-flux.yml is currently a stub. Flux CD bootstrap is not
+          implemented yet, so this playbook cannot run yet.
+          Implement Flux CD bootstrap before using this entrypoint.

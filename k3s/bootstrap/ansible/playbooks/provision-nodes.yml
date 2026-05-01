@@ -1,0 +1,12 @@
+---
+# provision-nodes.yml
+# Prepares Ubuntu nodes for K3s: OS hardening, package management, K3s prerequisites
+#
+# Usage: ansible-playbook -i inventory/hosts.yml playbooks/provision-nodes.yml -v
+
+- name: Provision K3s nodes
+  hosts: all
+  become: true
+  roles:
+    - common
+    - k3s-prereqs

@@ -1,0 +1,44 @@
+---
+# roles/k3s-prereqs/tasks/main.yml
+# Kubernetes prerequisites: swap, kernel modules, sysctl, container runtime deps
+
+- name: Check whether swap is currently enabled
+  ansible.builtin.command: cat /proc/swaps
+  register: k3s_active_swaps
+  changed_when: false
+
+- name: Disable swap immediately
+  ansible.builtin.command: swapoff -a
+  when: k3s_active_swaps.stdout_lines | length > 1
+
+- name: Remove swap entries from /etc/fstab
+  ansible.builtin.replace:
+    path: /etc/fstab
+    regexp: '^([^#].*\s+swap\s+.*)$'
+    replace: '# \1'
+    backup: true
+
+- name: Persist required kernel modules via /etc/modules-load.d
+  ansible.builtin.copy:
+    dest: /etc/modules-load.d/k3s.conf
+    content: |
+      # Kernel modules required by K3s / Kubernetes / Longhorn
+      {% for mod in k3s_kernel_modules %}
+      {{ mod }}
+      {% endfor %}
+    mode: "0644"
+
+- name: Load kernel modules immediately
+  community.general.modprobe:
+    name: "{{ item }}"
+    state: present
+  loop: "{{ k3s_kernel_modules }}"
+
+- name: Configure sysctl parameters for K3s networking
+  ansible.posix.sysctl:
+    name: "{{ item.key }}"
+    value: "{{ item.value }}"
+    sysctl_file: /etc/sysctl.d/k3s.conf
+    reload: true
+    state: present
+  loop: "{{ k3s_sysctl_params | dict2items }}"
