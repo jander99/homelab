@@ -21,6 +21,7 @@ K3s is a lightweight Kubernetes distribution designed for production workloads i
   - Minimum 2GB RAM per node (4GB recommended)
   - Minimum 20GB disk space per node
   - 1 CPU core per node (2+ recommended)
+- **Testbed node** at 192.168.1.128 — single-node environment for testing changes before applying to the cluster
 
 ### Software Requirements
 - **Fresh Ubuntu Server installations** (latest version, fully updated)
@@ -234,11 +235,16 @@ ssh-copy-id -i ~/.ssh/k3s_cluster.pub k3s@192.168.1.41
 ssh-copy-id -i ~/.ssh/k3s_cluster.pub k3s@192.168.1.42
 # Enter k3s password when prompted
 
+# Copy public key to testbed node
+ssh-copy-id -i ~/.ssh/k3s_cluster.pub k3s@192.168.1.128
+# Enter k3s password when prompted
+
 # Test password-less SSH access
 ssh -i ~/.ssh/k3s_cluster k3s@192.168.1.40 'hostname'
 # Should output the hostname without prompting for password
 ssh -i ~/.ssh/k3s_cluster k3s@192.168.1.41 'hostname'
 ssh -i ~/.ssh/k3s_cluster k3s@192.168.1.42 'hostname'
+ssh -i ~/.ssh/k3s_cluster k3s@192.168.1.128 'hostname'
 ```
 
 ### Step 6: Configure SSH Client
@@ -274,6 +280,13 @@ Host k3s-worker2
     IdentityFile ~/.ssh/k3s_cluster
     StrictHostKeyChecking no
 
+Host testbed
+    HostName 192.168.1.128
+    User k3s
+    IdentityFile ~/.ssh/k3s_cluster
+    StrictHostKeyChecking no
+    UserKnownHostsFile /dev/null
+
 # Wildcard for all k3s nodes
 Host k3s-*
     UserKnownHostsFile /dev/null
@@ -296,6 +309,7 @@ chmod 600 ~/.ssh/config
 ssh k3s-master 'hostname'
 ssh k3s-worker1 'hostname'
 ssh k3s-worker2 'hostname'
+ssh testbed 'hostname'
 ```
 
 ## Phase 3: Ansible Configuration
