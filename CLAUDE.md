@@ -19,12 +19,14 @@ This is a homelab infrastructure repository managing both Docker services and a 
 - `/netgear-cm1000-exporter/` - Custom modem metrics exporter
 - `/sense-exporter/` - Home energy monitoring exporter
 
-**K3s Cluster** (Target Architecture):
+**K3s Cluster** (Planned Target Architecture):
 - 3-node HA cluster (192.168.1.40-42) with embedded etcd
-- Longhorn distributed storage with 3-way replication
-- Flux CD v2 for GitOps automation
-- CDK8s for TypeScript-based Kubernetes manifest generation
-- Comprehensive monitoring with Prometheus + Grafana + Loki
+- Flux CD v2 for GitOps automation rooted at `k3s/clusters/homelab/`
+- Nx + CDK8s for TypeScript-based manifest authoring and render orchestration
+- Manual platform and infrastructure manifests under `k3s/platform/` and `k3s/infrastructure/`
+- Rendered workload manifests committed under `k3s/applications/`
+- Monitoring remains centered on Prometheus + Grafana unless the repo later adopts additional tooling
+- Storage decisions kept vendor-neutral until a real CSI choice is needed
 
 ### Network Architecture
 
@@ -68,27 +70,33 @@ This creates the macvlan network for physical IP assignment to containers.
 **Bootstrap Process**:
 ```bash
 # Full cluster bootstrap (from k3s/bootstrap/ansible/)
-ansible-playbook -i inventory/hosts site.yml
+# Phase 1 and Phase 2 are runnable today; Phase 3 still stops at the Flux stub.
+ansible-playbook -i inventory/hosts.yml playbooks/site.yml
 
 # Individual components
-ansible-playbook -i inventory/hosts playbooks/provision-nodes.yml
-ansible-playbook -i inventory/hosts playbooks/bootstrap-k3s.yml
-ansible-playbook -i inventory/hosts playbooks/bootstrap-flux.yml
+ansible-playbook -i inventory/hosts.yml playbooks/provision-nodes.yml
+ansible-playbook -i inventory/hosts.yml playbooks/bootstrap-k3s.yml
+ansible-playbook -i inventory/hosts.yml playbooks/bootstrap-flux.yml
 ```
 
 **GitOps Workflow**:
-1. Commit changes to Git repository
-2. Flux CD automatically syncs changes (1m interval for GitRepository)
-3. Kustomizations handle infrastructure (10m), platform, and applications
+1. Change manual cluster manifests or CDK8s source in Git
+2. Run `nx run cdk8s:synth` to render workload YAML into `k3s/applications/`
+3. Commit both source and rendered output
+4. Flux CD syncs `k3s/clusters/homelab/`
+5. Kustomizations reconcile platform, infrastructure, then applications
 
 **CDK8s Development**:
 ```bash
-cd applications/cdk8s/
-# Generate manifests from TypeScript
-cdk8s synth
-# Commit generated manifests for Flux to deploy
-git add manifests/ && git commit -m "Update manifests"
+# From the repo root
+nx run cdk8s:synth
+nx run cdk8s:validate
+
+# Review rendered manifests before commit
+git diff -- k3s/applications
 ```
+
+Flux should never watch `applications/cdk8s/` directly; it should only reconcile the committed YAML under `k3s/`.
 
 ### Monitoring and Troubleshooting
 
@@ -101,13 +109,14 @@ flux get all -A
 flux reconcile source git flux-system
 ```
 
-**Longhorn Storage**:
-- Monitor volume health through Longhorn UI
-- Failed replicas trigger automatic rebuilds
-- Use CRDs for programmatic backup/restore operations
+**Storage Guidance**:
+- Keep shared manifests and constructs vendor-neutral
+- Only set `storageClassName` when a workload actually needs it
+- If a future CSI is adopted, isolate provider-specific config under `k3s/infrastructure/`
 
 **Common Issues**:
-- Volume degradation: Delete failed replicas to trigger rebuilds
+- Rendered manifest drift: Re-run `nx run cdk8s:synth` and review `git diff -- k3s/applications`
+- Kustomize build failures: Run `kustomize build k3s/clusters/homelab`
 - Node join failures: Check k3s service status and firewall rules
 - Flux sync issues: Check GitRepository and Kustomization status
 
@@ -117,7 +126,7 @@ The repository supports gradual migration from Docker to K3s:
 
 1. **Assessment**: Document existing Docker service configurations
 2. **Preparation**: Create K8s namespaces, PVCs, secrets, and networking
-3. **Data Migration**: Use Jobs to copy data from Docker volumes to Longhorn PVCs
+3. **Data Migration**: Use Jobs or one-off tooling to copy data from Docker volumes into the target PVCs or mounts required by the workload
 4. **Deployment**: Deploy K8s manifests with thorough testing
 5. **Cutover**: Stop Docker services and update routing
 
@@ -131,8 +140,10 @@ The repository supports gradual migration from Docker to K3s:
 
 ## Security Considerations
 
-- SOPS encryption with age keys for secrets management
-- Network policies enforce default deny ingress
-- RBAC limits developer access to read-only operations
-- Let's Encrypt certificates via cert-manager for TLS
-- Regular automated backups with Velero and Longhorn snapshots
+These are target-state controls for the planned GitOps cluster, not capabilities that already exist in the repo today:
+
+- SOPS + age is the planned secrets model once Flux bootstrap is implemented
+- Network policies should default to deny when cluster workloads start landing in K3s
+- RBAC should be introduced with the platform layer rather than assumed to exist already
+- cert-manager is the planned TLS automation layer when ingress moves to K3s
+- Backups should be defined once the cluster storage and recovery approach are real, whether that ends up being Velero or something provider-specific
