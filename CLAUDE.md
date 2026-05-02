@@ -47,7 +47,7 @@ This is a homelab infrastructure repository managing both Docker services and a 
 Each service follows the pattern:
 ```bash
 # Service directories contain *-compose.yml files
-cd <service-directory>
+cd docker/<service-directory>
 docker-compose -f <service>-compose.yml up -d
 ```
 
@@ -60,7 +60,7 @@ Environment variables required:
 
 Initialize Docker networks:
 ```bash
-./scripts/network-setup.sh
+./docker/scripts/network-setup.sh
 ```
 
 This creates the macvlan network for physical IP assignment to containers.

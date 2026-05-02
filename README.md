@@ -14,17 +14,18 @@ This repository manages Docker-based services on a Synology NAS and a single-nod
 
 ```
 homelab/
-├── media/                    # Media automation stack (Sonarr, Radarr, etc.)
-├── prometheus/               # Monitoring and metrics collection
-├── grafana/                  # Dashboards and visualization
-├── pihole/                   # DNS ad-blocking
-├── transmission/             # BitTorrent client
-├── portainer/                # Docker management UI
-├── watchtower/               # Automated container updates
-├── sense-exporter/           # Energy monitoring metrics
-├── netgear-cm1000-exporter/  # Modem metrics
+├── docker/                   # All Docker-based services
+│   ├── media/                # Media automation stack (Sonarr, Radarr, etc.)
+│   ├── prometheus/           # Monitoring and metrics collection
+│   ├── grafana/              # Dashboards and visualization
+│   ├── pihole/               # DNS ad-blocking
+│   ├── transmission/         # BitTorrent client
+│   ├── portainer/            # Docker management UI
+│   ├── watchtower/           # Automated container updates
+│   ├── sense-exporter/       # Energy monitoring metrics
+│   ├── netgear-cm1000-exporter/  # Modem metrics
+│   └── scripts/              # Docker network setup scripts
 ├── k3s/                      # Kubernetes cluster configuration and docs
-├── scripts/                  # Infrastructure automation
 └── README.md
 ```
 
@@ -90,7 +91,7 @@ Services use dual networking approach:
 ### Setup
 Initialize Docker networks:
 ```bash
-./scripts/network-setup.sh
+./docker/scripts/network-setup.sh
 ```
 
 ### Required Environment Variables
@@ -103,7 +104,7 @@ Initialize Docker networks:
 ### Docker Services
 Each service directory contains a `*-compose.yml` file:
 ```bash
-cd <service-directory>
+cd docker/<service-directory>
 docker-compose -f <service>-compose.yml up -d
 ```
 
