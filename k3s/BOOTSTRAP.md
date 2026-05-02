@@ -2,7 +2,7 @@
 
 This guide covers bootstrapping a single-node K3s cluster using Ansible, then optionally scaling to a multi-node HA setup.
 
-> **Current state**: Single-node K3s server on the testbed (`192.168.1.128`) with SQLite datastore. HA cluster, Longhorn, and Flux CD are future work — see [Part 2](#part-2-scaling-to-ha-future-state) for the upgrade path.
+> **Current state**: Single-node K3s server on the testbed (`192.168.1.128`) with SQLite datastore. HA cluster, Flux CD, and the CDK8s/Nx workflow are future work — see [Part 2](#part-2-scaling-to-ha-future-state) for the upgrade path.
 
 ---
 
@@ -178,7 +178,7 @@ k3s secrets-encrypt status
 You should see:
 - One `Ready` node (the testbed)
 - System pods running: `local-path-provisioner`, `coredns`, `metrics-server`, `kube-proxy`
-- No Longhorn or Flux pods (those are future work)
+- No Flux pods yet (GitOps is future work)
 
 ### Step 8: Use the Cluster
 
@@ -304,16 +304,16 @@ kubectl get pods -n kube-system -l component=etcd
 
 ### Future Phases
 
-These are not yet implemented and are listed here for planning purposes only:
+These are not yet implemented and are listed here for planning purposes only. Storage-provider decisions are intentionally deferred until workloads actually need them.
 
 | Phase | Component | Status |
 |-------|-----------|--------|
-| Flux CD | GitOps automation | Stub only (`bootstrap-flux.yml`) |
-| Longhorn | Distributed block storage | Not started |
+| Flux CD | GitOps cluster root and reconciliation | Stub only (`bootstrap-flux.yml`) |
 | Nginx Ingress | HTTP load balancer | Not started (Traefik is the default K3s ingress) |
 | Cert Manager | TLS certificate automation | Not started |
 | SOPS + age | Secret encryption in Git | Not started |
-| CDK8s | TypeScript-defined manifests | Not started |
+| Nx + CDK8s | TypeScript authoring and render pipeline | Not started |
+| Application manifests | Rendered output under `k3s/applications/` | Not started |
 | Velero | Backup/restore | Not started |
 
-Refer to `k3s/k3s.md` for the full target architecture.
+Refer to `k3s/k3s.md` for the full target architecture and concrete repo blueprint.
