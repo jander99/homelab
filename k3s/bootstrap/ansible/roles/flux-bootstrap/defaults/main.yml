@@ -6,14 +6,19 @@
 # Pinned version — check https://github.com/fluxcd/flux2/releases for updates.
 flux_cli_version: "2.3.0"
 
+# Optional SHA256 checksum for the flux CLI archive (without the 'sha256:' prefix).
+# Find at: https://github.com/fluxcd/flux2/releases/download/v{{ flux_cli_version }}/flux_{{ flux_cli_version }}_checksums.txt
+# Leave empty to skip verification (not recommended for production).
+flux_cli_checksum: ""
+
 # Directory where the flux binary is installed on the Ansible controller.
 flux_install_dir: "/usr/local/bin"
 
-# ─── GitHub repository settings ──────────────────────────────────────────────
-# These match the existing repository at github.com/jander99/homelab.
-flux_github_owner: "jander99"
-flux_github_repo: "homelab"
-flux_git_branch: "master"
+# GitHub repository settings ──────────────────────────────────────────────
+# Leaving these empty here prevents accidentally bootstrapping against the wrong repo when the role is reused.
+flux_github_owner: ""
+flux_github_repo: ""
+flux_git_branch: ""
 
 # Path inside the repo that flux bootstrap watches.
 # flux bootstrap github commits flux-system/ inside this directory.
@@ -37,3 +42,11 @@ age_key_file: "{{ lookup('env', 'HOME') }}/.kube/k3s-homelab-age.agekey"
 
 # Directory where age and age-keygen are installed on the Ansible controller.
 age_install_dir: "/usr/local/bin"
+
+# Pinned age version — check https://github.com/FiloSottile/age/releases for updates.
+age_version: "1.2.0"
+
+# Optional SHA256 checksum for the age archive (without the 'sha256:' prefix).
+# Find at: https://github.com/FiloSottile/age/releases/download/v{{ age_version }}/age-v{{ age_version }}-linux-amd64.tar.gz.sha256
+# Leave empty to skip verification (not recommended for production).
+age_checksum: ""
