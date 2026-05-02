@@ -12,7 +12,7 @@ flux_cli_version: "2.3.0"
 flux_cli_checksum: ""
 
 # Directory where the flux binary is installed on the Ansible controller.
-flux_install_dir: "/usr/local/bin"
+flux_install_dir: "{{ lookup('env', 'HOME') }}/.local/bin"
 
 # GitHub repository settings ──────────────────────────────────────────────
 # Leaving these empty here prevents accidentally bootstrapping against the wrong repo when the role is reused.
@@ -41,7 +41,7 @@ sops_secret_namespace: "flux-system"
 age_key_file: "{{ lookup('env', 'HOME') }}/.kube/k3s-homelab-age.agekey"
 
 # Directory where age and age-keygen are installed on the Ansible controller.
-age_install_dir: "/usr/local/bin"
+age_install_dir: "{{ lookup('env', 'HOME') }}/.local/bin"
 
 # Pinned age version — check https://github.com/FiloSottile/age/releases for updates.
 age_version: "1.2.0"

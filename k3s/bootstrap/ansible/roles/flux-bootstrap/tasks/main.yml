@@ -81,6 +81,14 @@
   delegate_to: localhost
   become: false
 
+- name: Ensure install directory exists on controller
+  ansible.builtin.file:
+    path: "{{ flux_install_dir }}"
+    state: directory
+    mode: "0755"
+  delegate_to: localhost
+  become: false
+
 - name: Download flux CLI archive
   ansible.builtin.get_url:
     url: "https://github.com/fluxcd/flux2/releases/download/v{{ flux_cli_version }}/flux_{{ flux_cli_version }}_linux_{{ flux_arch }}.tar.gz"
@@ -101,7 +109,7 @@
     mode: "0755"
   when: flux_needs_install | bool
   delegate_to: localhost
-  become: true
+  become: false
 
 - name: Remove flux CLI download archive
   ansible.builtin.file:
@@ -151,7 +159,7 @@
     - age-keygen
   when: age_check.rc != 0
   delegate_to: localhost
-  become: true
+  become: false
 
 - name: Remove age download artifacts
   ansible.builtin.file:
