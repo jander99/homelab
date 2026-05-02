@@ -14,19 +14,18 @@ This repository manages Docker-based services on a Synology NAS and a single-nod
 
 ```
 homelab/
-├── docker-services/           # Docker Compose services
-│   ├── media/                # Media automation stack (Sonarr, Radarr, etc.)
-│   ├── prometheus/           # Monitoring and metrics collection
-│   ├── grafana/              # Dashboards and visualization
-│   ├── pihole/               # DNS ad-blocking
-│   ├── transmission/         # BitTorrent client
-│   ├── portainer/            # Docker management UI
-│   ├── watchtower/           # Automated container updates
-│   ├── sense-exporter/       # Energy monitoring metrics
-│   └── netgear-cm1000-exporter/ # Modem metrics
-├── k3s/                      # Kubernetes cluster configuration
+├── media/                    # Media automation stack (Sonarr, Radarr, etc.)
+├── prometheus/               # Monitoring and metrics collection
+├── grafana/                  # Dashboards and visualization
+├── pihole/                   # DNS ad-blocking
+├── transmission/             # BitTorrent client
+├── portainer/                # Docker management UI
+├── watchtower/               # Automated container updates
+├── sense-exporter/           # Energy monitoring metrics
+├── netgear-cm1000-exporter/  # Modem metrics
+├── k3s/                      # Kubernetes cluster configuration and docs
 ├── scripts/                  # Infrastructure automation
-└── k3s.md                   # Detailed K3s cluster documentation
+└── README.md
 ```
 
 ## K3s Kubernetes Cluster
@@ -35,15 +34,17 @@ homelab/
 - **Node**: Single testbed machine at 192.168.1.128
 - **Datastore**: SQLite (default for single node)
 - **GitOps**: Not yet implemented (Flux CD stub exists)
-- **Storage**: Local-path provisioner (Longhorn planned)
+- **Storage**: Local-path provisioner only; future CSI choice is intentionally undecided
 - **Networking**: Flannel VXLAN CNI
 - **Ingress**: Traefik (default K3s ingress; Nginx planned)
 
 ### Planned (see `k3s/BOOTSTRAP.md` Part 2 and `k3s/k3s.md`)
 - 3-node HA with embedded etcd
-- Longhorn distributed storage
-- Flux CD v2 GitOps
+- Flux CD v2 GitOps rooted at `k3s/clusters/homelab/`
+- Nx + CDK8s workflow that renders workload manifests into `k3s/applications/`
 - Nginx Ingress + cert-manager
+
+See `k3s/k3s.md` for the concrete repo blueprint and Flux reconciliation graph.
 
 ## Docker Services
 
@@ -65,7 +66,7 @@ Network-wide ad blocking DNS server running on physical network IP.
 
 Complete media management pipeline:
 - **Sonarr**: TV series management and automation
-- **Radarr**: Movie management and automation  
+- **Radarr**: Movie management and automation
 - **Prowlarr**: Indexer management for *arr applications
 - **NZBGet**: Usenet downloader
 - **Transmission**: BitTorrent client
@@ -94,7 +95,7 @@ Initialize Docker networks:
 
 ### Required Environment Variables
 - `IP_ADDR`: Host IP address
-- `HOSTNAME`: Host hostname  
+- `HOSTNAME`: Host hostname
 - Service-specific API keys and credentials
 
 ## Getting Started
@@ -107,9 +108,14 @@ docker-compose -f <service>-compose.yml up -d
 ```
 
 ### K3s Cluster
-Bootstrap the single-node cluster:
+Bootstrap the single-node cluster (run in order):
 ```bash
 cd k3s/bootstrap/ansible/
+
+# Step 1: OS hardening and K3s prerequisites (required first)
+ansible-playbook -i inventory/hosts.yml playbooks/provision-nodes.yml
+
+# Step 2: Install K3s server
 ansible-playbook -i inventory/hosts.yml playbooks/bootstrap-k3s.yml
 ```
 

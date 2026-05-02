@@ -1,190 +1,204 @@
-> **Current State (2026-05-02)**: This document describes the target architecture, not the current deployment. Today, only a single-node K3s server is running on the testbed (`192.168.1.128`) using SQLite as the datastore. Longhorn, Flux CD, CDK8s, Nginx Ingress, and embedded etcd HA are all future work. See `BOOTSTRAP.md` Part 1 for what is actually deployed, and Part 2 for the HA upgrade path.
+> **Current State (2026-05-02)**: This document describes the target GitOps architecture, not the current deployment. Today only a single-node K3s server is running on the testbed (`192.168.1.128`) using SQLite as the datastore. Flux CD, the Nx workspace, the CDK8s authoring layer, and HA embedded etcd are all future work. See `BOOTSTRAP.md` Part 1 for what is actually deployed, and Part 2 for the upgrade path.
 
 ---
 
-# Homelab K3s GitOps Cluster
+# Homelab K3s GitOps Blueprint
 
-3-node k3s cluster on Dell Optiplex micros with Longhorn distributed storage.
+This is the concrete repo blueprint for the planned K3s GitOps setup. It turns the earlier "Flux + CDK8s + Nx" direction into a specific filesystem layout, reconciliation graph, and bootstrap order.
 
-## Hardware & Infrastructure
-- **Nodes**: 3x Dell Optiplex (i5-8500T/8600T, 32GB RAM, SATA+NVMe storage)
-- **IPs**: 192.168.1.40-42 (expandable to .43-.60)
-- **Storage**: Longhorn on NVMe drives, 3-way replication, ~1.5TB usable
-- **Resources**: ~84GB RAM, 12-15 cores available for workloads
-- **Network**: Flannel CNI, 10.42.0.0/16 pod CIDR, 10.43.0.0/16 service CIDR
+## Decisions Locked In Now
 
-## Architecture & Stack
-- **OS**: Ubuntu LTS, k3s (embedded etcd HA)
-- **GitOps**: Flux CD v2, CDK8s (TypeScript), Ansible automation
-- **Monitoring**: Prometheus + Grafana + Loki
-- **Networking**: Nginx Ingress, cert-manager + Let's Encrypt
+These are the choices worth being opinionated about up front:
 
-## Repository Structure
-```
+- **Monorepo**: cluster bootstrap, rendered manifests, and CDK8s source stay in this repo.
+- **Flux consumes committed YAML only**: Flux watches `k3s/clusters/homelab/` specifically; it never watches the broader `k3s/` tree directly or TypeScript source.
+- **CDK8s is the workload authoring layer**: application manifests are defined in TypeScript and rendered before commit.
+- **Nx is orchestration, not truth**: Nx runs synth and validation locally or in CI, but the committed YAML is the deployment contract.
+- **Single cluster root first**: start with `k3s/clusters/homelab/` and avoid `dev`/`staging` overlays until a second cluster exists.
+- **Secrets use SOPS + age**: keep the decryption model simple and Flux-native.
+- **Storage stays intentionally abstract**: keep shared constructs and manifests storage-class-light until a real CSI decision is needed.
+
+## Target Cluster
+
+- **Nodes**: 3x Dell Optiplex at `192.168.1.40`, `192.168.1.41`, `192.168.1.42`
+- **Datastore**: embedded etcd once the cluster moves from single-node SQLite to HA
+- **GitOps root**: `k3s/clusters/homelab/`
+- **Ingress/TLS**: Nginx Ingress + cert-manager
+- **Secrets**: SOPS + age
+- **Storage posture**: do not hardcode a future storage vendor into the blueprint; only set `storageClassName` when a workload truly needs it
+
+## Repository Blueprint
+
+```text
 homelab/
 ├── k3s/
-│   ├── bootstrap/ansible/     # Node provisioning & k3s install
-│   ├── infrastructure/        # Longhorn, ingress, monitoring
-│   ├── platform/             # Flux system & namespaces
-│   ├── applications/         # CDK8s outputs & manifests
-│   └── environments/         # dev/staging/prod overrides
-├── docker/                   # Existing Docker services (migration reference)
-└── scripts/                  # Network setup & utilities
+│   ├── bootstrap/
+│   │   └── ansible/
+│   │       ├── inventory/
+│   │       ├── playbooks/
+│   │       └── roles/
+│   ├── clusters/
+│   │   └── homelab/
+│   │       ├── flux-system/
+│   │       │   ├── gotk-components.yaml
+│   │       │   ├── gotk-sync.yaml
+│   │       │   └── kustomization.yaml
+│   │       ├── kustomization.yaml
+│   │       ├── platform.yaml
+│   │       ├── infra-controllers.yaml
+│   │       ├── infra-configs.yaml
+│   │       └── apps.yaml
+│   ├── platform/
+│   │   ├── namespaces/
+│   │   │   ├── media.yaml
+│   │   │   ├── observability.yaml
+│   │   │   └── kustomization.yaml
+│   │   ├── rbac/
+│   │   │   └── kustomization.yaml
+│   │   └── kustomization.yaml
+│   ├── infrastructure/
+│   │   ├── controllers/
+│   │   │   ├── cert-manager/
+│   │   │   ├── ingress-nginx/
+│   │   │   └── kustomization.yaml
+│   │   ├── configs/
+│   │   │   ├── cluster-issuers/
+│   │   │   └── kustomization.yaml
+│   │   └── kustomization.yaml
+│   └── applications/
+│       ├── media/
+│       ├── observability/
+│       ├── networking/
+│       └── kustomization.yaml
+├── applications/
+│   └── cdk8s/
+│       ├── cdk8s.yaml
+│       ├── package.json
+│       ├── project.json
+│       └── src/
+│           ├── main.ts
+│           ├── charts/
+│           └── constructs/
+├── nx.json
+├── package.json
+└── tsconfig.base.json
 ```
 
-## GitOps Workflow
-**Bootstrap**: Ansible → k3s → Flux CD → Git-managed everything
-**Deploy**: CDK8s TypeScript → manifests → Git commit → Flux sync
-**Migrate**: Gradual Docker-to-k8s migration with rollback capability
+## Source-of-Truth Boundaries
 
-## Quick Start
-```bash
-# Bootstrap cluster: ansible-playbook -i inventory/hosts site.yml
-# Deploy changes: commit to Git, Flux auto-syncs
+Keep the boundaries strict:
+
+- **Manual cluster plumbing lives in `k3s/platform/` and `k3s/infrastructure/`**.
+- **Rendered workload manifests live in `k3s/applications/`**.
+- **CDK8s source lives in `applications/cdk8s/src/`**.
+- **Flux points only at `k3s/clusters/homelab/`**.
+- **Nx points at the CDK8s workspace and writes rendered output into `k3s/applications/`**.
+
+That means:
+
+- Editing `applications/cdk8s/src/` changes the authoring layer.
+- Running synth updates `k3s/applications/`.
+- Flux reconciles only the committed output plus the manually managed platform and infrastructure layers.
+
+## Flux Reconciliation Graph
+
+Use one cluster root and a small, explicit dependency chain:
+
+| Flux object | Path | Depends on | Purpose |
+|-------------|------|------------|---------|
+| `flux-system` | `./k3s/clusters/homelab/flux-system` | none | Flux controllers and source config |
+| `platform` | `./k3s/platform` | `flux-system` | namespaces, RBAC, shared policies |
+| `infra-controllers` | `./k3s/infrastructure/controllers` | `platform` | cert-manager, ingress-nginx, other controllers |
+| `infra-configs` | `./k3s/infrastructure/configs` | `infra-controllers` | ClusterIssuers and controller-specific config |
+| `apps` | `./k3s/applications` | `platform`, `infra-configs` | rendered workload manifests |
+
+### Why this graph
+
+- **`platform` first** so namespaces and shared RBAC exist before anything relies on them.
+- **Controllers before configs** so CRDs and controller APIs exist before related resources are applied.
+- **Applications last** so workloads only land after the cluster plumbing exists.
+
+## CDK8s + Nx Workflow
+
+Nx should stay thin and predictable. A single `cdk8s` project is enough to start.
+
+### Suggested Nx Targets
+
+| Target | Purpose | Notes |
+|--------|---------|-------|
+| `nx run cdk8s:synth` | render manifests | writes output into `k3s/applications/` |
+| `nx run cdk8s:validate` | verify rendered tree | runs after synth; builds the cluster root with `kustomize` |
+| `nx run cdk8s:diff` | review rendered changes | wrapper around `git diff -- k3s/applications` |
+
+### Suggested `project.json` Shape
+
+```json
+{
+  "name": "cdk8s",
+  "targets": {
+    "synth": {
+      "command": "cd applications/cdk8s && cdk8s synth --output ../../k3s/applications"
+    },
+    "validate": {
+      "dependsOn": ["synth"],
+      "command": "kustomize build k3s/clusters/homelab >/dev/null"
+    },
+    "diff": {
+      "dependsOn": ["synth"],
+      "command": "git diff -- k3s/applications"
+    }
+  }
+}
 ```
 
-## Ansible Configuration
+### Rendered Output Rules
 
-### Structure & Key Components
-```
-bootstrap/ansible/
-├── inventory/hosts.yml       # Node definitions (IPs, roles, storage)
-├── playbooks/
-│   ├── provision-nodes.yml   # OS setup & prerequisites  
-│   ├── bootstrap-k3s.yml     # K3s installation
-│   ├── bootstrap-flux.yml    # Flux CD installation
-│   └── site.yml             # Full cluster bootstrap
-├── roles/                   # common, k3s-server, storage-prep
-└── ansible.cfg
-```
+- Commit both **source** and **rendered output** in the same change.
+- Treat `k3s/applications/` as generated code: it is reviewable, committed, and reproducible.
+- Do not hand-edit rendered manifests unless you are fixing generation immediately afterward.
+- If a workload cannot yet be expressed cleanly in CDK8s, keep it as a manual manifest temporarily rather than weakening the Flux boundary.
 
-### Inventory Overview
-- 3 nodes (192.168.1.40-42) as k3s servers with embedded etcd
-- Each node uses `/dev/nvme0n1` for Longhorn storage
-- Configures kernel modules (br_netfilter, overlay, iscsi_tcp)
-- Sets required sysctl parameters for k8s networking
+## Secrets Strategy
 
-## Flux CD Setup
+Use SOPS from the beginning so the shape does not have to change later.
 
-### Structure & Components
-```
-k3s/
-├── clusters/homelab/           # Flux controllers & cluster entrypoint
-├── infrastructure/             # Core services (cert-manager, nginx, longhorn)
-├── platform/                  # Namespaces & RBAC
-└── applications/               # App manifests with dev/prod overlays
-```
+- Commit encrypted secrets as `*.sops.yaml`.
+- Keep the age **private key out of Git**.
+- Bootstrap Flux with the age decryption secret in `flux-system`.
+- Store secrets near the layer that consumes them:
+  - cluster-scoped secrets near `k3s/clusters/homelab/`
+  - controller secrets near `k3s/infrastructure/`
+  - application secrets near the rendered app manifests or their source inputs
 
-### Configuration
-- GitRepository watches `master` branch with 1m interval
-- Kustomizations sync infrastructure (10m), platform, and applications
-- SOPS encryption for secrets with age keys
+## Minimal Bootstrap Sequence
 
-## Longhorn Configuration
-- **Default**: 3 replicas, /var/lib/longhorn path, S3 backups
-- **Storage Classes**: longhorn (default, 3-replica) + longhorn-single-replica  
-- **Nodes**: NVMe disks with 20Gi reserved space
+This is the smallest useful path from today's single-node testbed to the planned GitOps shape:
 
-## CDK8s Configuration
+1. **Bootstrap K3s with Ansible** using the existing `provision-nodes.yml` and `bootstrap-k3s.yml`.
+2. **Create the cluster root** at `k3s/clusters/homelab/`.
+3. **Bootstrap Flux** so it writes `flux-system/` into that cluster root and watches the `master` branch.
+4. **Add the top-level Flux Kustomizations** for `platform`, `infra-controllers`, `infra-configs`, and `apps`.
+5. **Generate an age key**, keep the private key outside Git, and wire Flux decryption before any real secret-bearing workloads land.
+6. **Create the Nx + CDK8s workspace** under `applications/cdk8s/`.
+7. **Render the first app manifests into `k3s/applications/`**, commit them, and let Flux reconcile them.
+8. **Migrate services incrementally** once each workload has a GitOps-managed definition and a tested rollback path.
 
-### TypeScript-based Kubernetes Manifests
-```
-applications/cdk8s/
-├── src/
-│   ├── main.ts                  # App entry point
-│   ├── constructs/              # base-app.ts, stateful-app.ts, media-stack.ts
-│   └── charts/                  # prometheus.ts, grafana.ts, arr-stack.ts
-└── manifests/                   # Generated YAML output
-```
+## Guardrails for Future Changes
 
-### BaseApp Construct Features
-- Generates Deployment, Service, and Ingress resources
-- Configurable replicas, environment variables, and domains
-- Auto-configured TLS with Let's Encrypt and cert-manager
-- Build workflow: `cdk8s synth` → commit manifests → Flux sync
+These are the things to avoid because they are noisy or expensive to unwind later:
 
-## Ingress & Certificate Management
+- **Do not add multi-environment overlays** until there is a second real cluster or environment.
+- **Do not let Flux watch `applications/cdk8s/`** or run synth in-cluster.
+- **Do not make shared constructs depend on a specific storage vendor**.
+- **Do not mix cluster plumbing and application output in the same directory**.
+- **Do not make Nx responsible for deployment state**; it is just the build and validation wrapper.
+- **Do not hand-wave naming**: choose stable names for the cluster root, namespaces, and app folders early and keep them boring.
 
-### Nginx Ingress
-- **Deployment**: DaemonSet with hostNetwork for direct node access
-- **Configuration**: Forward headers enabled, Prometheus metrics
-- **Resources**: 100m CPU request, 512Mi memory limit
+## Migration Notes
 
-### Cert-Manager
-- **Issuers**: Let's Encrypt production & staging ClusterIssuers
-- **Solver**: HTTP01 challenge via nginx ingress
-- **Wildcard**: Optional wildcard certificate for `*.homelab.local`
+When Docker services move into K3s:
 
-## Security Configuration
-
-### RBAC & Network Policies
-- **Developer Role**: Read-only access to pods, services, deployments
-- **Network Policies**: Default deny ingress, allow only ingress controller traffic
-- **Secrets**: SOPS with age encryption for Git-stored secrets
-
-### SOPS Encryption
-```bash
-# Encrypt: sops -e -i cluster-secrets.yaml
-# Edit: sops cluster-secrets.yaml
-```
-
-## Backup & Disaster Recovery
-
-### Velero Setup
-- **Storage**: MinIO S3-compatible backend
-- **Schedule**: Daily backups at 2 AM, 30-day retention
-- **Scope**: All namespaces except kube-system/longhorn-system
-- **Plugins**: AWS & CSI volume snapshot support
-
-### Etcd Backups
-- Automated snapshots on all control plane nodes
-- 7-day retention policy
-- Manual recovery: stop k3s → restore snapshot → rejoin cluster
-
-### Longhorn Recovery
-- Auto-healing replicas with health monitoring
-- Snapshot-based point-in-time recovery
-- S3 backups for disaster scenarios
-
-## Service Migration Guide
-
-### Migration Process
-1. **Assessment**: Document Docker configs, volume requirements, dependencies
-2. **Preparation**: Create k8s namespaces, configure PVCs, secrets, networking
-3. **Data Migration**: Use Jobs to copy data from Docker volumes to Longhorn PVCs
-4. **Deployment**: Deploy k8s manifests, test functionality, validate rollback
-5. **Cutover**: Stop Docker service, final sync, update routing
-
-### Migration Pattern
-- Create PVC with Longhorn storage class
-- Use migration Job to copy data from NFS/local mounts to PVC
-- Deploy StatefulSet/Deployment with proper volume mounts
-- Test thoroughly before final cutover
-
-## Monitoring & Observability
-
-### Prometheus Stack
-- **Prometheus**: 30-day retention, 50Gi Longhorn storage, 2-4Gi memory
-- **Grafana**: 10Gi persistent storage, dashboard auto-provisioning
-- **Scraping**: k3s nodes (kubelet metrics) + ServiceMonitor discovery
-
-### Loki Stack
-- **Storage**: MinIO S3 backend with boltdb-shipper
-- **Promtail**: Deployed as DaemonSet for log collection
-- **Retention**: Configurable via storage policies
-
-## Troubleshooting
-
-### Common Issues & Solutions
-1. **Longhorn Volume Degraded**: Check volume/replica status, delete failed replicas to trigger rebuilds
-2. **Flux Sync Failures**: Use `flux get all -A` and `flux reconcile source git flux-system`
-3. **Node Join Issues**: Verify k3s service status, node token, and firewall rules
-4. **Storage Issues**: Monitor disk usage, clean up detached volumes and failed replicas
-5. **Backup/Restore**: Use Longhorn CRDs to create/list backups programmatically
-
-### Performance Tuning
-```yaml
-# /etc/rancher/k3s/config.yaml - Key optimizations
-kube-proxy-arg: ["proxy-mode=ipvs", "ipvs-strict-arp=true"]
-kubelet-arg: ["max-pods=250", "eviction-hard=memory.available<500Mi,nodefs.available<10%"]
-```
+1. Define the workload in CDK8s when possible.
+2. Render the manifest into `k3s/applications/`.
+3. Keep persistence requirements explicit, but avoid product-specific storage assumptions in shared code.
+4. Migrate one service at a time so Flux can re-apply everything if the cluster is rebuilt during the HA move.
