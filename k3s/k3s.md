@@ -1,3 +1,7 @@
+> **Current State (2026-05-02)**: This document describes the target architecture, not the current deployment. Today, only a single-node K3s server is running on the testbed (`192.168.1.128`) using SQLite as the datastore. Longhorn, Flux CD, CDK8s, Nginx Ingress, and embedded etcd HA are all future work. See `BOOTSTRAP.md` Part 1 for what is actually deployed, and Part 2 for the HA upgrade path.
+
+---
+
 # Homelab K3s GitOps Cluster
 
 3-node k3s cluster on Dell Optiplex micros with Longhorn distributed storage.

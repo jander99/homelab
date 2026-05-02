@@ -4,7 +4,7 @@
 
 # K3s version to install — pin to a specific release for reproducibility.
 # Find the latest release at: https://github.com/k3s-io/k3s/releases
-k3s_version: "v1.35.4+k3s1"
+# k3s_version: "v1.35.4+k3s1"  # Source of truth is inventory/group_vars/all.yml — edit there instead.
 
 k3s_install_script_url: "https://get.k3s.io"
 

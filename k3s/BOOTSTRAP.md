@@ -1,819 +1,319 @@
-# K3s Cluster Bootstrap Guide
+# K3s Bootstrap Guide
 
-This guide covers bootstrapping a fresh K3s cluster from clean Ubuntu Server installations with minimal manual intervention. This guide is designed for Kubernetes beginners and provides detailed explanations of each step.
+This guide covers bootstrapping a single-node K3s cluster using Ansible, then optionally scaling to a multi-node HA setup.
 
-## What is K3s?
+> **Current state**: Single-node K3s server on the testbed (`192.168.1.128`) with SQLite datastore. HA cluster, Longhorn, and Flux CD are future work — see [Part 2](#part-2-scaling-to-ha-future-state) for the upgrade path.
 
-K3s is a lightweight Kubernetes distribution designed for production workloads in resource-constrained environments. It packages all Kubernetes components into a single binary and removes many optional features to reduce memory and storage footprint.
+---
 
-**Key K3s Features:**
-- Single binary installation (~100MB)
-- Built-in container runtime (containerd)
-- Embedded etcd for HA clusters
-- Automatic TLS certificate management
-- Built-in local storage provider
-- Simplified networking with Flannel CNI
+## Part 1: Single-Node K3s Bootstrap
 
-## Prerequisites
+### Overview
 
-### Hardware Requirements
-- **3 Ubuntu Server nodes** with static IP addresses (192.168.1.40-42)
-  - Minimum 2GB RAM per node (4GB recommended)
-  - Minimum 20GB disk space per node
-  - 1 CPU core per node (2+ recommended)
-- **Testbed node** at 192.168.1.128 — single-node environment for testing changes before applying to the cluster
+The Ansible playbooks automate the entire K3s server installation:
 
-### Software Requirements
-- **Fresh Ubuntu Server installations** (latest version, fully updated)
-- **k3s user account** with same password on all nodes
-- **Direct terminal access** to each node (monitor/keyboard or IPMI/iLO)
+1. **`provision-nodes.yml`** — OS hardening, packages, UFW firewall, kernel modules, sysctl
+2. **`bootstrap-k3s.yml`** — K3s server install, configuration, kubeconfig fetch, token persistence
 
-### Control Machine Setup
-Your control machine (where you run commands) needs:
+Run them in order on a single testbed node. The result is a working single-node K3s cluster using SQLite (the default and recommended datastore for single-node deployments).
+
+### Prerequisites
+
+#### Hardware
+
+- **One Ubuntu Server node** with a static IP address (default: `192.168.1.128`)
+  - Minimum 2 GB RAM (4 GB recommended)
+  - Minimum 20 GB disk
+  - 1 CPU core (2+ recommended)
+
+#### Software
+
+- **Fresh Ubuntu Server** installation, fully updated
+- **`k3s` user account** with passwordless sudo (created by Ansible)
+- **Direct console/SSH access** to the node for initial setup
+
+#### Control Machine
+
+Your workstation (where you run Ansible) needs:
 
 ```bash
-# Install Ansible (Ubuntu/Debian)
-sudo apt update
-sudo apt install -y ansible sshpass
+# Install Ansible and required collections
+pip install ansible
+ansible-galaxy collection install -r k3s/bootstrap/ansible/requirements.yml
 
-# Install kubectl for cluster management
+# Install kubectl
 curl -LO "https://dl.k8s.io/release/$(curl -L -s https://dl.k8s.io/release/stable.txt)/bin/linux/amd64/kubectl"
 sudo install -o root -g root -m 0755 kubectl /usr/local/bin/kubectl
 
-# Install Flux CLI for GitOps
-curl -s https://fluxcd.io/install.sh | sudo bash
-
-# Verify installations
+# Verify
 ansible --version
 kubectl version --client
-flux version --client
 ```
 
-## Phase 1: Manual Node Preparation
+### Step 1: Configure the Testbed Node
 
-These steps must be performed manually on each node via direct terminal access.
-
-### Step 1: Enable SSH Service
-
-**Why SSH?** SSH (Secure Shell) allows secure remote access to your nodes. Ansible uses SSH to automate tasks across multiple machines.
-
-Perform these steps **on each node** (192.168.1.40, 192.168.1.41, 192.168.1.42):
+Before Ansible can reach the node, set up SSH access manually on the testbed:
 
 ```bash
-# Update package list and install SSH server
-sudo apt update
-sudo apt install -y openssh-server
+# On the testbed node (192.168.1.128):
+sudo apt update && sudo apt install -y openssh-server
+sudo systemctl enable --now ssh
 
-# Enable SSH to start automatically on boot
-sudo systemctl enable ssh
+# Create the k3s user with passwordless sudo
+sudo useradd -m -s /bin/bash k3s
+echo "k3s:changeme" | sudo chpasswd  # Change this immediately
+sudo bash -c 'echo "k3s ALL=(ALL) NOPASSWD:ALL" > /etc/sudoers.d/k3s'
 
-# Start SSH service immediately
-sudo systemctl start ssh
-
-# Verify SSH is running (should show "active (running)")
-sudo systemctl status ssh
+# Copy your SSH public key
+mkdir -p ~k3s/.ssh && chmod 700 ~k3s/.ssh
+# From your control machine:
+ssh-copy-id k3s@192.168.1.128
 ```
 
-**Expected Output:**
+> **Note:** The `common` Ansible role also configures passwordless sudo for the `k3s` user. If you prefer to let Ansible handle this entirely, you only need initial SSH access to run `provision-nodes.yml`.
+
+### Step 2: Verify Inventory
+
+The inventory at `k3s/bootstrap/ansible/inventory/hosts.yml` defines the testbed node:
+
+```yaml
+all:
+  children:
+    k3s_servers:
+      hosts:
+        testbed:
+          ansible_host: 192.168.1.128
 ```
-● ssh.service - OpenBSD Secure Shell server
-   Loaded: loaded (/lib/systemd/system/ssh.service; enabled; vendor preset: enabled)
-   Active: active (running) since [timestamp]
-   Process: [PID] ExecStartPre=/usr/sbin/sshd -t (code=exited, status=0/SUCCESS)
-   Main PID: [PID] (sshd)
-```
+
+Verify connectivity:
 
 ```bash
-# Configure firewall to allow SSH (if UFW is enabled)
-sudo ufw status
-# If firewall is active, allow SSH:
-sudo ufw allow ssh
-
-# Optional: Check which port SSH is running on (default: 22)
-sudo ss -tlnp | grep :22
+cd k3s/bootstrap/ansible
+ansible all -i inventory/hosts.yml -m ping
 ```
 
-### Step 2: Configure SSH for k3s User
+### Step 3: Review Group Variables
 
-**Why these permissions?** SSH requires strict file permissions for security. The `.ssh` directory must be readable only by the owner (700), and `authorized_keys` must not be writable by others (600).
+Key settings in `inventory/group_vars/all.yml`:
 
-Perform these steps **on each node**:
+| Variable | Default | Purpose |
+|----------|---------|---------|
+| `k3s_version` | `v1.35.4+k3s1` | K3s release to install |
+| `timezone` | `America/New_York` | Node timezone |
+| `k3s_firewall_rules` | SSH, API, kubelet, Flannel | UFW ports to open |
+| `k3s_kernel_modules` | `br_netfilter`, `overlay` | Required kernel modules |
+| `k3s_sysctl_params` | bridge-nf, ip-forward, swappiness | Required sysctl settings |
+
+Role-specific defaults are in `roles/k3s-server/defaults/main.yml` — override them in `group_vars/all.yml` or via `-e` flags.
+
+### Step 4: Install Required Ansible Collections
 
 ```bash
-# Switch to the k3s user account
-su - k3s
-# You'll be prompted for the k3s user password
-
-# Verify you're now the k3s user
-whoami
-# Should output: k3s
-
-# Create SSH directory with proper permissions
-mkdir -p ~/.ssh
-chmod 700 ~/.ssh
-
-# Create authorized_keys file (will store public keys later)
-touch ~/.ssh/authorized_keys
-chmod 600 ~/.ssh/authorized_keys
-
-# Verify permissions are correct
-ls -la ~/.ssh/
+cd k3s/bootstrap/ansible
+ansible-galaxy collection install -r requirements.yml
 ```
 
-**Expected Output:**
-```
-drwx------ 2 k3s k3s 4096 [date] .
-drwxr-xr-x 3 k3s k3s 4096 [date] ..
--rw------- 1 k3s k3s    0 [date] authorized_keys
-```
+### Step 5: Run Provision Nodes Playbook
+
+This hardens the OS, installs packages, configures UFW, and sets up kernel parameters:
 
 ```bash
-# Exit back to the original user
-exit
+cd k3s/bootstrap/ansible
+ansible-playbook -i inventory/hosts.yml playbooks/provision-nodes.yml
 ```
 
-### Step 3: Test SSH Connectivity
-
-**Important:** This step verifies that SSH is working before we set up key-based authentication.
-
-From your **control machine**, test SSH access to each node:
+If the playbook reboots the node (due to kernel updates), wait for SSH to come back and re-run:
 
 ```bash
-# Test SSH connection to master node
-ssh k3s@192.168.1.40
-# Enter the k3s user password when prompted
-# You should see the Ubuntu welcome message and shell prompt
-# Type 'exit' to disconnect
-
-# Test SSH connection to worker node 1
-ssh k3s@192.168.1.41
-# Enter password, verify connection, then exit
-
-# Test SSH connection to worker node 2
-ssh k3s@192.168.1.42
-# Enter password, verify connection, then exit
+# Wait for the node to come back up
+ssh k3s@192.168.1.128 "uptime"
+# Re-run if the playbook was interrupted by a reboot
+ansible-playbook -i inventory/hosts.yml playbooks/provision-nodes.yml
 ```
 
-**Troubleshooting SSH Issues:**
-- **Connection refused:** Check if SSH service is running: `sudo systemctl status ssh`
-- **Permission denied:** Verify k3s user password is correct
-- **Network unreachable:** Verify IP addresses and network connectivity: `ping 192.168.1.40`
-- **Firewall blocking:** Check UFW status: `sudo ufw status`
+### Step 6: Bootstrap K3s Server
 
-## Phase 2: SSH Key Setup and Distribution
-
-### Step 4: Generate SSH Key Pair
-
-**Why SSH Keys?** SSH keys provide secure, password-less authentication. The private key stays on your control machine, while public keys are distributed to the nodes.
-
-On your **control machine**:
+This installs K3s, writes the config, fetches the kubeconfig, and persists the join token:
 
 ```bash
-# Generate ED25519 SSH key pair (more secure than RSA)
-ssh-keygen -t ed25519 -f ~/.ssh/k3s_cluster -N ""
+cd k3s/bootstrap/ansible
+ansible-playbook -i inventory/hosts.yml playbooks/bootstrap-k3s.yml
 ```
 
-**Command Explanation:**
-- `-t ed25519`: Use ED25519 algorithm (modern, secure)
-- `-f ~/.ssh/k3s_cluster`: Save key as 'k3s_cluster' in SSH directory
-- `-N ""`: No passphrase (empty string)
+#### What this playbook does
 
-**Expected Output:**
-```
-Generating public/private ed25519 key pair.
-Your identification has been saved in /home/[user]/.ssh/k3s_cluster
-Your public key has been saved in /home/[user]/.ssh/k3s_cluster.pub
-The key fingerprint is:
-SHA256:[fingerprint] [user]@[hostname]
-```
+1. Validates that `k3s_version` is defined
+2. Creates `/etc/rancher/k3s/` and writes `config.yaml` with:
+   - `write-kubeconfig-mode: "0600"` — root-only kubeconfig on the node
+   - `secrets-encryption: true` — encrypts Kubernetes Secrets at rest
+   - `flannel-backend: vxlan` — default CNI backend
+3. Downloads and installs the K3s binary (`INSTALL_K3S_SKIP_START=true`)
+4. Enables and starts the `k3s` systemd service
+5. Waits for the API server (port 6443) and node Ready state
+6. Reads the node token from `/var/lib/rancher/k3s/server/node-token`
+7. Persists the token locally at `~/.kube/k3s-testbed-token` (mode `0600`)
+8. Fetches `/etc/rancher/k3s/k3s.yaml` to `~/.kube/k3s-testbed.yaml`
+9. Secures the local kubeconfig (mode `0600`)
+10. Replaces `127.0.0.1` with the node's actual IP in the kubeconfig
+
+> **Important:** `secrets-encryption: true` is a one-way door. Enable it before deploying any workloads. If you toggle it after workloads exist, existing Secrets will not be re-encrypted until you manually rotate the encryption key.
+
+### Step 7: Verify the Cluster
 
 ```bash
-# Start SSH agent to manage keys
-eval "$(ssh-agent -s)"
-# Should output: Agent pid [number]
+# Use the fetched kubeconfig
+export KUBECONFIG=~/.kube/k3s-testbed.yaml
 
-# Add private key to SSH agent
-ssh-add ~/.ssh/k3s_cluster
-# Should output: Identity added: ~/.ssh/k3s_cluster
+# Check node status
+kubectl get nodes
+# Expected: one node in Ready state
 
-# Verify key was added
-ssh-add -l
-# Should show your key fingerprint
-```
-
-### Step 5: Distribute SSH Keys
-
-**What happens here?** The `ssh-copy-id` command copies your public key to each node's `~/.ssh/authorized_keys` file, enabling password-less SSH access.
-
-From your **control machine**:
-
-```bash
-# Copy public key to master node
-ssh-copy-id -i ~/.ssh/k3s_cluster.pub k3s@192.168.1.40
-# Enter k3s password when prompted
-```
-
-**Expected Output:**
-```
-/usr/bin/ssh-copy-id: INFO: Source of key(s) to be installed: "/home/[user]/.ssh/k3s_cluster.pub"
-/usr/bin/ssh-copy-id: INFO: attempting to log in with the new key(s), to filter out any that are already installed
-/usr/bin/ssh-copy-id: INFO: 1 key(s) remain to be installed -- if you are prompted now, it is to install the new key(s)
-k3s@192.168.1.40's password:
-
-Number of key(s) added: 1
-
-Now try logging into the machine, with:   "ssh 'k3s@192.168.1.40'"
-and check to make sure that only the key(s) you wanted were added.
-```
-
-```bash
-# Copy public key to worker node 1
-ssh-copy-id -i ~/.ssh/k3s_cluster.pub k3s@192.168.1.41
-# Enter k3s password when prompted
-
-# Copy public key to worker node 2
-ssh-copy-id -i ~/.ssh/k3s_cluster.pub k3s@192.168.1.42
-# Enter k3s password when prompted
-
-# Copy public key to testbed node
-ssh-copy-id -i ~/.ssh/k3s_cluster.pub k3s@192.168.1.128
-# Enter k3s password when prompted
-
-# Test password-less SSH access
-ssh -i ~/.ssh/k3s_cluster k3s@192.168.1.40 'hostname'
-# Should output the hostname without prompting for password
-ssh -i ~/.ssh/k3s_cluster k3s@192.168.1.41 'hostname'
-ssh -i ~/.ssh/k3s_cluster k3s@192.168.1.42 'hostname'
-ssh -i ~/.ssh/k3s_cluster k3s@192.168.1.128 'hostname'
-```
-
-### Step 6: Configure SSH Client
-
-**Why SSH Config?** This creates friendly hostnames and sets default connection parameters, making it easier to connect to nodes.
-
-Edit your SSH config file:
-
-```bash
-# Create or edit SSH config file
-nano ~/.ssh/config
-```
-
-Add this configuration:
-
-```
-# K3s Cluster Nodes
-Host k3s-master
-    HostName 192.168.1.40
-    User k3s
-    IdentityFile ~/.ssh/k3s_cluster
-    StrictHostKeyChecking no
-
-Host k3s-worker1
-    HostName 192.168.1.41
-    User k3s
-    IdentityFile ~/.ssh/k3s_cluster
-    StrictHostKeyChecking no
-
-Host k3s-worker2
-    HostName 192.168.1.42
-    User k3s
-    IdentityFile ~/.ssh/k3s_cluster
-    StrictHostKeyChecking no
-
-Host testbed
-    HostName 192.168.1.128
-    User k3s
-    IdentityFile ~/.ssh/k3s_cluster
-    StrictHostKeyChecking no
-    UserKnownHostsFile /dev/null
-
-# Wildcard for all k3s nodes
-Host k3s-*
-    UserKnownHostsFile /dev/null
-    LogLevel ERROR
-```
-
-**Configuration Explanation:**
-- `HostName`: Actual IP address of the node
-- `User`: Username to connect as (k3s)
-- `IdentityFile`: Private key to use for authentication
-- `StrictHostKeyChecking no`: Don't prompt about host key verification
-- `UserKnownHostsFile /dev/null`: Don't save host keys
-- `LogLevel ERROR`: Reduce SSH output verbosity
-
-```bash
-# Set proper permissions on SSH config
-chmod 600 ~/.ssh/config
-
-# Test friendly hostnames
-ssh k3s-master 'hostname'
-ssh k3s-worker1 'hostname'
-ssh k3s-worker2 'hostname'
-ssh testbed 'hostname'
-```
-
-## Phase 3: Ansible Configuration
-
-### Step 7: Setup Ansible Inventory
-
-**What is Ansible Inventory?** An inventory file tells Ansible which hosts to manage and how to connect to them. It groups hosts by role (masters, workers) and sets connection parameters.
-
-Create the directory structure:
-
-```bash
-# Create Ansible directory structure
-mkdir -p k3s/bootstrap/ansible/inventory
-mkdir -p k3s/bootstrap/ansible/playbooks
-mkdir -p k3s/bootstrap/ansible/group_vars
-mkdir -p k3s/bootstrap/ansible/host_vars
-```
-
-Create the inventory file:
-
-```bash
-# Create inventory file
-nano k3s/bootstrap/ansible/inventory/hosts
-```
-
-Add this content:
-
-```ini
-# K3s Cluster Inventory
-# Groups hosts by role and defines connection parameters
-
-[k3s_cluster:children]
-masters
-workers
-
-[masters]
-k3s-master ansible_host=192.168.1.40
-
-[workers]
-k3s-worker1 ansible_host=192.168.1.41
-k3s-worker2 ansible_host=192.168.1.42
-
-# Global variables for all K3s cluster nodes
-[k3s_cluster:vars]
-ansible_user=k3s
-ansible_ssh_private_key_file=~/.ssh/k3s_cluster
-ansible_ssh_common_args='-o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null'
-ansible_python_interpreter=/usr/bin/python3
-
-# Master node specific variables
-[masters:vars]
-node_role=master
-k3s_server=true
-
-# Worker node specific variables
-[workers:vars]
-node_role=worker
-k3s_server=false
-```
-
-**Inventory Explanation:**
-- `[k3s_cluster:children]`: Creates a parent group containing masters and workers
-- `ansible_host`: Actual IP address to connect to
-- `ansible_user`: Username for SSH connections
-- `ansible_ssh_private_key_file`: Path to SSH private key
-- `ansible_python_interpreter`: Python path (required for Ubuntu)
-- `k3s_server`: Determines if node runs K3s server or agent
-
-### Step 8: Test Ansible Connectivity
-
-**What does this test?** The ping module verifies Ansible can connect to all nodes via SSH and execute Python commands.
-
-```bash
-# Navigate to Ansible directory
-cd k3s/bootstrap/ansible/
-
-# Test connectivity to all nodes
-ansible all -i inventory/hosts -m ping
-```
-
-**Expected Output:**
-```
-k3s-master | SUCCESS => {
-    "ansible_facts": {
-        "discovered_interpreter_python": "/usr/bin/python3"
-    },
-    "changed": false,
-    "ping": "pong"
-}
-k3s-worker1 | SUCCESS => {
-    "ansible_facts": {
-        "discovered_interpreter_python": "/usr/bin/python3"
-    },
-    "changed": false,
-    "ping": "pong"
-}
-k3s-worker2 | SUCCESS => {
-    "ansible_facts": {
-        "discovered_interpreter_python": "/usr/bin/python3"
-    },
-    "changed": false,
-    "ping": "pong"
-}
-```
-
-```bash
-# Test individual groups
-ansible masters -i inventory/hosts -m ping
-ansible workers -i inventory/hosts -m ping
-
-# Gather system information from all nodes
-ansible all -i inventory/hosts -m setup -a "filter=ansible_distribution*"
-```
-
-**Troubleshooting Ansible Connection Issues:**
-- **UNREACHABLE**: Check SSH connectivity manually: `ssh k3s-master`
-- **Authentication failure**: Verify SSH keys: `ssh-add -l`
-- **Python not found**: Install Python3: `ansible all -i inventory/hosts -m raw -a "sudo apt install python3 -y"`
-
-## Phase 4: Automated Bootstrap with Ansible
-
-### Step 9: Node Provisioning
-
-**What does provisioning do?** Prepares Ubuntu nodes for K3s by installing dependencies, configuring system settings, and ensuring all prerequisites are met.
-
-Before running the playbook, let's understand what will happen:
-
-**System Updates:**
-- Updates all packages to latest versions
-- Installs essential tools (curl, wget, git, etc.)
-
-**Kubernetes Prerequisites:**
-- Disables swap (Kubernetes requirement)
-- Loads required kernel modules (br_netfilter, overlay)
-- Configures sysctl settings for networking
-- Installs container runtime dependencies
-
-**Security Configuration:**
-- Configures UFW firewall rules for K3s ports
-- Sets up log rotation for K3s logs
-
-Run the node provisioning playbook:
-
-```bash
-ansible-playbook -i inventory/hosts playbooks/provision-nodes.yml -v
-```
-
-**Expected Duration:** 5-10 minutes depending on internet speed and system performance.
-
-**Key Ports Opened:**
-- `6443/tcp`: Kubernetes API server
-- `10250/tcp`: Kubelet API
-- `8472/udp`: Flannel VXLAN
-- `51820/udp`: Flannel Wireguard (if enabled)
-
-**Validation Commands:**
-```bash
-# Verify swap is disabled on all nodes
-ansible all -i inventory/hosts -m shell -a "free -h | grep Swap"
-# Should show 0B for swap
-
-# Check kernel modules are loaded
-ansible all -i inventory/hosts -m shell -a "lsmod | grep br_netfilter"
-
-# Verify firewall rules
-ansible all -i inventory/hosts -m shell -a "sudo ufw status numbered"
-```
-
-### Step 10: K3s Cluster Bootstrap
-
-**What happens during K3s bootstrap?**
-
-**Master Node Setup:**
-1. Downloads and installs K3s binary
-2. Starts K3s server with embedded etcd
-3. Generates cluster token for worker nodes
-4. Creates kubeconfig file for cluster access
-5. Configures local storage and networking
-
-**Worker Node Setup:**
-1. Downloads and installs K3s binary
-2. Connects to master using cluster token
-3. Starts K3s agent process
-4. Joins cluster and registers as available node
-
-**Storage Configuration:**
-1. Installs Longhorn distributed storage
-2. Creates storage classes for persistent volumes
-3. Configures 3-way replication for data safety
-
-Run the K3s bootstrap playbook:
-
-```bash
-ansible-playbook -i inventory/hosts playbooks/bootstrap-k3s.yml -v
-```
-
-**Expected Duration:** 10-15 minutes (depends on internet speed for downloading images)
-
-**What to watch for:**
-- Master node: Should show "K3s server started successfully"
-- Worker nodes: Should show "Joined cluster successfully"
-- Storage: Longhorn pods should enter Running state
-
-**Validation Commands:**
-```bash
-# Check K3s service status on all nodes
-ansible all -i inventory/hosts -m shell -a "sudo systemctl status k3s || sudo systemctl status k3s-agent"
-
-# Verify cluster token was generated
-ansible masters -i inventory/hosts -m shell -a "sudo cat /var/lib/rancher/k3s/server/node-token"
-
-# Check cluster nodes from master
-ansible masters -i inventory/hosts -m shell -a "sudo k3s kubectl get nodes -o wide"
-```
-
-**Expected Node Output:**
-```
-NAME          STATUS   ROLES                  AGE   VERSION        INTERNAL-IP    EXTERNAL-IP   OS-IMAGE             KERNEL-VERSION      CONTAINER-RUNTIME
-k3s-master    Ready    control-plane,master   1m    v1.28.x+k3s1   192.168.1.40   <none>        Ubuntu 24.04.x LTS   6.8.0-xx-generic    containerd://1.7.x
-k3s-worker1   Ready    <none>                 1m    v1.28.x+k3s1   192.168.1.41   <none>        Ubuntu 24.04.x LTS   6.8.0-xx-generic    containerd://1.7.x
-k3s-worker2   Ready    <none>                 1m    v1.28.x+k3s1   192.168.1.42   <none>        Ubuntu 24.04.x LTS   6.8.0-xx-generic    containerd://1.7.x
-```
-
-### Step 11: Flux CD Bootstrap
-
-**What is Flux CD?** Flux is a GitOps operator that automatically syncs your Kubernetes cluster with a Git repository. When you commit changes to your repo, Flux deploys them to the cluster.
-
-**GitOps Benefits:**
-- **Declarative**: Infrastructure defined as code
-- **Versioned**: All changes tracked in Git
-- **Automated**: No manual kubectl commands needed
-- **Auditable**: Full change history and rollback capability
-
-**Prerequisites for Flux:**
-- GitHub repository (this homelab repository)
-- GitHub Personal Access Token with repo permissions
-- Flux CLI installed on control machine
-
-**Setup GitHub Token:**
-1. Go to GitHub Settings → Developer settings → Personal access tokens → Tokens (classic)
-2. Generate new token with `repo` scope
-3. Save token securely
-
-```bash
-# Export GitHub token (replace with your actual token)
-export GITHUB_TOKEN=ghp_xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx
-
-# Verify token works
-curl -H "Authorization: token $GITHUB_TOKEN" https://api.github.com/user
-```
-
-Run the Flux bootstrap playbook:
-
-```bash
-ansible-playbook -i inventory/hosts playbooks/bootstrap-flux.yml -v -e github_token=$GITHUB_TOKEN
-```
-
-**Expected Duration:** 5-10 minutes
-
-**What Flux Creates:**
-- `flux-system` namespace
-- Source controller (monitors Git repository)
-- Kustomize controller (applies Kubernetes manifests)
-- Helm controller (manages Helm charts)
-- Notification controller (sends alerts)
-
-**Validation Commands:**
-```bash
-# Check Flux components
-ansible masters -i inventory/hosts -m shell -a "sudo k3s kubectl get pods -n flux-system"
-
-# Check Flux sources (should show your Git repository)
-ansible masters -i inventory/hosts -m shell -a "sudo k3s kubectl get gitrepositories -A"
-
-# Check Flux kustomizations
-ansible masters -i inventory/hosts -m shell -a "sudo k3s kubectl get kustomizations -A"
-```
-
-**Expected Flux Pods:**
-```
-NAME                                       READY   STATUS    RESTARTS   AGE
-source-controller-xxx                      1/1     Running   0          2m
-kustomize-controller-xxx                   1/1     Running   0          2m
-helm-controller-xxx                        1/1     Running   0          2m
-notification-controller-xxx                1/1     Running   0          2m
-```
-
-## Phase 5: Verification
-
-### Step 12: Cluster Health Check
-
-**Why health checks?** These commands verify that all cluster components are working correctly and the cluster is ready for workloads.
-
-**Setup kubectl Access:**
-
-```bash
-# Copy kubeconfig from master node to control machine
-scp k3s-master:/etc/rancher/k3s/k3s.yaml ~/.kube/k3s-config
-
-# Update server IP in kubeconfig (K3s defaults to 127.0.0.1)
-sed -i 's/127.0.0.1/192.168.1.40/g' ~/.kube/k3s-config
-
-# Set KUBECONFIG environment variable
-export KUBECONFIG=~/.kube/k3s-config
-
-# Make this permanent by adding to ~/.bashrc
-echo "export KUBECONFIG=~/.kube/k3s-config" >> ~/.bashrc
-```
-
-**Essential Health Checks:**
-
-```bash
-# 1. Verify all nodes are Ready
-kubectl get nodes -o wide
-```
-
-**Expected Output:**
-```
-NAME          STATUS   ROLES                  AGE   VERSION   INTERNAL-IP    EXTERNAL-IP   OS-IMAGE           KERNEL-VERSION     CONTAINER-RUNTIME
-k3s-master    Ready    control-plane,master   10m   v1.28.x   192.168.1.40   <none>        Ubuntu 24.04 LTS   6.8.0-xx-generic   containerd://1.7.x
-k3s-worker1   Ready    <none>                 10m   v1.28.x   192.168.1.41   <none>        Ubuntu 24.04 LTS   6.8.0-xx-generic   containerd://1.7.x
-k3s-worker2   Ready    <none>                 10m   v1.28.x   192.168.1.42   <none>        Ubuntu 24.04 LTS   6.8.0-xx-generic   containerd://1.7.x
-```
-
-```bash
-# 2. Check all system pods are running
+# Check system pods
 kubectl get pods -A
+
+# Verify Secrets encryption
+kubectl get secrets -A -o yaml | grep -c 'encrypted'
 ```
 
-**Expected System Pods:**
-- kube-system: coredns, local-path-provisioner, metrics-server, traefik
-- longhorn-system: longhorn-manager, longhorn-driver, longhorn-ui
-- flux-system: source-controller, kustomize-controller, helm-controller
+You should see:
+- One `Ready` node (the testbed)
+- System pods running: `local-path-provisioner`, `coredns`, `metrics-server`, `kube-proxy`
+- No Longhorn or Flux pods (those are future work)
+
+### Step 8: Use the Cluster
 
 ```bash
-# 3. Verify Longhorn storage system
-kubectl get pods -n longhorn-system
-kubectl get storageclass
+export KUBECONFIG=~/.kube/k3s-testbed.yaml
+
+# Deploy a test workload
+kubectl create deployment nginx --image=nginx:alpine --replicas=1
+kubectl expose deployment nginx --port=80 --target-port=80
+kubectl get pods,svc
+
+# Clean up
+kubectl delete deployment,svc nginx
 ```
 
-**Expected Storage Classes:**
-```
-NAME                   PROVISIONER          RECLAIMPOLICY   VOLUMEBINDINGMODE      ALLOWVOLUMEEXPANSION   AGE
-longhorn (default)     driver.longhorn.io   Delete          Immediate              true                   5m
-local-path             rancher.io/local-path Delete          WaitForFirstConsumer   false                  10m
-```
+### Security Notes
+
+- **Kubeconfig on the node** is mode `0600` (root-only). On your control machine it is also `0600`.
+- **Node join token** is persisted at `~/.kube/k3s-testbed-token` (mode `0600`). You will need this token if you later add nodes for HA.
+- **Secrets at rest** are encrypted. Keep the encryption key safe — it lives at `/var/lib/rancher/k3s/server/encryption-config.json` on the node.
+- **UFW firewall** is configured with only the required ports open (SSH, API server, kubelet, Flannel).
+
+### Troubleshooting
+
+| Symptom | Likely Cause | Fix |
+|---------|-------------|------|
+| `ansible all -m ping` fails | SSH not reachable or wrong key | Verify `~/.ssh/k3s_cluster` key, check IP in `hosts.yml` |
+| K3s install fails at download | `get.k3s.io` unreachable or wrong version string | Verify `k3s_version` in `group_vars/all.yml` matches a real K3s release |
+| Node stuck in `NotReady` | Flannel or kubelet not started | `sudo journalctl -u k3s -n 100` on the node |
+| `kubectl` cannot connect | Wrong IP in kubeconfig | Check `server:` line in `~/.kube/k3s-testbed.yaml` |
+| Re-run playbook restarts K3s | Config file changed | Normal — Ansible detects config drift and restarts the service |
+
+### Running the Full Entrypoint
+
+The `site.yml` playbook runs all phases in sequence:
 
 ```bash
-# 4. Check Flux CD status
-flux get all -A
+cd k3s/bootstrap/ansible
+ansible-playbook -i inventory/hosts.yml playbooks/site.yml
 ```
 
-**Expected Flux Resources:**
-```
-NAMESPACE     NAME          REVISION        SUSPENDED       READY   MESSAGE
-flux-system   flux-system   main@sha1:xxx   False           True    Applied revision: main@sha1:xxx
+> **Note:** `site.yml` currently runs Phase 1 (provision) and Phase 2 (K3s bootstrap). Phase 3 (Flux) is not yet implemented and will fail with a clear message.
 
-NAMESPACE     NAME          REVISION        SUSPENDED       READY   MESSAGE  
-flux-system   flux-system   main@sha1:xxx   False           True    Applied revision: main@sha1:xxx
+---
+
+## Part 2: Scaling to HA (Future State)
+
+> **Warning:** This section describes a future upgrade path. None of this is implemented yet. The single-node cluster uses SQLite as its datastore, which does not support in-place migration to embedded etcd. Moving from single-node SQLite to multi-node HA **requires a fresh cluster install** — there is no upgrade path that preserves state.
+
+### Prerequisites Before Scaling
+
+Before adding nodes, you must:
+
+1. **Back up the SQLite datastore** from `/var/lib/rancher/k3s/server/db/state.db` on the testbed.
+2. **Save the node join token** — it is stored at `~/.kube/k3s-testbed-token` on your control machine.
+3. **Ensure all workloads have GitOps-managed definitions** so they can be re-applied after a fresh install.
+
+### Step 1: Provision Additional Nodes
+
+Add nodes to `inventory/hosts.yml`:
+
+```yaml
+all:
+  children:
+    k3s_servers:
+      hosts:
+        testbed:
+          ansible_host: 192.168.1.128
+        # Uncomment and re-IP after provisioning:
+        # k3s-node-1:
+        #   ansible_host: 192.168.1.40
+        # k3s-node-2:
+        #   ansible_host: 192.168.1.41
+        # k3s-node-3:
+        #   ansible_host: 192.168.1.42
 ```
+
+Run `provision-nodes.yml` on the new nodes to harden them.
+
+### Step 2: Restore etcd Ports in UFW
+
+Add these back to `inventory/group_vars/all.yml`:
+
+```yaml
+k3s_firewall_rules:
+  # ... existing rules ...
+  - { port: 2379, proto: tcp, comment: "etcd client requests" }   # HA only
+  - { port: 2380, proto: tcp, comment: "etcd peer communication" } # HA only
+```
+
+### Step 3: Initialize the First HA Node
+
+On the first server, set `k3s_init_cluster: true` in `group_vars/all.yml` or via the command line:
 
 ```bash
-# 5. Test cluster DNS resolution
-kubectl run test-dns --image=busybox:1.28 --rm -it --restart=Never -- nslookup kubernetes.default
+ansible-playbook -i inventory/hosts.yml playbooks/bootstrap-k3s.yml \
+  -e "k3s_init_cluster=true"
 ```
 
-**Expected DNS Output:**
-```
-Server:    10.43.0.10
-Address 1: 10.43.0.10 kube-dns.kube-system.svc.cluster.local
+This reconfigures K3s to use embedded etcd instead of SQLite and starts the HA cluster.
 
-Name:      kubernetes.default
-Address 1: 10.43.0.1 kubernetes.default.svc.cluster.local
-```
+> **Destructive operation:** Enabling `cluster-init: true` on an existing SQLite node will not migrate data. Back up workloads and re-apply them after the cluster is re-initialized.
 
-### Step 13: Initial Application Deployment
+### Step 4: Join Additional Nodes
 
-**Testing GitOps Workflow:** This verifies that Flux can detect changes in your Git repository and deploy them to the cluster.
-
-**Manual Flux Reconciliation:**
+On each additional server:
 
 ```bash
-# Force Flux to check for new changes immediately
-flux reconcile source git flux-system
+ansible-playbook -i inventory/hosts.yml playbooks/bootstrap-k3s.yml \
+  -e "k3s_server_url=https://192.168.1.128:6443" \
+  -e "k3s_token=<saved-join-token>"
 ```
 
-**Expected Output:**
-```
-✓ applied revision main@sha1:xxxxxxxxxxxxx
-```
+### Step 5: Verify HA Cluster
 
 ```bash
-# Check if any kustomizations need reconciliation
-flux reconcile kustomization flux-system
+kubectl get nodes
+# Expected: 3 (or more) nodes in Ready state
 
-# Monitor all pods across all namespaces
-kubectl get pods -A -w
-# Press Ctrl+C to stop watching
+kubectl get pods -n kube-system -l component=etcd
+# Expected: etcd pods on each server
 ```
 
-**Deploy a Test Application:**
+### Future Phases
 
-Create a simple test deployment to verify the cluster is working:
+These are not yet implemented and are listed here for planning purposes only:
 
-```bash
-# Create test namespace and deployment
-kubectl create namespace test
-kubectl create deployment nginx --image=nginx:alpine -n test
-kubectl expose deployment nginx --port=80 --target-port=80 -n test
+| Phase | Component | Status |
+|-------|-----------|--------|
+| Flux CD | GitOps automation | Stub only (`bootstrap-flux.yml`) |
+| Longhorn | Distributed block storage | Not started |
+| Nginx Ingress | HTTP load balancer | Not started (Traefik is the default K3s ingress) |
+| Cert Manager | TLS certificate automation | Not started |
+| SOPS + age | Secret encryption in Git | Not started |
+| CDK8s | TypeScript-defined manifests | Not started |
+| Velero | Backup/restore | Not started |
 
-# Check deployment status
-kubectl get pods -n test -w
-# Wait for pod to show "Running" status
-
-# Test internal connectivity
-kubectl run test-client --image=busybox:1.28 --rm -it --restart=Never -n test -- wget -qO- nginx
-# Should return HTML from nginx
-
-# Clean up test resources
-kubectl delete namespace test
-```
-
-**Verify Longhorn Storage:**
-
-```bash
-# Create a PVC to test storage
-cat <<EOF | kubectl apply -f -
-apiVersion: v1
-kind: PersistentVolumeClaim
-metadata:
-  name: test-pvc
-  namespace: default
-spec:
-  accessModes:
-    - ReadWriteOnce
-  resources:
-    requests:
-      storage: 1Gi
-  storageClassName: longhorn
-EOF
-
-# Check PVC status (should show "Bound")
-kubectl get pvc test-pvc
-
-# Check Longhorn volume was created
-kubectl get volumes -n longhorn-system
-
-# Clean up test PVC
-kubectl delete pvc test-pvc
-```
-
-**Access Cluster Services:**
-
-```bash
-# Get Traefik (ingress controller) service
-kubectl get svc -n kube-system traefik
-
-# Get Longhorn UI service (if enabled)
-kubectl get svc -n longhorn-system longhorn-frontend
-
-# Port forward to access Longhorn UI from control machine
-kubectl port-forward -n longhorn-system svc/longhorn-frontend 8080:80 &
-# Open browser to http://localhost:8080
-# Kill port-forward: killall kubectl
-```
-
-## Troubleshooting
-
-### Common Issues
-
-1. **SSH Connection Refused**
-   - Verify SSH service is running: `sudo systemctl status ssh`
-   - Check firewall rules: `sudo ufw status`
-
-2. **Ansible Connection Timeout**
-   - Verify SSH key authentication: `ssh -i ~/.ssh/k3s_cluster k3s@<node-ip>`
-   - Check inventory file syntax
-
-3. **K3s Installation Failures**
-   - Check node system requirements (RAM, disk space)
-   - Verify network connectivity between nodes
-   - Review K3s logs: `sudo journalctl -u k3s`
-
-4. **Longhorn Storage Issues**
-   - Ensure nodes have required dependencies: `iscsiadm`, `multipath-tools`
-   - Check available disk space on each node
-
-5. **Flux Bootstrap Failures**
-   - Verify GitHub token permissions
-   - Check repository access and branch existence
-   - Review Flux controller logs: `kubectl logs -n flux-system -l app=source-controller`
-
-## Next Steps
-
-After successful bootstrap:
-1. Configure monitoring stack (Prometheus, Grafana, Loki)
-2. Set up ingress controller and certificates
-3. Deploy applications using CDK8s or direct manifests
-4. Configure backup strategies with Velero
-5. Implement network policies and RBAC
-
-## Required Ansible Playbooks
-
-The following playbooks need to be created/updated in `k3s/bootstrap/ansible/playbooks/`:
-- `provision-nodes.yml` - System preparation and dependencies
-- `bootstrap-k3s.yml` - K3s cluster installation and configuration
-- `bootstrap-flux.yml` - Flux CD setup and GitOps configuration
+Refer to `k3s/k3s.md` for the full target architecture.

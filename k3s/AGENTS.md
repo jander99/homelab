@@ -1,7 +1,7 @@
 # K3S DIRECTORY
 
 ## OVERVIEW
-**Partially implemented.** Ansible directory is initialized for OS provisioning. K3s install, Flux CD, and CDK8s remain unimplemented.
+**Single-node K3s bootstrap is implemented.** Ansible provisions OS nodes and installs K3s server role. Flux CD and CDK8s remain unimplemented — see Part 2 of `BOOTSTRAP.md` for the HA upgrade path.
 
 ## WHAT EXISTS
 ```
@@ -14,18 +14,21 @@ k3s/
     ├── inventory/group_vars/all.yml  # Common vars: packages, UFW rules, kernel modules
     ├── playbooks/
     │   ├── provision-nodes.yml  # OS hardening + K3s prereqs (runnable now)
-    │   ├── bootstrap-k3s.yml    # K3s install stub (not yet runnable)
+    │   ├── bootstrap-k3s.yml    # K3s server install (runnable; uses k3s-server role)
     │   ├── bootstrap-flux.yml   # Flux CD stub (not yet runnable)
     │   └── site.yml             # Full entrypoint (runs all phases)
-    └── roles/
+    ├── roles/
         ├── common/              # apt upgrade, packages, timezone, UFW, passwordless sudo; asserts vars non-empty
-        └── k3s-prereqs/         # swap disable, kernel modules, sysctl
+        ├── k3s-prereqs/         # swap disable, kernel modules, sysctl
+        └── k3s-server/          # K3s server install, config, kubeconfig fetch, token persistence
 ```
+
+> Last verified: 2026-05-02
 
 ## PLANNED ARCHITECTURE (not yet created)
 | Component | Planned Location | Status |
 |-----------|-----------------|--------|
-| Ansible playbooks | `k3s/bootstrap/ansible/` | ✅ Initialized (provision-nodes only) |
+| Ansible playbooks | `k3s/bootstrap/ansible/` | ✅ Initialized (provision-nodes, bootstrap-k3s runnable) |
 | Flux CD configs | `k3s/clusters/`, `k3s/infrastructure/` | ❌ Not created |
 | CDK8s TypeScript | `applications/cdk8s/src/` | ❌ Not created |
 | Generated manifests | `applications/cdk8s/manifests/` | ❌ Not created |
@@ -42,6 +45,7 @@ k3s/
 ## ANTI-PATTERNS
 - **Do not create files here expecting them to be deployed** — the K3s cluster may not exist yet.
 - **Do not treat `k3s.md` as current state** — it describes the target, not reality.
+- **Do not describe planned components as implemented** — Flux, Longhorn, CDK8s, and HA are future state only.
 - **Do not run `ansible-playbook` commands from `BOOTSTRAP.md`** without verifying nodes are provisioned.
 
 ## NOTES
@@ -49,6 +53,7 @@ k3s/
 - `k3s.md` contains CDK8s TypeScript construct API and Flux kustomization patterns.
 - Current Docker services on Synology NAS are the live production environment — K3s migration is future work.
 - **Testbed node** (i7-4770k) at 192.168.1.128 is the first node to provision. Re-IP to 192.168.1.4x before joining the cluster.
-- `provision-nodes.yml` is the only runnable playbook today — runs `common` + `k3s-prereqs` roles.
-- `bootstrap-k3s.yml` and `bootstrap-flux.yml` are stubs; K3s server role (`roles/k3s-server/`) does not yet exist.
+- `provision-nodes.yml` is runnable — runs `common` + `k3s-prereqs` roles.
+- `bootstrap-k3s.yml` is runnable — runs `k3s-server` role to install and configure a single K3s server node.
+- `bootstrap-flux.yml` is a stub — Flux CD bootstrap is not yet implemented.
 - `group_vars/` lives at `inventory/group_vars/all.yml` (not at the ansible root) — required for `ansible-playbook` variable loading to work correctly.

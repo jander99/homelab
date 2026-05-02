@@ -31,8 +31,11 @@
       # K3s server configuration — managed by Ansible, do not edit manually.
       # Re-run bootstrap-k3s.yml to apply changes.
 
-      # Permit reading the kubeconfig without sudo
-      write-kubeconfig-mode: "0644"
+      # Restrict kubeconfig to root-only (0600); fetched copy also secured locally
+      write-kubeconfig-mode: "0600"
+
+      # Encrypt Secrets at rest (one-way door — enable before first workloads)
+      secrets-encryption: true
 
       # CNI backend — vxlan is the universal default; use host-gw for L2-only networks.
       flannel-backend: "{{ k3s_flannel_backend }}"
@@ -140,11 +143,27 @@
   delegate_to: localhost
   become: false
 
+- name: Persist node join token locally
+  ansible.builtin.copy:
+    dest: "{{ k3s_kubeconfig_local_dir }}/k3s-{{ inventory_hostname }}-token"
+    content: "{{ k3s_node_token_raw.content | b64decode | trim }}"
+    mode: "0600"
+  delegate_to: localhost
+  become: false
+  no_log: true
+
 - name: Fetch kubeconfig from node to control machine
   ansible.builtin.fetch:
     src: /etc/rancher/k3s/k3s.yaml
     dest: "{{ k3s_kubeconfig_local_file }}"
     flat: true
+
+- name: Secure local kubeconfig permissions
+  ansible.builtin.file:
+    path: "{{ k3s_kubeconfig_local_file }}"
+    mode: "0600"
+  delegate_to: localhost
+  become: false
 
 - name: Fix kubeconfig server address (replace loopback with node IP)
   ansible.builtin.replace:
