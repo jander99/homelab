@@ -1,0 +1,46 @@
+---
+# roles/k3s-server/defaults/main.yml
+# Override these in group_vars/all.yml or host_vars/
+
+# K3s version to install — pin to a specific release for reproducibility.
+# Find the latest release at: https://github.com/k3s-io/k3s/releases
+# k3s_version: "v1.35.4+k3s1"  # Source of truth is inventory/group_vars/all.yml — edit there instead.
+
+k3s_install_script_url: "https://get.k3s.io"
+
+# File paths
+k3s_config_dir: /etc/rancher/k3s
+k3s_config_file: /etc/rancher/k3s/config.yaml
+k3s_token_file: /var/lib/rancher/k3s/server/node-token
+
+# HA cluster init: set true on the FIRST server of a multi-node HA cluster.
+# This enables embedded etcd instead of the default SQLite backend.
+# Leave false for a single-node cluster (SQLite is sufficient and lighter).
+k3s_init_cluster: false
+
+# Join an existing cluster: provide both to connect this node to a running server.
+# Leave empty when starting a fresh cluster (single-node or first HA node).
+k3s_server_url: ""
+k3s_token: ""
+
+# Networking — explicitly set the CNI backend rather than relying on the default.
+# Options: vxlan (universal), host-gw (L2 networks, best perf), wireguard-native (encrypted).
+k3s_flannel_backend: "vxlan"
+
+# Primary IP for cluster traffic. Set this on multi-NIC hosts to avoid picking the wrong
+# interface. Leave empty to let K3s auto-detect (safe for single-NIC nodes).
+k3s_node_ip: ""
+
+# Extra TLS SANs added to the API server certificate. Required when accessing the cluster
+# via a load balancer VIP or DNS alias that is not the node's own hostname/IP.
+# Example: k3s_tls_san: ["k3s.example.com", "192.168.1.50"]
+k3s_tls_san: []
+
+# Kubeconfig destination on the Ansible control machine (your laptop/workstation).
+# The file is fetched after K3s starts so you can run kubectl locally.
+k3s_kubeconfig_local_dir: "{{ lookup('env', 'HOME') }}/.kube"
+k3s_kubeconfig_local_file: "{{ k3s_kubeconfig_local_dir }}/k3s-{{ inventory_hostname }}.yaml"
+
+# Set true to print the node join token to Ansible output (disabled by default to avoid leaking
+# the token into logs/scrollback; it is always persisted locally to k3s_kubeconfig_local_dir).
+k3s_show_node_token: false

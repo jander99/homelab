@@ -1,12 +1,12 @@
 # Homelab Infrastructure
 
-This repository manages both Docker-based services and a K3s Kubernetes cluster for my homelab environment. The infrastructure includes monitoring, media automation, networking services, and is transitioning to a GitOps-managed Kubernetes setup.
+This repository manages Docker-based services on a Synology NAS and a single-node K3s cluster on a testbed machine. The infrastructure includes monitoring, media automation, networking services, and documented plans for migrating to a multi-node K3s cluster with GitOps.
 
 ## Architecture Overview
 
 ### Current Setup
 - **Docker Services**: Legacy services running on Docker with macvlan networking
-- **K3s Cluster**: 3-node HA Kubernetes cluster with Longhorn storage and Flux CD GitOps
+- **K3s Cluster**: Single-node testbed (192.168.1.128) with SQLite datastore; HA cluster planned — see `k3s/BOOTSTRAP.md` Part 2
 - **Monitoring**: Comprehensive observability with Prometheus, Grafana, and custom exporters
 - **Network**: 192.168.1.0/24 physical network with bridge networking for containers
 
@@ -31,14 +31,19 @@ homelab/
 
 ## K3s Kubernetes Cluster
 
-### Quick Overview
-- **Nodes**: 3x Dell Optiplex (192.168.1.40-42)
-- **Storage**: Longhorn distributed storage with 3-way replication
-- **GitOps**: Flux CD v2 with CDK8s TypeScript manifests  
-- **Monitoring**: Prometheus + Grafana + Loki stack
-- **Networking**: Nginx Ingress with Let's Encrypt certificates
+### Current State
+- **Node**: Single testbed machine at 192.168.1.128
+- **Datastore**: SQLite (default for single node)
+- **GitOps**: Not yet implemented (Flux CD stub exists)
+- **Storage**: Local-path provisioner (Longhorn planned)
+- **Networking**: Flannel VXLAN CNI
+- **Ingress**: Traefik (default K3s ingress; Nginx planned)
 
-See [k3s.md](k3s.md) for comprehensive documentation on cluster architecture, deployment, and operations.
+### Planned (see `k3s/BOOTSTRAP.md` Part 2 and `k3s/k3s.md`)
+- 3-node HA with embedded etcd
+- Longhorn distributed storage
+- Flux CD v2 GitOps
+- Nginx Ingress + cert-manager
 
 ## Docker Services
 
@@ -102,20 +107,19 @@ docker-compose -f <service>-compose.yml up -d
 ```
 
 ### K3s Cluster
-Bootstrap the entire cluster:
+Bootstrap the single-node cluster:
 ```bash
 cd k3s/bootstrap/ansible/
-ansible-playbook -i inventory/hosts site.yml
+ansible-playbook -i inventory/hosts.yml playbooks/bootstrap-k3s.yml
 ```
 
 ## Migration to K3s
 
-The repository supports gradual migration from Docker to Kubernetes with:
-- Data migration tooling
-- Service-by-service transition capability
-- Rollback procedures
-- Comprehensive testing workflows
+The repository documents a future migration from Docker to Kubernetes with:
+- Single-node to HA cluster upgrade path (see `k3s/BOOTSTRAP.md` Part 2)
+- Data migration tooling (planned)
+- Service-by-service transition capability (planned)
 
-See [k3s.md](k3s.md) for detailed migration procedures and GitOps workflows.  
+See [`k3s/k3s.md`](k3s/k3s.md) for the full target architecture and [`k3s/BOOTSTRAP.md`](k3s/BOOTSTRAP.md) for current deployment status.
 
 
