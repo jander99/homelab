@@ -22,7 +22,7 @@
   ansible.builtin.copy:
     dest: /etc/modules-load.d/k3s.conf
     content: |
-      # Kernel modules required by K3s / Kubernetes / Longhorn
+      # Kernel modules required by K3s / Kubernetes
       {% for mod in k3s_kernel_modules %}
       {{ mod }}
       {% endfor %}
