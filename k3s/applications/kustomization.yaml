@@ -1,0 +1,7 @@
+---
+apiVersion: kustomize.config.k8s.io/v1beta1
+kind: Kustomization
+resources: []
+# CDK8s-rendered application manifests go here.
+# Run: nx run cdk8s:synth  (from repo root)
+# Output lands in this directory; commit source + rendered output together.

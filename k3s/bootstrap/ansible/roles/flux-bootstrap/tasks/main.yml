@@ -1,0 +1,287 @@
+---
+# roles/flux-bootstrap/tasks/main.yml
+# Bootstraps Flux CD onto a running K3s cluster using flux bootstrap github.
+#
+# All tasks run on the Ansible controller (delegate_to: localhost) using the
+# kubeconfig that the k3s-server role fetched during K3s installation.
+#
+# Ordering is intentional:
+#   1. Install tooling (flux CLI, age CLI)
+#   2. Pre-create {{ sops_secret_namespace }} namespace
+#   3. Generate age key and create sops-age Secret *before* bootstrap runs
+#      so that Flux can decrypt secrets from first reconciliation.
+#   4. Run flux bootstrap github (idempotent)
+#   5. Wait for Flux controllers to be healthy
+
+# ─── Prerequisites ────────────────────────────────────────────────────────────
+
+- name: Assert flux_github_token is set
+  ansible.builtin.assert:
+    that:
+      - flux_github_token is defined
+      - flux_github_token | length > 0
+    fail_msg: >-
+      flux_github_token is empty. Export the GITHUB_TOKEN environment variable
+      before running this playbook:
+
+        export GITHUB_TOKEN=ghp_xxxx
+        ansible-playbook -i inventory/hosts.yml playbooks/bootstrap-flux.yml -v
+
+      The token needs 'repo' scope to push the flux-system bootstrap files.
+    quiet: true
+  delegate_to: localhost
+  become: false
+
+- name: Check that kubeconfig exists on controller
+  ansible.builtin.stat:
+    path: "{{ flux_kubeconfig }}"
+  register: kubeconfig_stat
+  delegate_to: localhost
+  become: false
+
+- name: Fail if kubeconfig is missing
+  ansible.builtin.fail:
+    msg: >-
+      Kubeconfig not found at {{ flux_kubeconfig }}.
+      Run bootstrap-k3s.yml first so the k3s-server role fetches it:
+
+        ansible-playbook -i inventory/hosts.yml playbooks/bootstrap-k3s.yml
+  when: not kubeconfig_stat.stat.exists
+  delegate_to: localhost
+  become: false
+
+# ─── Flux CLI ─────────────────────────────────────────────────────────────────
+
+- name: Check if flux CLI is installed at the expected version
+  ansible.builtin.command: flux version --client
+  register: flux_version_check
+  changed_when: false
+  failed_when: false
+  delegate_to: localhost
+  become: false
+
+- name: Set fact — flux CLI needs installation
+  ansible.builtin.set_fact:
+    flux_needs_install: >-
+      {{ flux_version_check.rc != 0 or
+         ('v' + flux_cli_version) not in (flux_version_check.stdout | default('')) }}
+  delegate_to: localhost
+  become: false
+
+- name: Detect controller architecture
+  ansible.builtin.command: uname -m
+  register: controller_arch_raw
+  changed_when: false
+  delegate_to: localhost
+  become: false
+
+- name: Normalise architecture name for download URL
+  ansible.builtin.set_fact:
+    flux_arch: "{{ 'arm64' if controller_arch_raw.stdout in ['arm64', 'aarch64'] else 'amd64' }}"
+  delegate_to: localhost
+  become: false
+
+- name: Download flux CLI archive
+  ansible.builtin.get_url:
+    url: "https://github.com/fluxcd/flux2/releases/download/v{{ flux_cli_version }}/flux_{{ flux_cli_version }}_linux_{{ flux_arch }}.tar.gz"
+    dest: "/tmp/flux_{{ flux_cli_version }}_linux_{{ flux_arch }}.tar.gz"
+    mode: "0644"
+    checksum: "{{ ('sha256:' + flux_cli_checksum) if flux_cli_checksum else omit }}"
+  when: flux_needs_install | bool
+  delegate_to: localhost
+  become: false
+
+- name: Extract flux binary from archive
+  ansible.builtin.unarchive:
+    src: "/tmp/flux_{{ flux_cli_version }}_linux_{{ flux_arch }}.tar.gz"
+    dest: "{{ flux_install_dir }}"
+    remote_src: true
+    include:
+      - flux
+    mode: "0755"
+  when: flux_needs_install | bool
+  delegate_to: localhost
+  become: true
+
+- name: Remove flux CLI download archive
+  ansible.builtin.file:
+    path: "/tmp/flux_{{ flux_cli_version }}_linux_{{ flux_arch }}.tar.gz"
+    state: absent
+  when: flux_needs_install | bool
+  delegate_to: localhost
+  become: false
+
+# ─── Age CLI ──────────────────────────────────────────────────────────────────
+
+- name: Check if age-keygen is installed
+  ansible.builtin.command: age-keygen --version
+  register: age_check
+  changed_when: false
+  failed_when: false
+  delegate_to: localhost
+  become: false
+
+- name: Download age archive
+  ansible.builtin.get_url:
+    url: "https://github.com/FiloSottile/age/releases/download/v{{ age_version }}/age-v{{ age_version }}-linux-{{ flux_arch }}.tar.gz"
+    dest: "/tmp/age-v{{ age_version }}-linux-{{ flux_arch }}.tar.gz"
+    mode: "0644"
+    checksum: "{{ ('sha256:' + age_checksum) if age_checksum else omit }}"
+  when: age_check.rc != 0
+  delegate_to: localhost
+  become: false
+
+- name: Extract age archive
+  ansible.builtin.unarchive:
+    src: "/tmp/age-v{{ age_version }}-linux-{{ flux_arch }}.tar.gz"
+    dest: /tmp/
+    remote_src: true
+  when: age_check.rc != 0
+  delegate_to: localhost
+  become: false
+
+- name: Install age and age-keygen binaries
+  ansible.builtin.copy:
+    src: "/tmp/age/{{ item }}"
+    dest: "{{ age_install_dir }}/{{ item }}"
+    mode: "0755"
+    remote_src: true
+  loop:
+    - age
+    - age-keygen
+  when: age_check.rc != 0
+  delegate_to: localhost
+  become: true
+
+- name: Remove age download artifacts
+  ansible.builtin.file:
+    path: "{{ item }}"
+    state: absent
+  loop:
+    - "/tmp/age-v{{ age_version }}-linux-{{ flux_arch }}.tar.gz"
+    - /tmp/age
+  when: age_check.rc != 0
+  delegate_to: localhost
+  become: false
+
+# ─── flux-system namespace ────────────────────────────────────────────────────
+
+- name: Check if {{ sops_secret_namespace }} namespace exists
+  ansible.builtin.command: >
+    kubectl --kubeconfig={{ flux_kubeconfig }} get namespace {{ sops_secret_namespace }}
+  register: flux_ns_check
+  changed_when: false
+  failed_when: false
+  delegate_to: localhost
+  become: false
+
+- name: Create {{ sops_secret_namespace }} namespace (pre-created so sops-age Secret can be added before bootstrap)
+  ansible.builtin.command: >
+    kubectl --kubeconfig={{ flux_kubeconfig }} create namespace {{ sops_secret_namespace }}
+  when: flux_ns_check.rc != 0
+  changed_when: true
+  delegate_to: localhost
+  become: false
+
+# ─── SOPS / age key ───────────────────────────────────────────────────────────
+
+- name: Check if sops-age Secret already exists
+  ansible.builtin.command: >
+    kubectl --kubeconfig={{ flux_kubeconfig }}
+    get secret {{ sops_secret_name }} -n {{ sops_secret_namespace }}
+  register: sops_secret_check
+  changed_when: false
+  failed_when: false
+  delegate_to: localhost
+  become: false
+
+- name: Generate age key (first run only)
+  ansible.builtin.command: "age-keygen -o {{ age_key_file }}"
+  when: sops_secret_check.rc != 0
+  changed_when: true
+  delegate_to: localhost
+  become: false
+
+- name: Restrict age key file permissions
+  ansible.builtin.file:
+    path: "{{ age_key_file }}"
+    mode: "0600"
+  when: sops_secret_check.rc != 0
+  delegate_to: localhost
+  become: false
+
+- name: Create sops-age Kubernetes Secret from age key file
+  ansible.builtin.command: >
+    kubectl --kubeconfig={{ flux_kubeconfig }}
+    create secret generic {{ sops_secret_name }}
+    --namespace={{ sops_secret_namespace }}
+    --from-file=age.agekey={{ age_key_file }}
+  when: sops_secret_check.rc != 0
+  changed_when: true
+  delegate_to: localhost
+  become: false
+
+- name: Read age public key line from key file
+  ansible.builtin.command: "grep '# public key:' {{ age_key_file }}"
+  register: age_pubkey_line
+  changed_when: false
+  when: sops_secret_check.rc != 0
+  delegate_to: localhost
+  become: false
+
+- name: Display age public key and backup reminder
+  ansible.builtin.debug:
+    msg:
+      - "════════════════════════════════════════════════════════════════"
+      - "Age key generated and stored as Secret {{ sops_secret_name }} in {{ sops_secret_namespace }}."
+      - ""
+      - "Public key (add to k3s/.sops.yaml creation_rules):"
+      - "  {{ age_pubkey_line.stdout | regex_replace('# public key: ', '') }}"
+      - ""
+      - "Private key file: {{ age_key_file }}"
+      - ""
+      - "IMPORTANT: Back up {{ age_key_file }} outside of this machine and Git."
+      - "Losing it means encrypted secrets can no longer be decrypted."
+      - "════════════════════════════════════════════════════════════════"
+  when: sops_secret_check.rc != 0
+  delegate_to: localhost
+  become: false
+
+# ─── Flux Bootstrap ───────────────────────────────────────────────────────────
+
+- name: Bootstrap Flux CD via GitHub
+  ansible.builtin.command: >
+    flux bootstrap github
+    --kubeconfig={{ flux_kubeconfig }}
+    --owner={{ flux_github_owner }}
+    --repository={{ flux_github_repo }}
+    --branch={{ flux_git_branch }}
+    --path={{ flux_cluster_path }}
+    --personal
+    --token-auth
+  environment:
+    GITHUB_TOKEN: "{{ flux_github_token }}"
+  changed_when: true
+  register: flux_bootstrap_result
+  delegate_to: localhost
+  become: false
+
+- name: Wait for Flux controllers to become healthy
+  ansible.builtin.command: >
+    flux --kubeconfig={{ flux_kubeconfig }} check
+  register: flux_ready_check
+  retries: 20
+  delay: 15
+  until: flux_ready_check.rc == 0
+  changed_when: false
+  delegate_to: localhost
+  become: false
+
+- name: Display Flux bootstrap summary
+  ansible.builtin.debug:
+    msg:
+      - "Flux CD is healthy."
+      - "Watching branch '{{ flux_git_branch }}' at path '{{ flux_cluster_path }}'."
+      - "Flux will reconcile {{ flux_cluster_path }} on every push to {{ flux_git_branch }}."
+  delegate_to: localhost
+  become: false

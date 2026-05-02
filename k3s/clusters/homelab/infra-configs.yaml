@@ -1,0 +1,30 @@
+---
+# k3s/clusters/homelab/infra-configs.yaml
+# Flux Kustomization — infrastructure configs layer.
+#
+# Applies ClusterIssuers, IngressClasses, and other controller-dependent
+# configuration from k3s/infrastructure/configs/. Depends on
+# infra-controllers so that CRDs exist before config resources land.
+# SOPS decryption is enabled here for any controller credentials or
+# config secrets committed as *.sops.yaml files.
+apiVersion: kustomize.toolkit.fluxcd.io/v1
+kind: Kustomization
+metadata:
+  name: infra-configs
+  namespace: flux-system
+spec:
+  interval: 10m
+  retryInterval: 2m
+  path: ./k3s/infrastructure/configs
+  prune: true
+  wait: true
+  timeout: 5m
+  sourceRef:
+    kind: GitRepository
+    name: flux-system
+  dependsOn:
+    - name: infra-controllers
+  decryption:
+    provider: sops
+    secretRef:
+      name: sops-age
