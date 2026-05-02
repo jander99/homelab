@@ -11,7 +11,7 @@ This is the concrete repo blueprint for the planned K3s GitOps setup. It turns t
 These are the choices worth being opinionated about up front:
 
 - **Monorepo**: cluster bootstrap, rendered manifests, and CDK8s source stay in this repo.
-- **Flux consumes committed YAML only**: Flux watches `k3s/`; it never watches TypeScript source.
+- **Flux consumes committed YAML only**: Flux watches `k3s/clusters/homelab/` specifically; it never watches the broader `k3s/` tree directly or TypeScript source.
 - **CDK8s is the workload authoring layer**: application manifests are defined in TypeScript and rendered before commit.
 - **Nx is orchestration, not truth**: Nx runs synth and validation locally or in CI, but the committed YAML is the deployment contract.
 - **Single cluster root first**: start with `k3s/clusters/homelab/` and avoid `dev`/`staging` overlays until a second cluster exists.

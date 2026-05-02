@@ -79,14 +79,14 @@ ansible-playbook -i inventory/hosts.yml playbooks/bootstrap-k3s.yml
 ansible-playbook -i inventory/hosts.yml playbooks/bootstrap-flux.yml
 ```
 
-**GitOps Workflow**:
+**GitOps Workflow** _(target-state, once Nx workspace and cluster root exist)_:
 1. Change manual cluster manifests or CDK8s source in Git
 2. Run `nx run cdk8s:synth` to render workload YAML into `k3s/applications/`
 3. Commit both source and rendered output
 4. Flux CD syncs `k3s/clusters/homelab/`
 5. Kustomizations reconcile platform, infrastructure, then applications
 
-**CDK8s Development**:
+**CDK8s Development** _(target-state — `nx.json` and `applications/cdk8s/` do not exist yet)_:
 ```bash
 # From the repo root
 nx run cdk8s:synth
@@ -96,11 +96,12 @@ nx run cdk8s:validate
 git diff -- k3s/applications
 ```
 
-Flux should never watch `applications/cdk8s/` directly; it should only reconcile the committed YAML under `k3s/`.
+Flux must never watch `applications/cdk8s/` directly; it should only reconcile the committed YAML under `k3s/clusters/homelab/`.
+Until the Nx workspace and cluster root are created, skip the CDK8s commands above.
 
 ### Monitoring and Troubleshooting
 
-**Flux Operations**:
+**Flux Operations** _(target-state — Flux is not yet bootstrapped; `k3s/clusters/homelab/` does not exist)_:
 ```bash
 # Check all Flux resources
 flux get all -A
@@ -115,10 +116,10 @@ flux reconcile source git flux-system
 - If a future CSI is adopted, isolate provider-specific config under `k3s/infrastructure/`
 
 **Common Issues**:
-- Rendered manifest drift: Re-run `nx run cdk8s:synth` and review `git diff -- k3s/applications`
-- Kustomize build failures: Run `kustomize build k3s/clusters/homelab`
+- Rendered manifest drift _(future, once CDK8s workspace exists)_: Re-run `nx run cdk8s:synth` and review `git diff -- k3s/applications`
+- Kustomize build failures _(future, once cluster root exists)_: Run `kustomize build k3s/clusters/homelab`
 - Node join failures: Check k3s service status and firewall rules
-- Flux sync issues: Check GitRepository and Kustomization status
+- Flux sync issues _(future, once Flux is bootstrapped)_: Check GitRepository and Kustomization status
 
 ## Migration Strategy
 

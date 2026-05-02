@@ -108,9 +108,14 @@ docker-compose -f <service>-compose.yml up -d
 ```
 
 ### K3s Cluster
-Bootstrap the single-node cluster:
+Bootstrap the single-node cluster (run in order):
 ```bash
 cd k3s/bootstrap/ansible/
+
+# Step 1: OS hardening and K3s prerequisites (required first)
+ansible-playbook -i inventory/hosts.yml playbooks/provision-nodes.yml
+
+# Step 2: Install K3s server
 ansible-playbook -i inventory/hosts.yml playbooks/bootstrap-k3s.yml
 ```
 
