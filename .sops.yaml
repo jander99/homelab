@@ -1,0 +1,23 @@
+---
+# .sops.yaml — SOPS encryption configuration
+#
+# Any file matching the path_regex below will be encrypted using the homelab
+# age key when you run: sops <file>
+#
+# The corresponding private key lives in:
+#   ~/.kube/k3s-homelab-age.agekey  (Ansible controller)
+#   flux-system/sops-age Secret     (K3s cluster — Flux uses this to decrypt)
+#
+# To create or edit an encrypted secret (opens $EDITOR, saves encrypted in-place):
+#   sops k3s/infrastructure/configs/my-secret.sops.yaml
+#
+# To encrypt an existing plaintext file in-place:
+#   sops -e -i k3s/infrastructure/configs/my-secret.sops.yaml
+#
+# SOPS will use SOPS_AGE_KEY_FILE or the default age key location.
+# Set it explicitly if needed:
+#   export SOPS_AGE_KEY_FILE=~/.kube/k3s-homelab-age.agekey
+
+creation_rules:
+  - path_regex: k3s/.*\.sops\.yaml$
+    age: age1qntcdwtxrfu92lhj2nzhlc3uqt8nxks5vw7rd23w2cj7c0qyuqqqmey085
