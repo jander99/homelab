@@ -1,6 +1,6 @@
 # K3s Ansible Bootstrap
 
-Ansible playbooks for provisioning K3s cluster nodes. Only `provision-nodes.yml` is runnable today — K3s install and Flux CD are stubs pending future work.
+Ansible playbooks for provisioning and bootstrapping K3s cluster nodes. Both `provision-nodes.yml` and `bootstrap-k3s.yml` are runnable — Flux CD is a stub pending future work.
 
 ## Prerequisites
 
@@ -67,15 +67,27 @@ This applies the `common` and `k3s-prereqs` roles, which:
 - Loads `br_netfilter` and `overlay` kernel modules
 - Applies sysctl settings for Kubernetes networking
 
-### Full bootstrap (not yet runnable)
+### Install K3s server
 
 ```bash
-# Phase 1 runs successfully; Phase 2 (K3s install) and Phase 3 (Flux)
-# are stubs that will fail with clear messages until implemented.
+ansible-playbook -i inventory/hosts.yml playbooks/bootstrap-k3s.yml -v
+```
+
+Installs K3s v1.35.4+k3s1 on all `k3s_servers` hosts. On success, kubeconfig is fetched to
+`~/.kube/k3s-<hostname>.yaml` and the node join token is saved to `~/.kube/k3s-<hostname>-token`.
+
+```bash
+KUBECONFIG=~/.kube/k3s-testbed.yaml kubectl get nodes
+```
+
+### Full bootstrap (Flux CD not yet runnable)
+
+```bash
+# Phases 1 and 2 run successfully; Phase 3 (Flux CD) is a stub.
 ansible-playbook -i inventory/hosts.yml playbooks/site.yml -v
 ```
 
-K3s install (`bootstrap-k3s.yml`) and Flux CD (`bootstrap-flux.yml`) are stubs that will fail with clear messages until their respective implementations are added.
+Flux CD (`bootstrap-flux.yml`) is a stub and will fail with a clear message until implemented.
 
 ---
 
