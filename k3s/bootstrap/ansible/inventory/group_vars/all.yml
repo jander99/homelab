@@ -23,8 +23,7 @@ k3s_firewall_rules:
   - { port: 10250, proto: tcp, comment: "Kubelet API" }
   - { port: 8472,  proto: udp, comment: "Flannel VXLAN" }
   - { port: 51820, proto: udp, comment: "Flannel WireGuard (optional)" }
-  # Etcd peer/client ports are HA-only;
-  see BOOTSTRAP.md Part 2 for HA upgrade path
+# Etcd peer/client ports are HA-only; see BOOTSTRAP.md Part 2 for HA upgrade path.
 
 # Kernel modules required for K3s / Kubernetes networking
 k3s_kernel_modules:

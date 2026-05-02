@@ -40,3 +40,7 @@ k3s_tls_san: []
 # The file is fetched after K3s starts so you can run kubectl locally.
 k3s_kubeconfig_local_dir: "{{ lookup('env', 'HOME') }}/.kube"
 k3s_kubeconfig_local_file: "{{ k3s_kubeconfig_local_dir }}/k3s-{{ inventory_hostname }}.yaml"
+
+# Set true to print the node join token to Ansible output (disabled by default to avoid leaking
+# the token into logs/scrollback; it is always persisted locally to k3s_kubeconfig_local_dir).
+k3s_show_node_token: false

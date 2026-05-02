@@ -172,7 +172,7 @@ kubectl get nodes
 kubectl get pods -A
 
 # Verify Secrets encryption
-kubectl get secrets -A -o yaml | grep -c 'encrypted'
+k3s secrets-encrypt status
 ```
 
 You should see:

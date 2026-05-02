@@ -16,6 +16,18 @@
       via -e k3s_version=vX.Y.Z+k3sN on the command line.
     quiet: true
 
+- name: Validate K3s mode flag combinations
+  ansible.builtin.assert:
+    that:
+      - not (k3s_server_url | length > 0 and k3s_token | length == 0)
+      - not (k3s_init_cluster and k3s_server_url | length > 0)
+    fail_msg: >-
+      Invalid K3s mode configuration. Rules:
+      (1) k3s_server_url requires k3s_token — both must be set to join a cluster.
+      (2) k3s_init_cluster: true and k3s_server_url are mutually exclusive;
+          a node cannot initialise and join simultaneously.
+    quiet: true
+
 - name: Create K3s configuration directory
   ansible.builtin.file:
     path: "{{ k3s_config_dir }}"
@@ -75,7 +87,7 @@
     url: "{{ k3s_install_script_url }}"
     dest: /tmp/k3s-install.sh
     mode: "0700"
-    force: true
+    force: false
 
 - name: Check whether K3s binary is already present
   ansible.builtin.stat:
@@ -83,7 +95,7 @@
   register: k3s_binary
 
 - name: Check installed K3s version (if binary exists)
-  ansible.builtin.command: k3s --version
+  ansible.builtin.command: /usr/local/bin/k3s --version
   register: k3s_installed_version
   changed_when: false
   failed_when: false
@@ -119,7 +131,10 @@
 - name: Wait for node to reach Ready state
   ansible.builtin.command: k3s kubectl get nodes --no-headers
   register: k3s_nodes
-  until: k3s_nodes.stdout is search('Ready')
+  until: >-
+    k3s_nodes.stdout | length > 0 and
+    'NotReady' not in k3s_nodes.stdout and
+    'Ready' in k3s_nodes.stdout
   retries: 12
   delay: 10
   changed_when: false
@@ -128,12 +143,14 @@
   ansible.builtin.slurp:
     src: "{{ k3s_token_file }}"
   register: k3s_node_token_raw
+  no_log: true
 
-- name: Display node token
+- name: Display node token (opt-in, set k3s_show_node_token=true to enable)
   ansible.builtin.debug:
     msg: >-
       K3s node token (save this to join more nodes later):
       {{ k3s_node_token_raw.content | b64decode | trim }}
+  when: k3s_show_node_token | default(false) | bool
 
 - name: Ensure local kubeconfig directory exists
   ansible.builtin.file:
