@@ -1,22 +1,30 @@
 ---
 # bootstrap-flux.yml
-# Installs Flux CD on a running K3s cluster.
+# Bootstraps Flux CD on a running K3s cluster and sets up SOPS/age encryption.
 # Run AFTER bootstrap-k3s.yml completes successfully.
 #
-# Usage: ansible-playbook -i inventory/hosts.yml playbooks/bootstrap-flux.yml -v \
-#          -e github_token=$GITHUB_TOKEN
+# Usage:
+#   export GITHUB_TOKEN=ghp_xxxx
+#   ansible-playbook -i inventory/hosts.yml playbooks/bootstrap-flux.yml -v
+#
+# The playbook runs tooling on the Ansible controller (delegate_to: localhost)
+# using the kubeconfig fetched by bootstrap-k3s.yml.
+#
+# What it does:
+#   1. Installs flux CLI and age CLI on the controller (if not present)
+#   2. Pre-creates the flux-system namespace
+#   3. Generates an age key and creates the sops-age Secret in flux-system
+#      (BEFORE bootstrap so Flux can decrypt from first reconciliation)
+#   4. Runs `flux bootstrap github` to install Flux controllers and commit
+#      flux-system/ into k3s/clusters/homelab/ on the master branch
+#   5. Waits for all Flux controllers to be healthy
 
 - name: Bootstrap Flux CD
-  hosts: k3s_servers[0]  # Run only on first server (any server has cluster access)
+  hosts: k3s_servers[0]  # Used to resolve inventory variables (e.g. ansible_host for kubeconfig path)
+  gather_facts: false
   become: false
   vars:
-    github_token: "{{ lookup('env', 'GITHUB_TOKEN') }}"
-    github_owner: jander99
-    github_repo: homelab
-  tasks:
-    - name: Fail until the Flux CD role is implemented
-      ansible.builtin.fail:
-        msg: >-
-          bootstrap-flux.yml is currently a stub. Flux CD bootstrap is not
-          implemented yet, so this playbook cannot run yet.
-          Implement Flux CD bootstrap before using this entrypoint.
+    # Pass GITHUB_TOKEN via the environment. Never commit the token.
+    flux_github_token: "{{ lookup('env', 'GITHUB_TOKEN') }}"
+  roles:
+    - role: flux-bootstrap

@@ -1,0 +1,39 @@
+---
+# roles/flux-bootstrap/defaults/main.yml
+# Override these in group_vars/all.yml or inventory host_vars as needed.
+
+# ─── Flux CLI ────────────────────────────────────────────────────────────────
+# Pinned version — check https://github.com/fluxcd/flux2/releases for updates.
+flux_cli_version: "2.3.0"
+
+# Directory where the flux binary is installed on the Ansible controller.
+flux_install_dir: "/usr/local/bin"
+
+# ─── GitHub repository settings ──────────────────────────────────────────────
+# These match the existing repository at github.com/jander99/homelab.
+flux_github_owner: "jander99"
+flux_github_repo: "homelab"
+flux_git_branch: "master"
+
+# Path inside the repo that flux bootstrap watches.
+# flux bootstrap github commits flux-system/ inside this directory.
+flux_cluster_path: "k3s/clusters/homelab"
+
+# ─── Kubeconfig ──────────────────────────────────────────────────────────────
+# The k3s-server role fetches the kubeconfig here.
+# k3s_kubeconfig_local_file is defined in roles/k3s-server/defaults/main.yml.
+# This default shadows it so that flux-bootstrap can be called standalone.
+flux_kubeconfig: "{{ k3s_kubeconfig_local_file | default(lookup('env', 'HOME') + '/.kube/k3s-' + inventory_hostname + '.yaml') }}"
+
+# ─── SOPS / age ──────────────────────────────────────────────────────────────
+# Name and namespace of the Kubernetes Secret that Flux uses for SOPS decryption.
+sops_secret_name: "sops-age"
+sops_secret_namespace: "flux-system"
+
+# Where the age private key is stored on the Ansible controller.
+# IMPORTANT: Back this file up outside of Git and outside this machine.
+# Losing it means encrypted secrets can no longer be decrypted.
+age_key_file: "{{ lookup('env', 'HOME') }}/.kube/k3s-homelab-age.agekey"
+
+# Directory where age and age-keygen are installed on the Ansible controller.
+age_install_dir: "/usr/local/bin"
