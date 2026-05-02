@@ -7,7 +7,7 @@
 #
 # Ordering is intentional:
 #   1. Install tooling (flux CLI, age CLI)
-#   2. Pre-create flux-system namespace
+#   2. Pre-create {{ sops_secret_namespace }} namespace
 #   3. Generate age key and create sops-age Secret *before* bootstrap runs
 #      so that Flux can decrypt secrets from first reconciliation.
 #   4. Run flux bootstrap github (idempotent)
@@ -72,14 +72,12 @@
   ansible.builtin.command: uname -m
   register: controller_arch_raw
   changed_when: false
-  when: flux_needs_install | bool
   delegate_to: localhost
   become: false
 
 - name: Normalise architecture name for download URL
   ansible.builtin.set_fact:
     flux_arch: "{{ 'arm64' if controller_arch_raw.stdout in ['arm64', 'aarch64'] else 'amd64' }}"
-  when: flux_needs_install | bool
   delegate_to: localhost
   become: false
 
@@ -88,6 +86,7 @@
     url: "https://github.com/fluxcd/flux2/releases/download/v{{ flux_cli_version }}/flux_{{ flux_cli_version }}_linux_{{ flux_arch }}.tar.gz"
     dest: "/tmp/flux_{{ flux_cli_version }}_linux_{{ flux_arch }}.tar.gz"
     mode: "0644"
+    checksum: "{{ ('sha256:' + flux_cli_checksum) if flux_cli_checksum else omit }}"
   when: flux_needs_install | bool
   delegate_to: localhost
   become: false
@@ -124,16 +123,17 @@
 
 - name: Download age archive
   ansible.builtin.get_url:
-    url: "https://github.com/FiloSottile/age/releases/download/v1.2.0/age-v1.2.0-linux-amd64.tar.gz"
-    dest: "/tmp/age-v1.2.0-linux-amd64.tar.gz"
+    url: "https://github.com/FiloSottile/age/releases/download/v{{ age_version }}/age-v{{ age_version }}-linux-{{ flux_arch }}.tar.gz"
+    dest: "/tmp/age-v{{ age_version }}-linux-{{ flux_arch }}.tar.gz"
     mode: "0644"
+    checksum: "{{ ('sha256:' + age_checksum) if age_checksum else omit }}"
   when: age_check.rc != 0
   delegate_to: localhost
   become: false
 
 - name: Extract age archive
   ansible.builtin.unarchive:
-    src: "/tmp/age-v1.2.0-linux-amd64.tar.gz"
+    src: "/tmp/age-v{{ age_version }}-linux-{{ flux_arch }}.tar.gz"
     dest: /tmp/
     remote_src: true
   when: age_check.rc != 0
@@ -158,7 +158,7 @@
     path: "{{ item }}"
     state: absent
   loop:
-    - /tmp/age-v1.2.0-linux-amd64.tar.gz
+    - "/tmp/age-v{{ age_version }}-linux-{{ flux_arch }}.tar.gz"
     - /tmp/age
   when: age_check.rc != 0
   delegate_to: localhost
@@ -166,18 +166,18 @@
 
 # ─── flux-system namespace ────────────────────────────────────────────────────
 
-- name: Check if flux-system namespace exists
+- name: Check if {{ sops_secret_namespace }} namespace exists
   ansible.builtin.command: >
-    kubectl --kubeconfig={{ flux_kubeconfig }} get namespace flux-system
+    kubectl --kubeconfig={{ flux_kubeconfig }} get namespace {{ sops_secret_namespace }}
   register: flux_ns_check
   changed_when: false
   failed_when: false
   delegate_to: localhost
   become: false
 
-- name: Create flux-system namespace (pre-created so sops-age Secret can be added before bootstrap)
+- name: Create {{ sops_secret_namespace }} namespace (pre-created so sops-age Secret can be added before bootstrap)
   ansible.builtin.command: >
-    kubectl --kubeconfig={{ flux_kubeconfig }} create namespace flux-system
+    kubectl --kubeconfig={{ flux_kubeconfig }} create namespace {{ sops_secret_namespace }}
   when: flux_ns_check.rc != 0
   changed_when: true
   delegate_to: localhost
@@ -249,15 +249,6 @@
 
 # ─── Flux Bootstrap ───────────────────────────────────────────────────────────
 
-- name: Check if Flux controllers are already healthy
-  ansible.builtin.command: >
-    flux --kubeconfig={{ flux_kubeconfig }} check
-  register: flux_health_check
-  changed_when: false
-  failed_when: false
-  delegate_to: localhost
-  become: false
-
 - name: Bootstrap Flux CD via GitHub
   ansible.builtin.command: >
     flux bootstrap github
@@ -270,7 +261,6 @@
     --token-auth
   environment:
     GITHUB_TOKEN: "{{ flux_github_token }}"
-  when: flux_health_check.rc != 0
   changed_when: true
   register: flux_bootstrap_result
   delegate_to: localhost
@@ -292,6 +282,6 @@
     msg:
       - "Flux CD is healthy."
       - "Watching branch '{{ flux_git_branch }}' at path '{{ flux_cluster_path }}'."
-      - "Flux will reconcile k3s/clusters/homelab/ on every push to master."
+      - "Flux will reconcile {{ flux_cluster_path }} on every push to {{ flux_git_branch }}."
   delegate_to: localhost
   become: false
