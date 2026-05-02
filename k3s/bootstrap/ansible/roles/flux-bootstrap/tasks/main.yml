@@ -53,7 +53,7 @@
 # ─── Flux CLI ─────────────────────────────────────────────────────────────────
 
 - name: Check if flux CLI is installed at the expected version
-  ansible.builtin.command: flux version --client
+  ansible.builtin.command: "{{ flux_install_dir }}/flux version --client"
   register: flux_version_check
   changed_when: false
   failed_when: false
@@ -81,6 +81,15 @@
   delegate_to: localhost
   become: false
 
+- name: Ensure install directories exist on controller
+  ansible.builtin.file:
+    path: "{{ item }}"
+    state: directory
+    mode: "0755"
+  loop: "{{ [flux_install_dir, age_install_dir] | unique }}"
+  delegate_to: localhost
+  become: false
+
 - name: Download flux CLI archive
   ansible.builtin.get_url:
     url: "https://github.com/fluxcd/flux2/releases/download/v{{ flux_cli_version }}/flux_{{ flux_cli_version }}_linux_{{ flux_arch }}.tar.gz"
@@ -101,7 +110,7 @@
     mode: "0755"
   when: flux_needs_install | bool
   delegate_to: localhost
-  become: true
+  become: false
 
 - name: Remove flux CLI download archive
   ansible.builtin.file:
@@ -114,7 +123,7 @@
 # ─── Age CLI ──────────────────────────────────────────────────────────────────
 
 - name: Check if age-keygen is installed
-  ansible.builtin.command: age-keygen --version
+  ansible.builtin.command: "{{ age_install_dir }}/age-keygen --version"
   register: age_check
   changed_when: false
   failed_when: false
@@ -151,7 +160,7 @@
     - age-keygen
   when: age_check.rc != 0
   delegate_to: localhost
-  become: true
+  become: false
 
 - name: Remove age download artifacts
   ansible.builtin.file:
@@ -196,7 +205,7 @@
   become: false
 
 - name: Generate age key (first run only)
-  ansible.builtin.command: "age-keygen -o {{ age_key_file }}"
+  ansible.builtin.command: "{{ age_install_dir }}/age-keygen -o {{ age_key_file }}"
   when: sops_secret_check.rc != 0
   changed_when: true
   delegate_to: localhost
@@ -251,7 +260,7 @@
 
 - name: Bootstrap Flux CD via GitHub
   ansible.builtin.command: >
-    flux bootstrap github
+    {{ flux_install_dir }}/flux bootstrap github
     --kubeconfig={{ flux_kubeconfig }}
     --owner={{ flux_github_owner }}
     --repository={{ flux_github_repo }}
@@ -268,7 +277,7 @@
 
 - name: Wait for Flux controllers to become healthy
   ansible.builtin.command: >
-    flux --kubeconfig={{ flux_kubeconfig }} check
+    {{ flux_install_dir }}/flux --kubeconfig={{ flux_kubeconfig }} check
   register: flux_ready_check
   retries: 20
   delay: 15
