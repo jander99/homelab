@@ -1,0 +1,22 @@
+---
+# k3s/clusters/homelab/platform.yaml
+# Flux Kustomization — platform layer.
+#
+# Applies namespaces, RBAC, and shared policies from k3s/platform/.
+# This is the first layer in the reconciliation graph; everything else
+# depends on namespaces existing before workloads land.
+apiVersion: kustomize.toolkit.fluxcd.io/v1
+kind: Kustomization
+metadata:
+  name: platform
+  namespace: flux-system
+spec:
+  interval: 10m
+  retryInterval: 2m
+  path: ./k3s/platform
+  prune: true
+  wait: true
+  timeout: 5m
+  sourceRef:
+    kind: GitRepository
+    name: flux-system

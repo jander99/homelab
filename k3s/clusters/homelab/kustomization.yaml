@@ -1,0 +1,18 @@
+# k3s/clusters/homelab/kustomization.yaml
+# Kustomize entry point for the homelab cluster root.
+#
+# flux bootstrap github commits k3s/clusters/homelab/flux-system/ alongside
+# this file. A Flux Kustomization (flux-system) watches this path and applies
+# everything Kustomize assembles here.
+#
+# Resources listed here are Flux Kustomization CRDs that establish the
+# reconciliation graph: platform → infra-controllers → infra-configs → apps.
+# The flux-system directory is managed by flux bootstrap directly and does not
+# need to be listed here.
+apiVersion: kustomize.config.k8s.io/v1beta1
+kind: Kustomization
+resources:
+  - platform.yaml
+  - infra-controllers.yaml
+  - infra-configs.yaml
+  - apps.yaml
