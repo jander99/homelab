@@ -1,0 +1,3 @@
+language: typescript
+app: ts-node src/main.ts
+output: dist

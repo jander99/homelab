@@ -1,0 +1,30 @@
+{
+  "name": "cdk8s",
+  "$schema": "../../node_modules/nx/schemas/project-schema.json",
+  "sourceRoot": "applications/cdk8s/src",
+  "projectType": "application",
+  "targets": {
+    "synth": {
+      "executor": "nx:run-commands",
+      "options": {
+        "command": "cdk8s synth --output ${CDK8S_OUTDIR:-dist}",
+        "cwd": "applications/cdk8s"
+      }
+    },
+    "validate": {
+      "executor": "nx:run-commands",
+      "options": {
+        "command": "kubectl --dry-run=client --validate=false apply -f ${CDK8S_OUTDIR:-dist}/ --recursive",
+        "cwd": "applications/cdk8s"
+      }
+    },
+    "diff": {
+      "executor": "nx:run-commands",
+      "options": {
+        "command": "kubectl diff -f ${CDK8S_OUTDIR:-dist}/ --recursive",
+        "cwd": "applications/cdk8s"
+      }
+    }
+  },
+  "tags": []
+}
