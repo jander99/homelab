@@ -9,3 +9,10 @@ node_modules/
 # CDK8s generated
 applications/cdk8s/dist/
 applications/cdk8s/imports/
+
+# Sisyphus session state (machine-specific)
+.sisyphus/boulder.json
+.sisyphus/evidence/
+.sisyphus/notepads/
+# TS build artifacts
+applications/cdk8s/dist/out-tsc/

@@ -1,2 +1,0 @@
-git diff -- k3s/ => empty
-lsp_diagnostics applications/cdk8s/src/main.ts => no diagnostics found

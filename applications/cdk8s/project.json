@@ -14,14 +14,14 @@
     "validate": {
       "executor": "nx:run-commands",
       "options": {
-        "command": "kubectl --dry-run=client --validate=false apply -f dist/ --recursive",
+        "command": "kubectl --dry-run=client --validate=false apply -f ${CDK8S_OUTDIR:-dist}/ --recursive",
         "cwd": "applications/cdk8s"
       }
     },
     "diff": {
       "executor": "nx:run-commands",
       "options": {
-        "command": "kubectl diff -f dist/ --recursive",
+        "command": "kubectl diff -f ${CDK8S_OUTDIR:-dist}/ --recursive",
         "cwd": "applications/cdk8s"
       }
     }
