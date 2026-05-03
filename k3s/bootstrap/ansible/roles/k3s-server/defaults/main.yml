@@ -44,3 +44,8 @@ k3s_kubeconfig_local_file: "{{ k3s_kubeconfig_local_dir }}/k3s-{{ inventory_host
 # Set true to print the node join token to Ansible output (disabled by default to avoid leaking
 # the token into logs/scrollback; it is always persisted locally to k3s_kubeconfig_local_dir).
 k3s_show_node_token: false
+
+# K3s built-in components to disable. Use this to replace K3s defaults with
+# external controllers. Example: disable servicelb when using MetalLB.
+# k3s_disable_components: [servicelb, traefik]
+k3s_disable_components: []

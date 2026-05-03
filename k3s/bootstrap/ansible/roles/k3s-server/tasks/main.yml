@@ -77,6 +77,14 @@
       {% if k3s_token | length > 0 %}
       token: "{{ k3s_token }}"
       {% endif %}
+      {% if k3s_disable_components | length > 0 %}
+
+      # Disable built-in K3s components replaced by external controllers.
+      disable:
+      {% for component in k3s_disable_components %}
+        - "{{ component }}"
+      {% endfor %}
+      {% endif %}
     owner: root
     group: root
     mode: "0600"
