@@ -1,2 +1,11 @@
 **/*.env
 .vscode/**
+
+# Node / NX
+node_modules/
+.yarn/cache/
+.yarn/install-state.gz
+.nx/
+# CDK8s generated
+applications/cdk8s/dist/
+applications/cdk8s/imports/

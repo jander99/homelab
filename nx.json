@@ -1,0 +1,13 @@
+{
+  "$schema": "./node_modules/nx/schemas/nx-schema.json",
+  "workspaceLayout": {
+    "appsDir": "applications",
+    "libsDir": "applications"
+  },
+  "targetDefaults": {
+    "synth": {
+      "cache": true
+    }
+  },
+  "defaultBase": "master"
+}

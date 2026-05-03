@@ -1,0 +1,2 @@
+CDK8S_OUTDIR=/tmp/cdk8s-test npx nx run cdk8s:synth => 0
+ls /tmp/cdk8s-test/ => hello.k8s.yaml

@@ -1,0 +1,33 @@
+Task 1 evidence
+===============
+
+Verified files:
+- .yarnrc.yml
+  nodeLinker: node-modules
+- package.json
+  {
+    "name": "homelab",
+    "private": true,
+    "packageManager": "yarn@4.14.1",
+    "workspaces": ["applications/*"],
+    "devDependencies": {
+      "nx": "latest"
+    }
+  }
+- .gitignore
+  **/*.env
+  .vscode/**
+
+  # Node / NX
+  node_modules/
+  .yarn/cache/
+  .yarn/install-state.gz
+  .nx/cache/
+  # CDK8s generated
+  applications/cdk8s/dist/
+  applications/cdk8s/imports/
+
+Verification notes:
+- `npm view @yarnpkg/cli-dist version` վերադարձed 4.14.1.
+- `lsp_diagnostics` returned clean for .yarnrc.yml.
+- `lsp_diagnostics` is not configured for package.json/.gitignore in this workspace.

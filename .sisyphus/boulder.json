@@ -1,0 +1,41 @@
+{
+  "active_plan": "/home/jeff/workspaces/homelab/.sisyphus/plans/nx-cdk8s-init.md",
+  "started_at": "2026-05-03T00:50:15.843Z",
+  "session_ids": [
+    "ses_214d2c3e9ffeyRFfDcfz6fryGO"
+  ],
+  "session_origins": {
+    "ses_214d2c3e9ffeyRFfDcfz6fryGO": "direct"
+  },
+  "plan_name": "nx-cdk8s-init",
+  "agent": "atlas",
+  "task_sessions": {
+    "todo:1": {
+      "task_key": "todo:1",
+      "task_label": "1",
+      "task_title": "Root tooling files: `package.json`, `.yarnrc.yml`, `.gitignore`",
+      "session_id": "ses_214ae70a6ffewS0bFKaMF8ztZb",
+      "agent": "Sisyphus-Junior",
+      "category": "quick",
+      "updated_at": "2026-05-03T00:52:40.846Z"
+    },
+    "todo:3": {
+      "task_key": "todo:3",
+      "task_label": "3",
+      "task_title": "Yarn install + cdk8s app scaffold",
+      "session_id": "ses_214ab81b5ffe9zB7PYJ4J5mXSI",
+      "agent": "Sisyphus-Junior",
+      "category": "unspecified-high",
+      "updated_at": "2026-05-03T00:56:32.346Z"
+    },
+    "todo:4": {
+      "task_key": "todo:4",
+      "task_label": "4",
+      "task_title": "NX project config: `applications/cdk8s/project.json`",
+      "session_id": "ses_214a90f90ffeQVZnQfVEUhG8uh",
+      "agent": "Sisyphus-Junior",
+      "category": "quick",
+      "updated_at": "2026-05-03T00:58:07.268Z"
+    }
+  }
+}

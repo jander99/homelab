@@ -1,0 +1,3 @@
+npx nx run cdk8s:synth => 0
+applications/cdk8s/dist/hello.k8s.yaml exists
+content: apiVersion v1 / kind Namespace / name hello-cdk8s

@@ -1,0 +1,1 @@
+kubectl --dry-run=client --validate=false apply -f applications/cdk8s/dist/ --recursive => 0
