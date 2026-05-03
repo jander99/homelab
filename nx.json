@@ -9,5 +9,6 @@
       "cache": true
     }
   },
-  "defaultBase": "master"
+  "defaultBase": "master",
+  "analytics": false
 }
