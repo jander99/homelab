@@ -1,0 +1,19 @@
+{
+  "name": "cdk8s",
+  "version": "0.0.1",
+  "private": true,
+  "main": "src/main.ts",
+  "scripts": {
+    "synth": "cdk8s synth"
+  },
+  "dependencies": {
+    "cdk8s": "^2.70.59",
+    "constructs": "^10.6.0"
+  },
+  "devDependencies": {
+    "@types/node": "^18.0.0",
+    "cdk8s-cli": "^2.206.10",
+    "ts-node": "^10.9.2",
+    "typescript": "~5.4.5"
+  }
+}
