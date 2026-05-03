@@ -41,6 +41,12 @@ k3s_sysctl_params:
 # Find the latest: https://github.com/k3s-io/k3s/releases
 k3s_version: "v1.35.4+k3s1"
 
+# K3s built-in components to disable — these are replaced by external controllers.
+# servicelb (klipper-lb) must be disabled when MetalLB is installed to prevent
+# both controllers competing for LoadBalancer services.
+k3s_disable_components:
+  - servicelb
+
 # ─── Flux CD bootstrap settings ─────────────────────────────────────────────
 # Environment-specific values for the flux-bootstrap role.
 # These override the empty role defaults in roles/flux-bootstrap/defaults/main.yml.
