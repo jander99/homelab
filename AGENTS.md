@@ -4,7 +4,7 @@
 **Branch:** master  
 
 ## OVERVIEW
-Homelab infrastructure managing 9 Docker services on a Synology NAS (macvlan networking), with a single-node K3s cluster bootstrap (Ansible) and documented plans to migrate to HA. Docker stack is operational; K3s server role is implemented; Flux CD and CDK8s remain future work.
+Homelab infrastructure managing 9 Docker services on a Synology NAS (macvlan networking), with a single-node K3s cluster (Ansible-bootstrapped) and Flux CD v2 GitOps scaffolding committed. Docker stack is operational; K3s server role implemented; Flux bootstrapped with empty stubs for platform/infra/apps; CDK8s/Nx remain future work.
 
 ## STRUCTURE
 ```
@@ -20,8 +20,8 @@ homelab/
 │   ├── sense-exporter/ # Sense home energy monitor Prometheus exporter
 │   ├── netgear-cm1000-exporter/  # Netgear CM1000 cable modem exporter
 │   └── scripts/        # network-setup.sh: creates macvlan Docker network
-├── k3s/                # Ansible K3s server bootstrap (single-node); Flux/HA planned
-├── CLAUDE.md           # AI agent instructions
+├── k3s/                # K3s bootstrap (Ansible) + Flux GitOps scaffolding (clusters/homelab/ committed)
+├── .sops.yaml          # SOPS age encryption rules for K3s secrets
 └── README.md
 ```
 
@@ -34,7 +34,10 @@ homelab/
 | SNMP exporter config | `docker/prometheus/snmp_exporter/snmp.yml` | Auto-generated; job commented out in compose |
 | Grafana datasource | `docker/grafana/datasources/prometheus_ds.yml` | Points to `http://prometheus:9090` |
 | Network initialization | `docker/scripts/network-setup.sh` | Run before starting any services |
-| K3s cluster bootstrap | `k3s/bootstrap/ansible/` | Single-node K3s server role implemented; Flux/HA planned |
+| K3s cluster bootstrap | `k3s/bootstrap/ansible/` | Single-node K3s server role implemented; provision-nodes + bootstrap-k3s runnable |
+| Flux Kustomizations | `k3s/clusters/homelab/` | Reconciliation graph: platform → infra-controllers → infra-configs → apps |
+| Flux system manifests | `k3s/clusters/homelab/flux-system/` | Flux v2.3.0; GitRepository watches `master` branch |
+| SOPS/age config | `.sops.yaml` | age key encryption; see k3s/AGENTS.md for key fingerprint |
 
 ## NETWORKING
 Two external Docker networks (must exist before services start):
@@ -69,7 +72,7 @@ Two external Docker networks (must exist before services start):
 - Sense/CM1000 exporters use `/` as metrics path (not `/metrics`).
 - Pi-hole DNS chain: Pi-hole → cloudflared (172.20.1.1:5053, DoH to 1.1.1.1).
 - Node Exporter runs in privileged mode with proc/sys mounts; explicitly excludes Synology volume mount points.
-- git-crypt is configured but encrypts only `*.gpg` files.
+- git-crypt is configured but encrypts only `*.gpg` files. K3s secrets use SOPS+age (`.sops.yaml`).
 
 ## COMMANDS
 ```bash
@@ -86,7 +89,7 @@ docker-compose -f prometheus-compose.yml up -d
 ```
 
 ## NOTES
-- **K3s bootstrap implemented**: `k3s/bootstrap/ansible/` has runnable `provision-nodes.yml` and `bootstrap-k3s.yml` (single-node K3s server role). `bootstrap-flux.yml` remains a stub. See `k3s/AGENTS.md` for current status.
+- **K3s + Flux**: `bootstrap-k3s.yml` installs single-node K3s; Flux bootstrapped at `k3s/clusters/homelab/` (Kustomizations committed, stubs only for platform/infra/apps). `bootstrap-flux.yml` Ansible playbook is still a stub. See `k3s/AGENTS.md`.
 - **Prowlarr healthcheck is commented out** — its health endpoint wasn't stable.
 - **SNMP scrape is commented out** in `prometheus-compose.yml` — the config exists but the job is disabled.
 - **Nginx proxy config** (`docker/prometheus/syno-prom-proxy.conf`) is co-located with Prometheus, not in a separate nginx service.
