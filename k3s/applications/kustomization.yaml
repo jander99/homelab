@@ -3,6 +3,6 @@ apiVersion: kustomize.config.k8s.io/v1beta1
 kind: Kustomization
 resources:
   - headlamp/
-# CDK8s-rendered application manifests go here.
-# Run: nx run cdk8s:synth  (from repo root)
-# Output lands in this directory; commit source + rendered output together.
+# Hand-authored manifests (e.g. headlamp/) and CDK8s-rendered output both live here.
+# CDK8s: run: nx run cdk8s:synth  (from repo root) — output lands in this directory.
+# Commit both hand-authored sources and rendered CDK8s output together.
