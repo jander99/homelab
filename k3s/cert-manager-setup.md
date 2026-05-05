@@ -130,4 +130,4 @@ kubectl get clusterissuer letsencrypt-staging letsencrypt-prod
 
 ## Section 10: Prune warning
 
-The `infra-configs` Kustomization has `prune: true` enabled. This means if cert-manager configuration files are removed from the repository, Flux will automatically delete the corresponding resources in the cluster, including the namespace and all active certificates. Always plan removals carefully to avoid unintended service disruption.
+The `infra-configs` Kustomization has `prune: true` enabled. If the cert-manager files in `k3s/infrastructure/configs/cert-manager/` are removed from the repository, Flux will delete the ClusterIssuers and the `cloudflare-api-token` Secret from the cluster. It will **not** delete the `cert-manager` namespace (managed by the `platform` Kustomization) or any issued `Certificate` objects (which live in the apps layer). Always plan removals carefully — removing the ClusterIssuers while active certificates still exist will prevent cert-manager from renewing them.
