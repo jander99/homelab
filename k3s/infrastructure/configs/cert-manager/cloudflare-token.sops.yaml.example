@@ -1,0 +1,9 @@
+# Copy to cloudflare-token.sops.yaml, fill in token, then encrypt:
+# sops -e -i k3s/infrastructure/configs/cert-manager/cloudflare-token.sops.yaml
+apiVersion: v1
+kind: Secret
+metadata:
+  name: cloudflare-api-token
+  namespace: cert-manager
+stringData:
+  api-token: <YOUR_CLOUDFLARE_API_TOKEN>
