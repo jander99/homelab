@@ -27,9 +27,11 @@ spec:
     # Pi-hole v6 (appVersion: 2025.11.1) — chart version 2.35.0
     replicaCount: 1
 
-    # -- Native DoT upstreams (Pi-hole v6 FTL supports host#port format)
-    DNS1: "1.1.1.1#853"
-    DNS2: "1.0.0.1#853"
+    # -- Upstream DNS servers (plain DNS on port 53)
+    # NOTE: Pi-hole v6 FTL does not support DoT via the #port syntax.
+    # DoT can be configured via the web UI (Settings > DNS) if needed.
+    DNS1: "1.1.1.1"
+    DNS2: "1.0.0.1"
 
     # -- Web UI virtual host (must match ingress host to avoid redirects)
     virtualHost: "pihole.homelab.properties"
