@@ -1,7 +1,7 @@
 # K3S DIRECTORY
 
 ## OVERVIEW
-**K3s bootstrap is implemented; Flux CD v2 GitOps is scaffolded.** Ansible provisions OS and installs K3s single-node. Flux is bootstrapped with Kustomizations committed — all layer stubs (platform/infra/apps) are empty. CDK8s/Nx authoring layer remains unimplemented.
+**K3s bootstrap is implemented; Flux CD v2 GitOps is scaffolded with real infrastructure manifests deployed.** Ansible provisions OS and installs K3s single-node. Flux is bootstrapped with Kustomizations committed — infrastructure controllers (cert-manager, metallb) and headlamp application are deployed. CDK8s/Nx workspace is initialized but contains only a stub chart; manifest promotion workflow is not yet designed.
 
 ## WHAT EXISTS
 ```
@@ -12,25 +12,25 @@ k3s/
 ├── clusters/homelab/         # ✓ Flux Kustomization manifests committed
 │   ├── flux-system/            # gotk-components, gotk-sync, kustomization.yaml
 │   └── *.yaml                  # 5x Kustomization CRs (platform → infra-controllers → infra-configs → apps)
-├── platform/                 # ✓ kustomization.yaml (stub: resources: [])
+├── platform/                 # ✓ kustomization.yaml + namespaces/ (cert-manager, headlamp, pihole)
 ├── infrastructure/
-│   ├── controllers/            # ✓ kustomization.yaml (stub)
-│   └── configs/                # ✓ kustomization.yaml (stub)
-└── applications/             # ✓ kustomization.yaml (stub; CDK8s output destination)
+│   ├── controllers/            # ✓ cert-manager + metallb HelmReleases — see infrastructure/AGENTS.md
+│   └── configs/                # ✓ ClusterIssuers + IPAddressPool + SOPS-encrypted Cloudflare token
+└── applications/             # ✓ headlamp HelmRelease deployed (headlamp.homelab.properties)
 ```
 
-> Last verified: 2026-05-02
+> Last verified: 2026-05-05
 
 ## LAYER STATUS
 | Component | Location | Status |
 |-----------|----------|--------|
 | Ansible playbooks | `k3s/bootstrap/ansible/` | ✓ provision-nodes + bootstrap-k3s runnable |
 | Flux cluster root | `k3s/clusters/homelab/` | ✓ Kustomizations committed (Flux v2.3.0) |
-| Platform manifests | `k3s/platform/` | ✓ Stub (resources: []) |
-| Infrastructure manifests | `k3s/infrastructure/` | ✓ Stubs (controllers + configs) |
-| CDK8s TypeScript | `applications/cdk8s/src/` | ❌ Not created |
-| Application manifests | `k3s/applications/` | ✓ Stub (CDK8s output destination) |
-| Nx orchestration | `nx.json`, `project.json` | ❌ Not created |
+| Platform manifests | `k3s/platform/` | ✓ Namespace manifests (cert-manager, headlamp, pihole) |
+| Infrastructure manifests | `k3s/infrastructure/` | ✓ Implemented — cert-manager + metallb controllers + configs |
+| CDK8s TypeScript | `applications/cdk8s/src/` | ✓ HelloChart stub (creates hello-cdk8s namespace only) |
+| Application manifests | `k3s/applications/` | ✓ Headlamp deployed via Flux (headlamp.homelab.properties) |
+| Nx orchestration | `nx.json`, `project.json` | ✓ Workspace initialized; synth target configured (Yarn 4.14.1) |
 | SOPS secrets | `.sops.yaml` | ✓ Created (age key encryption) |
 
 ## TARGET CLUSTER
@@ -38,14 +38,14 @@ k3s/
 - **Datastore**: embedded etcd after the HA rebuild
 - **GitOps**: Flux CD v2 watching this repo (`master` branch) via `k3s/clusters/homelab/`
 - **Authoring**: Nx + CDK8s render workload manifests into `k3s/applications/`
-- **Ingress**: Nginx + cert-manager (Let's Encrypt)
+- **Ingress**: Traefik + cert-manager (Let's Encrypt)
 - **Secrets**: SOPS + age key encryption
 - **Storage**: keep manifests storage-class-light until a real CSI decision is made
 
 ## ANTI-PATTERNS
 - **Do not create files here expecting them to be deployed** — the K3s cluster may not exist yet.
 - **Do not treat `k3s.md` as current state** — it describes the target, not reality.
-- **Do not describe planned components as implemented** — CDK8s, Nx, and HA are future state only. Flux manifests are committed but stubs only.
+- **Do not describe CDK8s as unimplemented** — HelloChart stub exists at `applications/cdk8s/src/main.ts`. Nx workspace is initialized. What's missing is real workloads and the dist/ → k3s/applications/ promotion workflow.
 - **Do not hardcode a speculative storage vendor into new planning docs unless the repo actually adopts one.**
 - **Do not run `ansible-playbook` commands from `BOOTSTRAP.md`** without verifying nodes are provisioned.
 
