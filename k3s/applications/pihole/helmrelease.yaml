@@ -103,7 +103,7 @@ spec:
       enabled: false
 
     # -- Monitoring: Pi-hole v6 exposes Prometheus metrics at /metrics
-    # TODO: Add ServiceMonitor once kube-prometheus-stack is deployed to this cluster
+    # PodMonitor is used (not ServiceMonitor) because the pihole Helm chart natively generates a PodMonitor
     monitoring:
       podMonitor:
         enabled: true
