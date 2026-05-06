@@ -28,7 +28,7 @@ Flux Kustomization `infra-configs` has `dependsOn: [infra-controllers]`. This gu
 
 ### cert-manager
 - **Chart**: `jetstack/cert-manager` `>=1.14.0 <2.0.0` | namespace: `cert-manager`
-- **CRDs**: `installCRDs: true`, policy: `CreateReplace` on install and upgrade
+- **CRDs**: `crds.enabled: true`, policy: `CreateReplace` on install and upgrade
 - **Issuers**: `letsencrypt-prod` and `letsencrypt-staging` ClusterIssuers (Cloudflare DNS-01 challenge)
 - **Secret**: `cloudflare-token.sops.yaml` — SOPS age-encrypted Cloudflare API token; Flux decrypts via `flux-system/sops-age` Secret in cluster
 

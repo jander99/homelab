@@ -12,7 +12,7 @@ k3s/
 ├── clusters/homelab/         # ✓ Flux Kustomization manifests committed
 │   ├── flux-system/            # gotk-components, gotk-sync, kustomization.yaml
 │   └── *.yaml                  # 5x Kustomization CRs (platform → infra-controllers → infra-configs → apps)
-├── platform/                 # ✓ kustomization.yaml + namespaces/ (cert-manager, headlamp)
+├── platform/                 # ✓ kustomization.yaml + namespaces/ (cert-manager, headlamp, pihole)
 ├── infrastructure/
 │   ├── controllers/            # ✓ cert-manager + metallb HelmReleases — see infrastructure/AGENTS.md
 │   └── configs/                # ✓ ClusterIssuers + IPAddressPool + SOPS-encrypted Cloudflare token
@@ -26,7 +26,7 @@ k3s/
 |-----------|----------|--------|
 | Ansible playbooks | `k3s/bootstrap/ansible/` | ✓ provision-nodes + bootstrap-k3s runnable |
 | Flux cluster root | `k3s/clusters/homelab/` | ✓ Kustomizations committed (Flux v2.3.0) |
-| Platform manifests | `k3s/platform/` | ✓ Namespace manifests (cert-manager + headlamp) |
+| Platform manifests | `k3s/platform/` | ✓ Namespace manifests (cert-manager, headlamp, pihole) |
 | Infrastructure manifests | `k3s/infrastructure/` | ✓ Implemented — cert-manager + metallb controllers + configs |
 | CDK8s TypeScript | `applications/cdk8s/src/` | ✓ HelloChart stub (creates hello-cdk8s namespace only) |
 | Application manifests | `k3s/applications/` | ✓ Headlamp deployed via Flux (headlamp.homelab.properties) |
