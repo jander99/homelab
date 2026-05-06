@@ -27,10 +27,9 @@ spec:
     # Pi-hole v6 (appVersion: 2025.11.1) — chart version 2.35.0
     replicaCount: 1
 
-    # -- Upstream DNS: cloudflared DoH sidecar on localhost:5053
-    # Pi-hole v6 FTL does not support DoT natively; DoH via sidecar is required.
-    DNS1: "127.0.0.1#5053"
-    DNS2: "no"
+    # -- Upstream DNS: plain DNS to Cloudflare
+    DNS1: "1.1.1.1"
+    DNS2: "1.0.0.1"
 
     # -- Web UI virtual host (must match ingress host to avoid redirects)
     virtualHost: "pihole.homelab.properties"
@@ -100,11 +99,9 @@ spec:
         failureThreshold: 10
         timeoutSeconds: 5
 
-    # -- DoH sidecar: cloudflared forwarding to Cloudflare and Quad9 over HTTPS
+    # -- DoH sidecar: disabled (cloudflared proxy-dns deprecated Nov 2025)
     doh:
-      enabled: true
-      envVars:
-        TUNNEL_DNS_UPSTREAM: "https://1.1.1.1/dns-query,https://1.0.0.1/dns-query,https://9.9.9.9/dns-query,https://149.112.112.9/dns-query"
+      enabled: false
 
     # -- Monitoring: Pi-hole v6 exposes Prometheus metrics at /metrics
     # TODO: Add ServiceMonitor once kube-prometheus-stack is deployed to this cluster
