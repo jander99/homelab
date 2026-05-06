@@ -4,3 +4,4 @@ kind: Kustomization
 resources:
   - headlamp.yaml
   - cert-manager.yaml
+  - pihole.yaml
