@@ -42,8 +42,8 @@ spec:
       externalTrafficPolicy: Local
       loadBalancerIP: "192.168.1.201"
       annotations:
-        metallb.universe.tf/allow-shared-ip: pihole-svc
-        metallb.universe.tf/loadBalancerIPs: "192.168.1.201"
+        metallb.io/allow-shared-ip: pihole-svc
+        metallb.io/loadBalancerIPs: "192.168.1.201"
 
     # -- DHCP: disabled (K3s cluster, no DHCP needed)
     serviceDhcp:
