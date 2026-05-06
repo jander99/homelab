@@ -106,7 +106,7 @@ spec:
     # TODO: Add ServiceMonitor once kube-prometheus-stack is deployed to this cluster
     monitoring:
       podMonitor:
-        enabled: false
+        enabled: true
       sidecar:
         enabled: false
 
