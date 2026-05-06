@@ -1,0 +1,125 @@
+---
+apiVersion: helm.toolkit.fluxcd.io/v2
+kind: HelmRelease
+metadata:
+  name: pihole
+  namespace: pihole
+spec:
+  interval: 1h
+  timeout: 5m
+  install:
+    createNamespace: true
+    remediation:
+      retries: 3
+  upgrade:
+    remediation:
+      retries: 3
+  chart:
+    spec:
+      chart: pihole
+      version: "2.35.*"
+      sourceRef:
+        kind: HelmRepository
+        name: mojo2600-pihole
+        namespace: flux-system
+      interval: 12h
+  values:
+    # Pi-hole v6 (appVersion: 2025.11.1) — chart version 2.35.0
+    replicaCount: 1
+
+    # -- Native DoT upstreams (Pi-hole v6 FTL supports host#port format)
+    DNS1: "1.1.1.1#853"
+    DNS2: "1.0.0.1#853"
+
+    # -- Web UI virtual host (must match ingress host to avoid redirects)
+    virtualHost: "pihole.homelab.properties"
+
+    # -- DNS service: LoadBalancer at 192.168.1.201 via MetalLB, TCP+UDP combined
+    serviceDns:
+      mixedService: true
+      type: LoadBalancer
+      port: 53
+      externalTrafficPolicy: Local
+      loadBalancerIP: "192.168.1.201"
+      annotations:
+        metallb.universe.tf/allow-shared-ip: pihole-svc
+        metallb.universe.tf/loadBalancerIPs: "192.168.1.201"
+
+    # -- DHCP: disabled (K3s cluster, no DHCP needed)
+    serviceDhcp:
+      enabled: false
+
+    # -- Web service: ClusterIP only (accessed via Ingress)
+    serviceWeb:
+      type: ClusterIP
+      http:
+        enabled: true
+        port: 80
+      https:
+        enabled: false
+
+    # -- Ingress: Traefik + letsencrypt-prod TLS
+    ingress:
+      enabled: true
+      ingressClassName: traefik
+      annotations:
+        cert-manager.io/cluster-issuer: letsencrypt-prod
+        traefik.ingress.kubernetes.io/router.entrypoints: websecure
+      path: /
+      pathType: Prefix
+      hosts:
+        - pihole.homelab.properties
+      tls:
+        - secretName: pihole-tls
+          hosts:
+            - pihole.homelab.properties
+
+    # -- Admin password from SOPS-decrypted secret
+    admin:
+      existingSecret: "pihole-admin-password"
+      passwordKey: "password"
+
+    # -- PVC persistence: local-path, 1Gi, for /etc/pihole
+    persistentVolumeClaim:
+      enabled: true
+      accessModes:
+        - ReadWriteOnce
+      size: "1Gi"
+      storageClass: "local-path"
+
+    # -- Probes: generous initial delay for slow Pi-hole startup
+    probes:
+      liveness:
+        enabled: true
+        initialDelaySeconds: 120
+        failureThreshold: 10
+        timeoutSeconds: 5
+      readiness:
+        enabled: true
+        initialDelaySeconds: 120
+        failureThreshold: 10
+        timeoutSeconds: 5
+
+    # -- DoH sidecar: disabled (using native DoT via DNS1/DNS2 instead)
+    doh:
+      enabled: false
+
+    # -- Monitoring: Pi-hole v6 exposes Prometheus metrics at /metrics
+    # TODO: Add ServiceMonitor once kube-prometheus-stack is deployed to this cluster
+    monitoring:
+      podMonitor:
+        enabled: false
+      sidecar:
+        enabled: false
+
+    # -- Pod DNS config: ensure pihole pod uses external DNS, not itself
+    podDnsConfig:
+      enabled: true
+      policy: "None"
+      nameservers:
+        - 127.0.0.1
+        - 8.8.8.8
+
+    # -- Required for Pi-hole to listen on all interfaces in K3s CNI
+    extraEnvVars:
+      FTLCONF_dns_listeningMode: "all"
