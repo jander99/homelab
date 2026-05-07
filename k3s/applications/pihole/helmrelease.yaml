@@ -102,13 +102,14 @@ spec:
     doh:
       enabled: false
 
-    # -- Monitoring: Pi-hole v6 exposes Prometheus metrics at /metrics
+    # -- Monitoring: Pi-hole v6 does not expose native Prometheus metrics on port 80.
+    # The monitoring sidecar (prometheus-exporter) is required to scrape pi-hole's API
     # PodMonitor is used (not ServiceMonitor) because the pihole Helm chart natively generates a PodMonitor
     monitoring:
       podMonitor:
         enabled: true
       sidecar:
-        enabled: false
+        enabled: true
 
     # -- Pod DNS config: ensure pihole pod uses external DNS, not itself
     podDnsConfig:
