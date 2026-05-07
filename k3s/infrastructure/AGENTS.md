@@ -1,6 +1,6 @@
 # INFRASTRUCTURE DIRECTORY
 
-**Generated:** 2026-05-05
+**Generated:** 2026-05-06
 
 ## OVERVIEW
 
@@ -17,8 +17,8 @@ infrastructure/
 │   └── metallb/        # helmrelease.yaml, helmrepository.yaml, kustomization.yaml
 └── configs/
     ├── cert-manager/   # cloudflare-token.sops.yaml, clusterissuer-{prod,staging}.yaml, kustomization.yaml
-    └── metallb/        # ipaddresspool.yaml, l2advertisement.yaml, kustomization.yaml
-```
+    ├── metallb/        # ipaddresspool.yaml, l2advertisement.yaml, kustomization.yaml
+    └── monitoring/     # helmrelease.yaml, helmrepository.yaml, grafana-secret.sops.yaml, kustomization.yaml
 
 ## RECONCILIATION ORDER
 
@@ -37,10 +37,22 @@ Flux Kustomization `infra-configs` has `dependsOn: [infra-controllers]`. This gu
 - **IPAddressPool**: defined in `configs/metallb/ipaddresspool.yaml`
 - **L2Advertisement**: defined in `configs/metallb/l2advertisement.yaml`
 
+### kube-prometheus-stack
+- **Chart**: `prometheus-community/kube-prometheus-stack` `>=84.0.0 <85.0.0` (deployed: 84.5.0) | namespace: `monitoring`
+- **Components**: Prometheus Operator, Prometheus, Alertmanager, Grafana, kube-state-metrics, node-exporter
+- **Ingresses**: grafana.homelab.properties, prometheus.homelab.properties, alertmanager.homelab.properties (all TLS via letsencrypt-prod)
+- **Storage**: Prometheus 20Gi PVC (local-path), Grafana 5Gi PVC (local-path), Alertmanager emptyDir
+- **Secret**: `grafana-secret.sops.yaml` — SOPS age-encrypted Grafana admin credentials (`admin-user` / `admin-password` keys)
+- **K3s scrapers disabled**: kubeEtcd, kubeScheduler, kubeControllerManager, kubeProxy (K3s uses SQLite; control plane binds to 127.0.0.1)
+- **PodMonitor discovery**: `podMonitorSelectorNilUsesHelmValues: false` + `serviceMonitorSelectorNilUsesHelmValues: false`
+
 ### Headlamp (reference — lives in `k3s/applications/headlamp/`)
 - Uses `cert-manager.io/cluster-issuer: letsencrypt-prod` in Traefik ingress
 - URL: `headlamp.homelab.properties`
 
+### Pihole (reference — lives in `k3s/applications/pihole/`)
+- PodMonitor enabled via `monitoring.sidecar.enabled: true` (ekofr/pihole-exporter:v1.0.0 on port 9617)
+- URL: `pihole.homelab.properties`
 ## WHERE TO LOOK
 
 | Task | File |
@@ -49,13 +61,16 @@ Flux Kustomization `infra-configs` has `dependsOn: [infra-controllers]`. This gu
 | Add a ClusterIssuer | `configs/cert-manager/` |
 | Change IP address pool | `configs/metallb/ipaddresspool.yaml` |
 | Edit Cloudflare token secret | `configs/cert-manager/cloudflare-token.sops.yaml` via `sops` CLI |
-
+| Edit Grafana admin secret | `configs/monitoring/grafana-secret.sops.yaml` via `sops` CLI |
+| Modify monitoring stack values | `configs/monitoring/helmrelease.yaml` |
 ## ANTI-PATTERNS
 
-- **Do not hand-edit `cloudflare-token.sops.yaml`** — SOPS-encrypted; edit only with `sops cloudflare-token.sops.yaml` using the age key at `~/.kube/k3s-homelab-age.agekey`.
+- **Do not hand-edit `*.sops.yaml` files** — SOPS-encrypted; edit only with `sops <file>` using the age key at `~/.kube/k3s-homelab-age.agekey`.
 - **Do not add configs/ resources that need CRDs from controllers/** without ensuring `infra-configs` dependsOn remains correct.
 - **Do not duplicate ClusterIssuers** — `letsencrypt-prod` and `letsencrypt-staging` already exist; reference by name in ingress annotations.
 - **Do not add a new controller without a matching entry** in the `infra-controllers` Kustomization's `resources:` list at `k3s/clusters/homelab/infra-controllers.yaml`.
+- **Do not place namespaces inside `configs/`** — namespaces belong in `k3s/platform/namespaces/` (see monitoring namespace as the established pattern).
+- **Do not enable kubeEtcd/kubeScheduler/kubeControllerManager/kubeProxy scrapers** — K3s binds these to 127.0.0.1 and uses SQLite; they will always fail to scrape.
 
 ## NOTES
 

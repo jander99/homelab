@@ -1,10 +1,10 @@
 # PROJECT KNOWLEDGE BASE
 
-**Generated:** 2026-05-05  
+**Generated:** 2026-05-06  
 **Branch:** master  
 
 ## OVERVIEW
-Homelab infrastructure managing 9 Docker services on a Synology NAS (macvlan networking), with a single-node K3s cluster (Ansible-bootstrapped) and Flux CD v2 GitOps with infrastructure deployed (cert-manager, metallb, headlamp). Docker stack is operational; K3s cluster running with Flux managing controllers and one application (headlamp). CDK8s/Nx workspace initialized but contains only a stub chart.
+Homelab infrastructure managing 9 Docker services on a Synology NAS (macvlan networking), with a single-node K3s cluster (Ansible-bootstrapped) and Flux CD v2 GitOps with infrastructure deployed (cert-manager, metallb, headlamp, kube-prometheus-stack). Docker stack is operational; K3s cluster running on testbed node (192.168.1.128) with Flux managing controllers, a full monitoring stack (Prometheus + Grafana + Alertmanager), and applications (headlamp, pihole). CDK8s/Nx workspace initialized but contains only a stub chart.
 
 ## STRUCTURE
 ```
@@ -41,6 +41,10 @@ homelab/
 | Flux system manifests | `k3s/clusters/homelab/flux-system/` | Flux v2.3.0; GitRepository watches `master` branch |
 | SOPS/age config | `.sops.yaml` | age key encryption; see k3s/AGENTS.md for key fingerprint |
 | Headlamp app | `k3s/applications/headlamp/` | headlamp.homelab.properties; TLS via letsencrypt-prod |
+| Pihole app | `k3s/applications/pihole/` | pihole.homelab.properties; DNS + PodMonitor enabled |
+| Monitoring stack (K3s) | `k3s/infrastructure/configs/monitoring/` | kube-prometheus-stack HelmRelease; grafana/prometheus/alertmanager.homelab.properties |
+| Grafana (K3s) | https://grafana.homelab.properties | Credentials in BitWarden; SOPS secret at `grafana-secret.sops.yaml` |
+| K3s infrastructure controllers | `k3s/infrastructure/controllers/` | cert-manager + metallb HelmReleases; see `k3s/infrastructure/AGENTS.md` |
 | K3s infrastructure controllers | `k3s/infrastructure/controllers/` | cert-manager + metallb HelmReleases; see `k3s/infrastructure/AGENTS.md` |
 
 ## NETWORKING
@@ -93,7 +97,7 @@ docker-compose -f prometheus-compose.yml up -d
 ```
 
 ## NOTES
-- **K3s + Flux**: `bootstrap-k3s.yml` installs single-node K3s; Flux bootstrapped at `k3s/clusters/homelab/` with cert-manager, metallb (infra controllers), and headlamp (application) deployed. `bootstrap-flux.yml` Ansible playbook is still a stub. See `k3s/AGENTS.md` and `k3s/infrastructure/AGENTS.md`.
+- **K3s + Flux**: `bootstrap-k3s.yml` installs single-node K3s on testbed (192.168.1.128); Flux bootstrapped at `k3s/clusters/homelab/` with cert-manager, metallb (infra controllers), kube-prometheus-stack (infra configs), pihole, and headlamp (applications) deployed. `bootstrap-flux.yml` Ansible playbook is still a stub. See `k3s/AGENTS.md` and `k3s/infrastructure/AGENTS.md`.
 - **Prowlarr healthcheck is commented out** — its health endpoint wasn't stable.
 - **SNMP scrape is commented out** in `prometheus-compose.yml` — the config exists but the job is disabled.
 - **Nginx proxy config** (`docker/prometheus/syno-prom-proxy.conf`) is co-located with Prometheus, not in a separate nginx service.
