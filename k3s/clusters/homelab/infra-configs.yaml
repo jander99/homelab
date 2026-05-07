@@ -18,7 +18,7 @@ spec:
   path: ./k3s/infrastructure/configs
   prune: true
   wait: true
-  timeout: 5m
+  timeout: 20m
   sourceRef:
     kind: GitRepository
     name: flux-system
