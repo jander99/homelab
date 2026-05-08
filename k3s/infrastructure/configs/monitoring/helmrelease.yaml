@@ -36,6 +36,26 @@ spec:
     kubeProxy:
       enabled: false
 
+    # Drop non-essential high-cardinality _bucket metrics from the API server job.
+    # Keeps the two most useful histograms (request latency + SLI) while removing
+    # watch internals and request body size that are rarely dashboarded.
+    kubeApiServer:
+      serviceMonitor:
+        metricRelabelings:
+          - sourceLabels: [__name__]
+            regex: "apiserver_request_body_size_bytes_bucket|apiserver_watch_cache_read_wait_seconds_bucket|apiserver_watch_events_sizes_bucket|apiserver_watch_list_duration_seconds_bucket"
+            action: drop
+
+    # K3s bundles apiserver + scheduler in the same binary, so the kubelet scrape
+    # endpoint exposes those metrics too — creating duplicates of what the
+    # kubeApiServer job already collects (~38k series).  Drop them here.
+    kubelet:
+      serviceMonitor:
+        metricRelabelings:
+          - sourceLabels: [__name__]
+            regex: "apiserver_.*|scheduler_.*"
+            action: drop
+
     # Prometheus configuration
     prometheus:
       prometheusSpec:
