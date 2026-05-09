@@ -1,0 +1,134 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: authentik-blueprints
+  namespace: authentik
+data:
+  groups.yaml: |
+    version: 1
+    metadata:
+      name: "Homelab Groups"
+    entries:
+      - model: authentik_core.group
+        state: present
+        identifiers:
+          name: homelab-admins
+        attrs:
+          name: homelab-admins
+  grafana-provider.yaml: |
+    version: 1
+    metadata:
+      name: "Grafana OIDC Provider"
+    entries:
+      - model: authentik_providers_oauth2.oauth2provider
+        state: present
+        identifiers:
+          name: grafana-provider
+        attrs:
+          name: grafana-provider
+          client_type: confidential
+          client_id: grafana
+          client_secret: !Env GRAFANA_OIDC_CLIENT_SECRET
+          authorization_flow: !Find [authentik_flows.flow, [slug, default-provider-authorization-implicit-consent]]
+          redirect_uris: "https://grafana.homelab.properties/login/generic_oauth"
+          signing_key: !Find [authentik_crypto.certificatekeypair, [name, authentik Self-signed Certificate]]
+      - model: authentik_core.application
+        state: present
+        identifiers:
+          slug: grafana
+        attrs:
+          name: Grafana
+          slug: grafana
+          provider: !Find [authentik_providers_oauth2.oauth2provider, [name, grafana-provider]]
+  headlamp-provider.yaml: |
+    version: 1
+    metadata:
+      name: "Headlamp OIDC Provider"
+    entries:
+      - model: authentik_providers_oauth2.oauth2provider
+        state: present
+        identifiers:
+          name: headlamp-provider
+        attrs:
+          name: headlamp-provider
+          client_type: confidential
+          client_id: headlamp
+          client_secret: !Env HEADLAMP_OIDC_CLIENT_SECRET
+          authorization_flow: !Find [authentik_flows.flow, [slug, default-provider-authorization-implicit-consent]]
+          redirect_uris: "https://headlamp.homelab.properties/oidc-callback"
+          signing_key: !Find [authentik_crypto.certificatekeypair, [name, authentik Self-signed Certificate]]
+      - model: authentik_core.application
+        state: present
+        identifiers:
+          slug: headlamp
+        attrs:
+          name: Headlamp
+          slug: headlamp
+          provider: !Find [authentik_providers_oauth2.oauth2provider, [name, headlamp-provider]]
+  proxy-providers.yaml: |
+    version: 1
+    metadata:
+      name: "Proxy Providers"
+    entries:
+      - model: authentik_providers_proxy.proxyprovider
+        state: present
+        identifiers:
+          name: prometheus-provider
+        attrs:
+          name: prometheus-provider
+          mode: forward_single
+          external_host: https://prometheus.homelab.properties
+          authorization_flow: !Find [authentik_flows.flow, [slug, default-provider-authorization-implicit-consent]]
+      - model: authentik_core.application
+        state: present
+        identifiers:
+          slug: prometheus
+        attrs:
+          name: Prometheus
+          slug: prometheus
+          provider: !Find [authentik_providers_proxy.proxyprovider, [name, prometheus-provider]]
+      - model: authentik_providers_proxy.proxyprovider
+        state: present
+        identifiers:
+          name: alertmanager-provider
+        attrs:
+          name: alertmanager-provider
+          mode: forward_single
+          external_host: https://alertmanager.homelab.properties
+          authorization_flow: !Find [authentik_flows.flow, [slug, default-provider-authorization-implicit-consent]]
+      - model: authentik_core.application
+        state: present
+        identifiers:
+          slug: alertmanager
+        attrs:
+          name: Alertmanager
+          slug: alertmanager
+          provider: !Find [authentik_providers_proxy.proxyprovider, [name, alertmanager-provider]]
+  outpost.yaml: |
+    version: 1
+    metadata:
+      name: "Proxy Outpost"
+    entries:
+      - model: authentik_core.token
+        state: present
+        identifiers:
+          identifier: outpost-token
+        attrs:
+          identifier: outpost-token
+          key: !Env OUTPOST_TOKEN
+          intent: api
+          user: !Find [authentik_core.user, [username, akadmin]]
+      - model: authentik_outposts.outpost
+        state: present
+        identifiers:
+          name: homelab-proxy-outpost
+        attrs:
+          name: homelab-proxy-outpost
+          type: proxy
+          token: !Find [authentik_core.token, [identifier, outpost-token]]
+          providers:
+            - !Find [authentik_providers_proxy.proxyprovider, [name, prometheus-provider]]
+            - !Find [authentik_providers_proxy.proxyprovider, [name, alertmanager-provider]]
+          config:
+            authentik_host: https://auth.homelab.properties
+            authentik_host_insecure: false
