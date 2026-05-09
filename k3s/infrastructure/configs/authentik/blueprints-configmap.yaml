@@ -118,7 +118,7 @@ data:
           identifier: outpost-token
         attrs:
           identifier: outpost-token
-          key: !Env OUTPOST_TOKEN
+          key: !Env AUTHENTIK_ENV__OUTPOST_TOKEN
           intent: api
           user: !Find [authentik_core.user, [username, akadmin]]
       - model: authentik_outposts.outpost
