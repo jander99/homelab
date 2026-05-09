@@ -49,10 +49,6 @@ spec:
         clientID: headlamp
         issuerURL: https://auth.homelab.properties/application/o/headlamp/
         scopes: openid email profile
-    env:
-      HEADLAMP_CONFIG_OIDC_CLIENT_ID: headlamp
-      HEADLAMP_CONFIG_OIDC_ISSUER_URL: https://auth.homelab.properties/application/o/headlamp/
-      HEADLAMP_CONFIG_OIDC_SCOPES: openid email profile
     envFrom:
       - secretRef:
           name: headlamp-oidc-secret
