@@ -45,11 +45,18 @@ spec:
     config:
       inCluster: true
       pluginsDir: /build/plugins
+      oidc:
+        clientID: headlamp
+        issuerURL: https://auth.homelab.properties/application/o/headlamp/
+        scopes: openid email profile
+    envFrom:
+      - secretRef:
+          name: headlamp-oidc-secret
     clusterRoleBinding:
       clusterRoleName: cluster-admin
     initContainers:
       - name: headlamp-plugins
-        image: ghcr.io/headlamp-k8s/headlamp-plugin-flux:latest
+        image: ghcr.io/headlamp-k8s/headlamp-plugin-flux:v0.6.0
         imagePullPolicy: Always
         command:
           - /bin/sh
@@ -64,7 +71,7 @@ spec:
           - mountPath: /build/plugins
             name: headlamp-plugins
       - name: headlamp-plugins-cert-manager
-        image: ghcr.io/headlamp-k8s/headlamp-plugin-cert-manager:latest
+        image: ghcr.io/headlamp-k8s/headlamp-plugin-cert-manager:v0.1.0
         imagePullPolicy: Always
         command:
           - /bin/sh

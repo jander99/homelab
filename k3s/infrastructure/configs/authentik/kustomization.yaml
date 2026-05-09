@@ -4,5 +4,6 @@ kind: Kustomization
 resources:
   - helmrepository.yaml
   - helmrelease.yaml
-  - servicemonitor.yaml
-  - headlamp-oidc-secret.sops.yaml
+  - authentik-secret.sops.yaml
+  - outpost-deployment.yaml
+  - blueprints-configmap.yaml

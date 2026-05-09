@@ -6,3 +6,4 @@ resources:
   - cert-manager.yaml
   - monitoring.yaml
   - pihole.yaml
+  - authentik.yaml

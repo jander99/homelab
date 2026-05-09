@@ -1,0 +1,52 @@
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: authentik-outpost
+  namespace: authentik
+  labels:
+    app: authentik-outpost
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: authentik-outpost
+  template:
+    metadata:
+      labels:
+        app: authentik-outpost
+    spec:
+      containers:
+        - name: proxy
+          image: ghcr.io/goauthentik/proxy:2026.2.2
+          env:
+            - name: AUTHENTIK_HOST
+              value: "https://auth.homelab.properties"
+            - name: AUTHENTIK_INSECURE
+              value: "false"
+            - name: AUTHENTIK_TOKEN
+              valueFrom:
+                secretKeyRef:
+                  name: authentik-secret
+                  key: outpost-token
+          ports:
+            - containerPort: 9000
+              name: http
+            - containerPort: 9443
+              name: https
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: authentik-outpost
+  namespace: authentik
+spec:
+  selector:
+    app: authentik-outpost
+  ports:
+    - name: http
+      port: 9000
+      targetPort: 9000
+    - name: https
+      port: 9443
+      targetPort: 9443
