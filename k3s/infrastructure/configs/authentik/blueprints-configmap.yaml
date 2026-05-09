@@ -28,7 +28,7 @@ data:
           name: grafana-provider
           client_type: confidential
           client_id: grafana
-          client_secret: !Env GRAFANA_OIDC_CLIENT_SECRET
+          client_secret: !Env AUTHENTIK_ENV__GRAFANA_OIDC_CLIENT_SECRET
           authorization_flow: !Find [authentik_flows.flow, [slug, default-provider-authorization-implicit-consent]]
           invalidation_flow: !Find [authentik_flows.flow, [slug, default-provider-invalidation-flow]]
           redirect_uris:
@@ -56,7 +56,7 @@ data:
           name: headlamp-provider
           client_type: confidential
           client_id: headlamp
-          client_secret: !Env HEADLAMP_OIDC_CLIENT_SECRET
+          client_secret: !Env AUTHENTIK_ENV__HEADLAMP_OIDC_CLIENT_SECRET
           authorization_flow: !Find [authentik_flows.flow, [slug, default-provider-authorization-implicit-consent]]
           invalidation_flow: !Find [authentik_flows.flow, [slug, default-provider-invalidation-flow]]
           redirect_uris:
