@@ -1,9 +1,8 @@
 ---
 # site.yml
 # Full cluster bootstrap — runs all phases in order.
-# NOTE: Phase 1 (provision-nodes) and Phase 2 (bootstrap-k3s) are runnable.
-#       Phase 3 (bootstrap-flux) is still a stub and will fail with a clear
-#       message until Flux configuration is implemented.
+# NOTE: Phase 3 (bootstrap-flux) requires GITHUB_TOKEN in the environment and
+#       Flux GitHub settings in inventory/group_vars/all.yml.
 #
 # Usage: ansible-playbook -i inventory/hosts.yml playbooks/site.yml -v
 

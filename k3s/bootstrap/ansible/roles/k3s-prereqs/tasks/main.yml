@@ -9,6 +9,7 @@
 
 - name: Disable swap immediately
   ansible.builtin.command: swapoff -a
+  changed_when: true
   when: k3s_active_swaps.stdout_lines | length > 1
 
 - name: Remove swap entries from /etc/fstab

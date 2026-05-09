@@ -97,7 +97,7 @@ docker-compose -f prometheus-compose.yml up -d
 ```
 
 ## NOTES
-- **K3s + Flux**: `bootstrap-k3s.yml` installs single-node K3s on testbed (192.168.1.128); Flux bootstrapped at `k3s/clusters/homelab/` with cert-manager, metallb (infra controllers), kube-prometheus-stack (infra configs), pihole, and headlamp (applications) deployed. `bootstrap-flux.yml` Ansible playbook is still a stub. See `k3s/AGENTS.md` and `k3s/infrastructure/AGENTS.md`.
+- **K3s + Flux**: `bootstrap-k3s.yml` installs single-node K3s on testbed (192.168.1.128); `bootstrap-flux.yml` bootstraps Flux against `k3s/clusters/homelab/` with cert-manager, metallb (infra controllers), kube-prometheus-stack (infra configs), pihole, and headlamp (applications) deployed. See `k3s/AGENTS.md` and `k3s/infrastructure/AGENTS.md`.
 - **Prowlarr healthcheck is commented out** — its health endpoint wasn't stable.
 - **SNMP scrape is commented out** in `prometheus-compose.yml` — the config exists but the job is disabled.
 - **Nginx proxy config** (`docker/prometheus/syno-prom-proxy.conf`) is co-located with Prometheus, not in a separate nginx service.

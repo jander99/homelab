@@ -55,7 +55,7 @@ k3s/
 - **Testbed node** (i7-4770k) at 192.168.1.128 is the current active single-node cluster. Target architecture is 3x Dell Optiplex (192.168.1.40-42) with embedded etcd — not yet provisioned.
 - `provision-nodes.yml` is runnable — runs `common` + `k3s-prereqs` roles.
 - `bootstrap-k3s.yml` is runnable — runs `k3s-server` role to install and configure a single K3s server node.
-- `bootstrap-flux.yml` is a stub Ansible playbook — Flux was bootstrapped manually; manifests live in `k3s/clusters/homelab/`.
+- `bootstrap-flux.yml` is implemented and uses the `flux-bootstrap` role. It requires `GITHUB_TOKEN`, the kubeconfig fetched by `bootstrap-k3s.yml`, and Flux GitHub settings in `inventory/group_vars/all.yml`.
 - `group_vars/` lives at `inventory/group_vars/all.yml` (not at the ansible root) — required for `ansible-playbook` variable loading to work correctly.
 - **SOPS age key**: `~/.kube/k3s-homelab-age.agekey` on the Ansible controller. Required to decrypt/edit any `*.sops.yaml` file. Set `SOPS_AGE_KEY_FILE=~/.kube/k3s-homelab-age.agekey` in shell profile. Recoverable from cluster: `kubectl get secret sops-age -n flux-system`.
 - **Grafana credentials**: stored in BitWarden; Grafana accessible at https://grafana.homelab.properties.
