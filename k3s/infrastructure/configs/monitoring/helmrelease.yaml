@@ -117,6 +117,8 @@ spec:
 
     # Grafana: SOPS-backed secret, persistent storage
     grafana:
+      initChownData:
+        enabled: false
       envFromSecret: grafana-oidc-secret
       grafana.ini:
         auth.generic_oauth:
