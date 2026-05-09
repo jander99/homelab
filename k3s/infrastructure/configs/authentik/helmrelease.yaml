@@ -105,19 +105,12 @@ spec:
           - secretName: authentik-tls
             hosts:
               - auth.homelab.properties
-      extraVolumes:
-        - name: custom-blueprints
-          configMap:
-            name: authentik-blueprints
-      extraVolumeMounts:
-        - name: custom-blueprints
-          mountPath: /blueprints/custom
 
     worker:
-      extraVolumes:
+      volumes:
         - name: custom-blueprints
           configMap:
             name: authentik-blueprints
-      extraVolumeMounts:
+      volumeMounts:
         - name: custom-blueprints
           mountPath: /blueprints/custom
