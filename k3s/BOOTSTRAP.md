@@ -2,7 +2,7 @@
 
 This guide covers bootstrapping a single-node K3s cluster using Ansible, then optionally scaling to a multi-node HA setup.
 
-> **Current state**: Single-node K3s server on the testbed (`192.168.1.128`) with SQLite datastore. HA cluster, Flux CD, and the CDK8s/Nx workflow are future work — see [Part 2](#part-2-scaling-to-ha-future-state) for the upgrade path.
+> **Current state**: Single-node K3s server on the testbed (`192.168.1.128`) with SQLite datastore. Flux CD is implemented and reconciles the cluster from `k3s/clusters/homelab/`. HA cluster scaling and the CDK8s/Nx promotion workflow are future work — see [Part 2](#part-2-scaling-to-ha-future-state) for the upgrade path.
 
 ---
 
@@ -14,6 +14,7 @@ The Ansible playbooks automate the entire K3s server installation:
 
 1. **`provision-nodes.yml`** — OS hardening, packages, UFW firewall, kernel modules, sysctl
 2. **`bootstrap-k3s.yml`** — K3s server install, configuration, kubeconfig fetch, token persistence
+3. **`bootstrap-flux.yml`** — Flux CD bootstrap, SOPS age key Secret, GitOps reconciliation
 
 Run them in order on a single testbed node. The result is a working single-node K3s cluster using SQLite (the default and recommended datastore for single-node deployments).
 
@@ -38,7 +39,7 @@ Your workstation (where you run Ansible) needs:
 
 ```bash
 # Install Ansible and required collections
-pip install ansible
+pip install ansible ansible-lint
 ansible-galaxy collection install -r k3s/bootstrap/ansible/requirements.yml
 
 # Install kubectl
@@ -103,6 +104,9 @@ Key settings in `inventory/group_vars/all.yml`:
 | `k3s_firewall_rules` | SSH, API, kubelet, Flannel | UFW ports to open |
 | `k3s_kernel_modules` | `br_netfilter`, `overlay` | Required kernel modules |
 | `k3s_sysctl_params` | bridge-nf, ip-forward, swappiness | Required sysctl settings |
+| `flux_github_owner` | `jander99` | GitHub owner for Flux bootstrap |
+| `flux_github_repo` | `homelab` | GitHub repo for Flux bootstrap |
+| `flux_git_branch` | `master` | Branch reconciled by Flux |
 
 Role-specific defaults are in `roles/k3s-server/defaults/main.yml` — override them in `group_vars/all.yml` or via `-e` flags.
 
@@ -178,9 +182,35 @@ k3s secrets-encrypt status
 You should see:
 - One `Ready` node (the testbed)
 - System pods running: `local-path-provisioner`, `coredns`, `metrics-server`, `kube-proxy`
-- No Flux pods yet (GitOps is future work)
 
-### Step 8: Use the Cluster
+### Step 8: Bootstrap Flux CD
+
+Flux bootstrap runs from the Ansible controller using the kubeconfig fetched by `bootstrap-k3s.yml`. It installs the pinned Flux and age CLIs if needed, creates `flux-system/sops-age` before reconciliation, then runs `flux bootstrap github` against the GitHub settings in `inventory/group_vars/all.yml`.
+
+Before running it:
+
+- Confirm `flux_github_owner`, `flux_github_repo`, and `flux_git_branch` match the target repository.
+- Export a GitHub token with repository write access.
+- Be ready to back up `~/.kube/k3s-homelab-age.agekey` after first run.
+
+```bash
+cd k3s/bootstrap/ansible
+export GITHUB_TOKEN=ghp_xxxx
+ansible-playbook -i inventory/hosts.yml playbooks/bootstrap-flux.yml
+```
+
+Verify Flux:
+
+```bash
+export KUBECONFIG=~/.kube/k3s-testbed.yaml
+flux check
+kubectl get kustomizations -A
+kubectl get helmreleases -A
+```
+
+You should see Flux controllers in `flux-system`, infrastructure controllers/configs reconciled, and applications from `k3s/applications/`.
+
+### Step 9: Use the Cluster
 
 ```bash
 export KUBECONFIG=~/.kube/k3s-testbed.yaml
@@ -199,6 +229,7 @@ kubectl delete deployment,svc nginx
 - **Kubeconfig on the node** is mode `0600` (root-only). On your control machine it is also `0600`.
 - **Node join token** is persisted at `~/.kube/k3s-testbed-token` (mode `0600`). You will need this token if you later add nodes for HA.
 - **Secrets at rest** are encrypted. Keep the encryption key safe — it lives at `/var/lib/rancher/k3s/server/encryption-config.json` on the node.
+- **SOPS age private key** is persisted at `~/.kube/k3s-homelab-age.agekey` and copied into the cluster as `flux-system/sops-age`. Back it up outside Git.
 - **UFW firewall** is configured with only the required ports open (SSH, API server, kubelet, Flannel).
 
 ### Troubleshooting
@@ -209,6 +240,8 @@ kubectl delete deployment,svc nginx
 | K3s install fails at download | `get.k3s.io` unreachable or wrong version string | Verify `k3s_version` in `group_vars/all.yml` matches a real K3s release |
 | Node stuck in `NotReady` | Flannel or kubelet not started | `sudo journalctl -u k3s -n 100` on the node |
 | `kubectl` cannot connect | Wrong IP in kubeconfig | Check `server:` line in `~/.kube/k3s-testbed.yaml` |
+| Flux bootstrap fails immediately | Missing `GITHUB_TOKEN` or repo settings | Export `GITHUB_TOKEN`; verify Flux vars in `inventory/group_vars/all.yml` |
+| Flux cannot decrypt SOPS secrets | Missing or wrong `sops-age` Secret | Recreate it from `~/.kube/k3s-homelab-age.agekey` |
 | Re-run playbook restarts K3s | Config file changed | Normal — Ansible detects config drift and restarts the service |
 
 ### Running the Full Entrypoint
@@ -217,10 +250,11 @@ The `site.yml` playbook runs all phases in sequence:
 
 ```bash
 cd k3s/bootstrap/ansible
+export GITHUB_TOKEN=ghp_xxxx
 ansible-playbook -i inventory/hosts.yml playbooks/site.yml
 ```
 
-> **Note:** `site.yml` currently runs Phase 1 (provision) and Phase 2 (K3s bootstrap). Phase 3 (Flux) is not yet implemented and will fail with a clear message.
+> **Note:** `site.yml` runs provisioning, K3s installation, and Flux bootstrap in order. The Flux phase requires `GITHUB_TOKEN` in the environment.
 
 ---
 
@@ -304,16 +338,16 @@ kubectl get pods -n kube-system -l component=etcd
 
 ### Future Phases
 
-These are not yet implemented and are listed here for planning purposes only. Storage-provider decisions are intentionally deferred until workloads actually need them.
+These are future planning items. Storage-provider decisions are intentionally deferred until workloads actually need them.
 
 | Phase | Component | Status |
 |-------|-----------|--------|
-| Flux CD | GitOps cluster root and reconciliation | Stub only (`bootstrap-flux.yml`) |
+| Flux CD | GitOps cluster root and reconciliation | Implemented (`bootstrap-flux.yml`) |
 | Nginx Ingress | HTTP load balancer | Not started (Traefik is the default K3s ingress) |
-| Cert Manager | TLS certificate automation | Not started |
-| SOPS + age | Secret encryption in Git | Not started |
-| Nx + CDK8s | TypeScript authoring and render pipeline | Not started |
-| Application manifests | Rendered output under `k3s/applications/` | Not started |
+| Cert Manager | TLS certificate automation | Deployed by Flux |
+| SOPS + age | Secret encryption in Git | Implemented for `*.sops.yaml` |
+| Nx + CDK8s | TypeScript authoring and render pipeline | Stub only; promotion workflow not designed |
+| Application manifests | Rendered output under `k3s/applications/` | Hand-authored apps deployed; CDK8s output not wired |
 | Velero | Backup/restore | Not started |
 
 Refer to `k3s/k3s.md` for the full target architecture and concrete repo blueprint.

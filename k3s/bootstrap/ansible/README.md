@@ -1,6 +1,6 @@
 # K3s Ansible Bootstrap
 
-Ansible playbooks for provisioning and bootstrapping K3s cluster nodes. Both `provision-nodes.yml` and `bootstrap-k3s.yml` are runnable — Flux CD is a stub pending future work.
+Ansible playbooks for provisioning nodes, installing the single-node K3s server, and bootstrapping Flux CD against the GitOps manifests in this repository.
 
 ## Prerequisites
 
@@ -80,14 +80,29 @@ Installs K3s v1.35.4+k3s1 on all `k3s_servers` hosts. On success, kubeconfig is 
 KUBECONFIG=~/.kube/k3s-testbed.yaml kubectl get nodes
 ```
 
-### Full bootstrap (Flux CD not yet runnable)
+### Bootstrap Flux CD
+
+`bootstrap-flux.yml` runs on the Ansible controller using the kubeconfig fetched by `bootstrap-k3s.yml`. It installs the pinned Flux and age CLIs if needed, creates the `flux-system/sops-age` Secret before reconciliation, and runs `flux bootstrap github` against the repository settings in `inventory/group_vars/all.yml`.
+
+Before running it:
+
+- Verify `flux_github_owner`, `flux_github_repo`, and `flux_git_branch` in `inventory/group_vars/all.yml`.
+- Export a GitHub token with repository write access.
+- Back up the generated age private key at `~/.kube/k3s-homelab-age.agekey` after first run.
 
 ```bash
-# Phases 1 and 2 run successfully; Phase 3 (Flux CD) is a stub.
+export GITHUB_TOKEN=ghp_xxxx
+ansible-playbook -i inventory/hosts.yml playbooks/bootstrap-flux.yml -v
+```
+
+### Full bootstrap
+
+```bash
+export GITHUB_TOKEN=ghp_xxxx
 ansible-playbook -i inventory/hosts.yml playbooks/site.yml -v
 ```
 
-Flux CD (`bootstrap-flux.yml`) is a stub and will fail with a clear message until implemented.
+`site.yml` runs provisioning, K3s installation, and Flux bootstrap in order. Flux will reconcile `k3s/clusters/homelab/` from the configured Git branch.
 
 ---
 

@@ -7,6 +7,7 @@ This repository manages Docker-based services on a Synology NAS and a single-nod
 ### Current Setup
 - **Docker Services**: Legacy services running on Docker with macvlan networking
 - **K3s Cluster**: Single-node testbed (192.168.1.128) with SQLite datastore; HA cluster planned — see `k3s/BOOTSTRAP.md` Part 2
+- **GitOps**: Flux CD v2 manages cluster infrastructure and applications from `k3s/clusters/homelab/`
 - **Monitoring**: Comprehensive observability with Prometheus, Grafana, and custom exporters
 - **Network**: 192.168.1.0/24 physical network with bridge networking for containers
 
@@ -34,16 +35,15 @@ homelab/
 ### Current State
 - **Node**: Single testbed machine at 192.168.1.128
 - **Datastore**: SQLite (default for single node)
-- **GitOps**: Not yet implemented (Flux CD stub exists)
+- **GitOps**: Flux CD v2 rooted at `k3s/clusters/homelab/`
+- **Deployed via Flux**: cert-manager, MetalLB, kube-prometheus-stack, Headlamp, and Pi-hole
 - **Storage**: Local-path provisioner only; future CSI choice is intentionally undecided
 - **Networking**: Flannel VXLAN CNI
-- **Ingress**: Traefik (default K3s ingress; Nginx planned)
+- **Ingress**: Traefik (default K3s ingress)
 
 ### Planned (see `k3s/BOOTSTRAP.md` Part 2 and `k3s/k3s.md`)
 - 3-node HA with embedded etcd
-- Flux CD v2 GitOps rooted at `k3s/clusters/homelab/`
 - Nx + CDK8s workflow that renders workload manifests into `k3s/applications/`
-- Nginx Ingress + cert-manager
 
 See `k3s/k3s.md` for the concrete repo blueprint and Flux reconciliation graph.
 
@@ -118,6 +118,10 @@ ansible-playbook -i inventory/hosts.yml playbooks/provision-nodes.yml
 
 # Step 2: Install K3s server
 ansible-playbook -i inventory/hosts.yml playbooks/bootstrap-k3s.yml
+
+# Step 3: Bootstrap Flux CD GitOps
+export GITHUB_TOKEN=ghp_xxxx
+ansible-playbook -i inventory/hosts.yml playbooks/bootstrap-flux.yml
 ```
 
 ## Migration to K3s
@@ -128,5 +132,4 @@ The repository documents a future migration from Docker to Kubernetes with:
 - Service-by-service transition capability (planned)
 
 See [`k3s/k3s.md`](k3s/k3s.md) for the full target architecture and [`k3s/BOOTSTRAP.md`](k3s/BOOTSTRAP.md) for current deployment status.
-
 

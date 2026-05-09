@@ -32,6 +32,24 @@
   delegate_to: localhost
   become: false
 
+- name: Assert Flux GitHub repository settings are set
+  ansible.builtin.assert:
+    that:
+      - flux_github_owner is defined
+      - flux_github_owner | length > 0
+      - flux_github_repo is defined
+      - flux_github_repo | length > 0
+      - flux_git_branch is defined
+      - flux_git_branch | length > 0
+    fail_msg: >-
+      Flux GitHub settings are incomplete. Set flux_github_owner,
+      flux_github_repo, and flux_git_branch in
+      inventory/group_vars/all.yml or host/group vars before running
+      bootstrap-flux.yml.
+    quiet: true
+  delegate_to: localhost
+  become: false
+
 - name: Check that kubeconfig exists on controller
   ansible.builtin.stat:
     path: "{{ flux_kubeconfig }}"
@@ -175,7 +193,7 @@
 
 # ─── flux-system namespace ────────────────────────────────────────────────────
 
-- name: Check if {{ sops_secret_namespace }} namespace exists
+- name: Check if SOPS secret namespace exists
   ansible.builtin.command: >
     kubectl --kubeconfig={{ flux_kubeconfig }} get namespace {{ sops_secret_namespace }}
   register: flux_ns_check
@@ -184,7 +202,7 @@
   delegate_to: localhost
   become: false
 
-- name: Create {{ sops_secret_namespace }} namespace (pre-created so sops-age Secret can be added before bootstrap)
+- name: Create SOPS secret namespace before bootstrap
   ansible.builtin.command: >
     kubectl --kubeconfig={{ flux_kubeconfig }} create namespace {{ sops_secret_namespace }}
   when: flux_ns_check.rc != 0
@@ -201,6 +219,15 @@
   register: sops_secret_check
   changed_when: false
   failed_when: false
+  delegate_to: localhost
+  become: false
+
+- name: Ensure age key parent directory exists
+  ansible.builtin.file:
+    path: "{{ age_key_file | dirname }}"
+    state: directory
+    mode: "0700"
+  when: sops_secret_check.rc != 0
   delegate_to: localhost
   become: false
 
@@ -244,7 +271,7 @@
       - "════════════════════════════════════════════════════════════════"
       - "Age key generated and stored as Secret {{ sops_secret_name }} in {{ sops_secret_namespace }}."
       - ""
-      - "Public key (add to k3s/.sops.yaml creation_rules):"
+      - "Public key (add to .sops.yaml creation_rules):"
       - "  {{ age_pubkey_line.stdout | regex_replace('# public key: ', '') }}"
       - ""
       - "Private key file: {{ age_key_file }}"
@@ -258,6 +285,17 @@
 
 # ─── Flux Bootstrap ───────────────────────────────────────────────────────────
 
+- name: Check if Flux controllers are already installed
+  ansible.builtin.command: >
+    kubectl --kubeconfig={{ flux_kubeconfig }}
+    get deployment source-controller kustomize-controller helm-controller notification-controller
+    -n flux-system
+  register: flux_controllers_check
+  changed_when: false
+  failed_when: false
+  delegate_to: localhost
+  become: false
+
 - name: Bootstrap Flux CD via GitHub
   ansible.builtin.command: >
     {{ flux_install_dir }}/flux bootstrap github
@@ -270,7 +308,11 @@
     --token-auth
   environment:
     GITHUB_TOKEN: "{{ flux_github_token }}"
-  changed_when: true
+  changed_when: >
+    flux_controllers_check.rc != 0 or
+    'committed' in ((flux_bootstrap_result.stdout | default('')) ~ (flux_bootstrap_result.stderr | default(''))) or
+    'pushed' in ((flux_bootstrap_result.stdout | default('')) ~ (flux_bootstrap_result.stderr | default(''))) or
+    'installing components' in ((flux_bootstrap_result.stdout | default('')) ~ (flux_bootstrap_result.stderr | default('')))
   register: flux_bootstrap_result
   delegate_to: localhost
   become: false
