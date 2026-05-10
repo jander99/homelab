@@ -49,7 +49,7 @@ spec:
         clientID: headlamp
         issuerURL: https://auth.homelab.properties/application/o/headlamp/
         scopes: openid email profile
-    envFrom:
+    env:
       - secretRef:
           name: headlamp-oidc-secret
     clusterRoleBinding:
