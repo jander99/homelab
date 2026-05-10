@@ -132,7 +132,10 @@ spec:
           scopes: openid email profile
           auth_url: https://auth.homelab.properties/application/o/authorize/
           token_url: https://auth.homelab.properties/application/o/token/
-          api_url: https://auth.homelab.properties/application/o/userinfo/
+          api_url: https://auth.homelab.properties/application/o/userinfo
+          email_attribute_path: email
+          login_attribute_path: preferred_username
+          name_attribute_path: name
           role_attribute_path: "contains(groups[*], 'homelab-admins') && 'Admin' || 'Viewer'"
       admin:
         existingSecret: grafana-admin-secret
