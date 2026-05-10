@@ -36,6 +36,18 @@
     group: root
     mode: "0755"
 
+- name: Validate OIDC vars are complete when OIDC is enabled
+  ansible.builtin.assert:
+    that:
+      - k3s_oidc_client_id | length > 0
+      - k3s_oidc_username_claim | length > 0
+      - k3s_oidc_groups_claim | length > 0
+    fail_msg: >-
+      k3s_oidc_issuer_url is set but one or more companion variables are empty.
+      Set k3s_oidc_client_id, k3s_oidc_username_claim, and k3s_oidc_groups_claim
+      in group_vars or host_vars.
+  when: k3s_oidc_issuer_url | length > 0
+
 - name: Write K3s server configuration
   ansible.builtin.copy:
     dest: "{{ k3s_config_file }}"
