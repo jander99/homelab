@@ -7,3 +7,4 @@ resources:
   - authentik-secret.sops.yaml
   - outpost-deployment.yaml
   - blueprints-configmap.yaml
+  - headlamp-oidc-rbac.yaml

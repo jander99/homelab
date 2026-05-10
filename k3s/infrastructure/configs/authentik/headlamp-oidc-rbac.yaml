@@ -1,0 +1,19 @@
+---
+# ClusterRoleBinding granting Headlamp OIDC-authenticated users cluster-admin access.
+# The K3s API server validates tokens via --oidc-issuer-url and extracts the
+# groups claim. Members of the homelab-admins Authentik group are bound here.
+#
+# Adjust the subjects list or create a more restrictive ClusterRole if you
+# want finer-grained access control.
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRoleBinding
+metadata:
+  name: headlamp-oidc-admins
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: ClusterRole
+  name: cluster-admin
+subjects:
+  - apiGroup: rbac.authorization.k8s.io
+    kind: Group
+    name: homelab-admins
