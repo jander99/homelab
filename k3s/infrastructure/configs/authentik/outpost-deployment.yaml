@@ -21,9 +21,11 @@ spec:
           image: ghcr.io/goauthentik/proxy:2026.2.2
           env:
             - name: AUTHENTIK_HOST
+              value: "http://authentik-server.authentik.svc.cluster.local"
+            - name: AUTHENTIK_HOST_BROWSER
               value: "https://auth.homelab.properties"
             - name: AUTHENTIK_INSECURE
-              value: "false"
+              value: "true"
             - name: AUTHENTIK_TOKEN
               valueFrom:
                 secretKeyRef:

@@ -121,6 +121,8 @@ spec:
         enabled: false
       envFromSecret: grafana-oidc-secret
       grafana.ini:
+        server:
+          root_url: https://grafana.homelab.properties
         auth.generic_oauth:
           enabled: true
           name: Authentik
