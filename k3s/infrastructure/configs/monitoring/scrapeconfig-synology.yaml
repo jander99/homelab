@@ -1,0 +1,14 @@
+---
+apiVersion: monitoring.coreos.com/v1alpha1
+kind: ScrapeConfig
+metadata:
+  name: synology-node-exporter
+  namespace: monitoring
+spec:
+  staticConfigs:
+    - targets:
+        - 192.168.1.20:9100
+      labels:
+        job: synology-node-exporter
+  scrapeInterval: 60s
+  metricsPath: /metrics
