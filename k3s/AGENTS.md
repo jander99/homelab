@@ -52,7 +52,7 @@ k3s/
 - `BOOTSTRAP.md` is the authoritative guide for standing up the cluster when ready.
 - `k3s.md` contains the concrete repo blueprint, Flux kustomization graph, and Nx/CDK8s workflow.
 - Current Docker services on Synology NAS are the live production environment — K3s migration is future work.
-- **Testbed node** (i7-4770k) at 192.168.1.128 is the current active single-node cluster. Target architecture is 3x Dell Optiplex (192.168.1.40-42) with embedded etcd — not yet provisioned.
+- **Testbed node** (i7-4770k) at 192.168.1.128 is the current active single-node cluster. Target architecture is 3x Dell Optiplex (k3s-mini-01/02/03, 192.168.1.40-42) with embedded etcd — hardware acquired, not yet provisioned. See `k3s/k3s.md` § "Node Hardware" for full per-node specs.
 - `provision-nodes.yml` is runnable — runs `common` + `k3s-prereqs` roles.
 - `bootstrap-k3s.yml` is runnable — runs `k3s-server` role to install and configure a single K3s server node.
 - `bootstrap-flux.yml` is implemented and uses the `flux-bootstrap` role. It requires `GITHUB_TOKEN`, the kubeconfig fetched by `bootstrap-k3s.yml`, and Flux GitHub settings in `inventory/group_vars/all.yml`.
