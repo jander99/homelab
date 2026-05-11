@@ -20,12 +20,24 @@ These are the choices worth being opinionated about up front:
 
 ## Target Cluster
 
-- **Nodes**: 3x Dell Optiplex at `192.168.1.40`, `192.168.1.41`, `192.168.1.42`
+- **Nodes**: 3x Dell Optiplex at `192.168.1.40` (k3s-mini-01), `192.168.1.41` (k3s-mini-02), `192.168.1.42` (k3s-mini-03)
 - **Datastore**: embedded etcd once the cluster moves from single-node SQLite to HA
 - **GitOps root**: `k3s/clusters/homelab/`
 - **Ingress/TLS**: Nginx Ingress + cert-manager
 - **Secrets**: SOPS + age
 - **Storage posture**: do not hardcode a future storage vendor into the blueprint; only set `storageClassName` when a workload truly needs it
+
+### Node Hardware
+
+> **Status**: Hardware is acquired and spec'd; cluster is not yet provisioned.
+
+| Spec | k3s-mini-01 | k3s-mini-02 | k3s-mini-03 |
+|------|-------------|-------------|-------------|
+| **Chassis** | Dell Optiplex 5060 | Dell Optiplex 5060 | Dell Optiplex 7060 |
+| **CPU** | Intel Core i5-8600T @ 2.30 GHz | Intel Core i5-8500T @ 2.10 GHz | Intel Core i5-8500T @ 2.10 GHz |
+| **RAM** | 32 GB (F4-3200C22-16GRS) | 32 GB (HMA82GS6CJR8N-VK) | 32 GB (F4-2666C18-16GRS) |
+| **SATA SSD** | Unknown (512 GB) | Crucial MX500 CT250MX500SSD1 (250 GB) | Crucial MX500 CT250MX500SSD1 (250 GB) |
+| **M.2 NVMe** | Crucial P3 CT1000P3SSD8 (1 TB) | WD Black SN770 (500 GB) | Crucial P3 Plus CT500P3PSSD8 (500 GB) |
 
 ## Repository Blueprint
 
