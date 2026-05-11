@@ -63,6 +63,7 @@ spec:
         retention: 30d
         podMonitorSelectorNilUsesHelmValues: false
         serviceMonitorSelectorNilUsesHelmValues: false
+        scrapeConfigSelectorNilUsesHelmValues: false
         storageSpec:
           volumeClaimTemplate:
             spec:

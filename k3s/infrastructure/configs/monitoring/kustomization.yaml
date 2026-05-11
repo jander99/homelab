@@ -7,3 +7,4 @@ resources:
   - helmrepository.yaml
   - helmrelease.yaml
   - authentik-middleware.yaml
+  - scrapeconfig-synology.yaml
