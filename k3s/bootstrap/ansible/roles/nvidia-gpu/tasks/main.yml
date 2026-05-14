@@ -41,6 +41,9 @@
 # it permanently for containerd 2.x, adding the NVIDIA runtime as the default.
 # The {{ template "base" . }} directive preserves all K3s-generated defaults.
 
+- name: Gather service facts (needed by restart handler)
+  ansible.builtin.service_facts:
+
 - name: Create K3s containerd config directory
   ansible.builtin.file:
     path: /var/lib/rancher/k3s/agent/etc/containerd
