@@ -9,7 +9,7 @@ metadata:
   name: synology-media-rw
 spec:
   capacity:
-    storage: 10Ti
+    storage: 28Ti
   accessModes:
     - ReadWriteMany
   nfs:

@@ -8,7 +8,7 @@ metadata:
   name: synology-media-ro
 spec:
   capacity:
-    storage: 10Ti
+    storage: 28Ti
   accessModes:
     - ReadOnlyMany
   nfs:
