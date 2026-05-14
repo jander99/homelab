@@ -29,7 +29,7 @@ spec:
       config:
         sources:
           pci:
-            # Label by PCI vendor ID only (e.g. feature.node.kubernetes.io/pci-10de.present=true
+            # Label by PCI vendor ID only (e.g. feature.node.kubernetes.io/pci-10de.present=true)
             # for NVIDIA). The chart default also includes class+device, producing more granular
             # labels like pci-0302_10de.present. Vendor-only labels match what nvidia-device-plugin
             # uses for its default node affinity.
