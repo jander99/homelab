@@ -1,0 +1,10 @@
+---
+# roles/nvidia-gpu/handlers/main.yml
+
+- name: Gather service facts
+  ansible.builtin.service_facts:
+
+- name: Restart k3s
+  ansible.builtin.systemd:
+    name: "{{ 'k3s' if 'k3s.service' in ansible_facts.services else 'k3s-agent' }}"
+    state: restarted

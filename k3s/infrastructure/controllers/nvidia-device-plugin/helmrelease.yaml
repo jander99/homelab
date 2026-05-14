@@ -1,0 +1,34 @@
+---
+apiVersion: helm.toolkit.fluxcd.io/v2
+kind: HelmRelease
+metadata:
+  name: nvidia-device-plugin
+  namespace: flux-system
+spec:
+  interval: 30m
+  chart:
+    spec:
+      chart: nvidia-device-plugin
+      version: '>=0.17.0 <1.0.0'
+      sourceRef:
+        kind: HelmRepository
+        name: nvdp
+        namespace: flux-system
+  targetNamespace: kube-system
+  install:
+    remediation:
+      retries: 3
+  upgrade:
+    remediation:
+      retries: 3
+  values:
+    # Exclusive GPU allocation: no sharing config means the device plugin assigns
+    # the full GPU to one pod at a time (the chart's default behavior).
+    # migStrategy: none disables MIG partitioning — the RTX 3070 does not support
+    # MIG, but being explicit avoids ambiguity.
+    config:
+      map:
+        default: |-
+          version: v1
+          flags:
+            migStrategy: none
