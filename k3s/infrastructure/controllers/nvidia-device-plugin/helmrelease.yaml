@@ -22,9 +22,10 @@ spec:
     remediation:
       retries: 3
   values:
-    # No time-slicing — GPUs are allocated exclusively (one pod per GPU).
-    # This is appropriate for transcoding workloads (Tdarr, Plex) where
-    # VRAM contention would cause failures.
+    # Exclusive GPU allocation: no sharing config means the device plugin assigns
+    # the full GPU to one pod at a time (the chart's default behavior).
+    # migStrategy: none disables MIG partitioning — the RTX 3070 does not support
+    # MIG, but being explicit avoids ambiguity.
     config:
       map:
         default: |-

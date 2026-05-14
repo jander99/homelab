@@ -5,8 +5,17 @@
 #
 # Tested against: Ubuntu 26.04, K3s 1.35.x (containerd 2.x)
 
-# ── 1. nvidia-container-toolkit ───────────────────────────────────────────────
+# ── 1. Prerequisites ─────────────────────────────────────────────────────────
 
+- name: Install gnupg and curl for toolkit repo setup
+  ansible.builtin.apt:
+    name:
+      - curl
+      - gnupg
+    state: present
+    update_cache: false
+
+# ── 2. nvidia-container-toolkit ─────────────────────────────────────────────
 - name: Download and dearmor NVIDIA container toolkit GPG key
   ansible.builtin.shell:
     cmd: >
