@@ -1,7 +1,8 @@
 ---
 # roles/nvidia-gpu/tasks/main.yml
-# Installs nvidia-container-toolkit and configures K3s containerd to use the
-# NVIDIA GPU runtime. Assumes NVIDIA drivers are already installed on the node.
+# Installs nvidia-container-toolkit. K3s 1.35+ auto-detects the NVIDIA
+# container runtime at startup and adds it to containerd config automatically.
+# Assumes NVIDIA drivers are already installed on the node.
 #
 # Tested against: Ubuntu 26.04, K3s 1.35.x (containerd 2.x)
 
@@ -35,31 +36,14 @@
     name: nvidia-container-toolkit
     state: present
     update_cache: true
+  notify: Restart k3s
 
-# ── 2. Configure K3s containerd (v3 config for containerd 2.x) ────────────────
-# K3s auto-generates config.toml on each start. config-v3.toml.tmpl overrides
-# it permanently for containerd 2.x, adding the NVIDIA runtime as the default.
-# The {{ template "base" . }} directive preserves all K3s-generated defaults.
+# ── 2. Restart k3s so it regenerates config.toml with NVIDIA runtime ─────────
+# K3s detects nvidia-container-runtime at startup and registers it automatically.
+# No custom containerd template needed.
 
 - name: Gather service facts (needed by restart handler)
   ansible.builtin.service_facts:
-
-- name: Create K3s containerd config directory
-  ansible.builtin.file:
-    path: /var/lib/rancher/k3s/agent/etc/containerd
-    state: directory
-    owner: root
-    group: root
-    mode: "0755"
-
-- name: Write K3s containerd v3 template with NVIDIA runtime
-  ansible.builtin.copy:
-    src: nvidia-config-v3.toml.tmpl
-    dest: /var/lib/rancher/k3s/agent/etc/containerd/config-v3.toml.tmpl
-    owner: root
-    group: root
-    mode: "0644"
-  notify: Restart k3s
 
 # ── 3. Verify ─────────────────────────────────────────────────────────────────
 
