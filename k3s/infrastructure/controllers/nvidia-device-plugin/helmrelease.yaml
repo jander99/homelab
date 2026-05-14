@@ -1,0 +1,33 @@
+---
+apiVersion: helm.toolkit.fluxcd.io/v2
+kind: HelmRelease
+metadata:
+  name: nvidia-device-plugin
+  namespace: flux-system
+spec:
+  interval: 30m
+  chart:
+    spec:
+      chart: nvidia-device-plugin
+      version: '>=0.17.0 <1.0.0'
+      sourceRef:
+        kind: HelmRepository
+        name: nvdp
+        namespace: flux-system
+  targetNamespace: kube-system
+  install:
+    remediation:
+      retries: 3
+  upgrade:
+    remediation:
+      retries: 3
+  values:
+    # No time-slicing — GPUs are allocated exclusively (one pod per GPU).
+    # This is appropriate for transcoding workloads (Tdarr, Plex) where
+    # VRAM contention would cause failures.
+    config:
+      map:
+        default: |-
+          version: v1
+          flags:
+            migStrategy: none

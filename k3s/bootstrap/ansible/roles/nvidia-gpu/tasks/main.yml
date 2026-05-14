@@ -1,0 +1,58 @@
+---
+# roles/nvidia-gpu/tasks/main.yml
+# Installs nvidia-container-toolkit and configures K3s containerd to use the
+# NVIDIA GPU runtime. Assumes NVIDIA drivers are already installed on the node.
+#
+# Tested against: Ubuntu 26.04, K3s 1.35.x (containerd 2.x)
+
+# ── 1. nvidia-container-toolkit ───────────────────────────────────────────────
+
+- name: Download and dearmor NVIDIA container toolkit GPG key
+  ansible.builtin.shell:
+    cmd: >
+      curl -fsSL https://nvidia.github.io/libnvidia-container/gpgkey
+      | gpg --dearmor -o /usr/share/keyrings/nvidia-container-toolkit-keyring.gpg
+    creates: /usr/share/keyrings/nvidia-container-toolkit-keyring.gpg
+
+- name: Add NVIDIA container toolkit apt repo
+  ansible.builtin.copy:
+    dest: /etc/apt/sources.list.d/nvidia-container-toolkit.list
+    mode: "0644"
+    content: |
+      deb [signed-by=/usr/share/keyrings/nvidia-container-toolkit-keyring.gpg] https://nvidia.github.io/libnvidia-container/stable/deb/$(ARCH) /
+
+- name: Install nvidia-container-toolkit
+  ansible.builtin.apt:
+    name: nvidia-container-toolkit
+    state: present
+    update_cache: true
+
+# ── 2. Configure K3s containerd (v3 config for containerd 2.x) ────────────────
+# K3s auto-generates config.toml on each start. config-v3.toml.tmpl overrides
+# it permanently for containerd 2.x, adding the NVIDIA runtime as the default.
+# The {{ template "base" . }} directive preserves all K3s-generated defaults.
+
+- name: Create K3s containerd config directory
+  ansible.builtin.file:
+    path: /var/lib/rancher/k3s/agent/etc/containerd
+    state: directory
+    owner: root
+    group: root
+    mode: "0755"
+
+- name: Write K3s containerd v3 template with NVIDIA runtime
+  ansible.builtin.copy:
+    src: nvidia-config-v3.toml.tmpl
+    dest: /var/lib/rancher/k3s/agent/etc/containerd/config-v3.toml.tmpl
+    owner: root
+    group: root
+    mode: "0644"
+  notify: Restart k3s
+
+# ── 3. Verify ─────────────────────────────────────────────────────────────────
+
+- name: Verify nvidia-container-cli can see the GPU
+  ansible.builtin.command: nvidia-container-cli info
+  register: ctk_info
+  changed_when: false
+  failed_when: ctk_info.rc != 0

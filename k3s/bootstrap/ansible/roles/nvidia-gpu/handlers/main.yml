@@ -1,0 +1,7 @@
+---
+# roles/nvidia-gpu/handlers/main.yml
+
+- name: Restart k3s
+  ansible.builtin.systemd:
+    name: k3s
+    state: restarted
