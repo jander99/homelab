@@ -1,0 +1,23 @@
+---
+# Read-write NFS PersistentVolume — Synology /data share
+# Mount this in pods that need to write media (e.g. Sonarr, Radarr, NZBGet)
+# Pods must run with runAsUser: 1027, fsGroup: 100 to match NAS file ownership
+# NFS export on Synology must have squash: no_root_squash (or no squash)
+apiVersion: v1
+kind: PersistentVolume
+metadata:
+  name: synology-media-rw
+spec:
+  capacity:
+    storage: 10Ti
+  accessModes:
+    - ReadWriteMany
+  nfs:
+    server: 192.168.1.20
+    path: /data
+  persistentVolumeReclaimPolicy: Retain
+  storageClassName: ""
+  mountOptions:
+    - nfsvers=4.1
+    - hard
+    - noatime

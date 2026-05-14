@@ -1,0 +1,22 @@
+---
+# Read-only NFS PersistentVolume — Synology /data share
+# Mount this in pods that only need to read media (e.g. Plex, Jellyfin)
+# Pods must run with runAsUser: 1027, fsGroup: 100 to match NAS file ownership
+apiVersion: v1
+kind: PersistentVolume
+metadata:
+  name: synology-media-ro
+spec:
+  capacity:
+    storage: 10Ti
+  accessModes:
+    - ReadOnlyMany
+  nfs:
+    server: 192.168.1.20
+    path: /data
+  persistentVolumeReclaimPolicy: Retain
+  storageClassName: ""
+  mountOptions:
+    - nfsvers=4.1
+    - hard
+    - noatime
