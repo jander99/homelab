@@ -5,3 +5,4 @@ resources:
   - metallb
   - cert-manager
   - nvidia-device-plugin
+  - node-feature-discovery
