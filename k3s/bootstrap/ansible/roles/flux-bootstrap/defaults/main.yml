@@ -4,12 +4,12 @@
 
 # ─── Flux CLI ────────────────────────────────────────────────────────────────
 # Pinned version — check https://github.com/fluxcd/flux2/releases for updates.
-flux_cli_version: "2.3.0"
+flux_cli_version: "2.8.7"
 
 # Optional SHA256 checksum for the flux CLI archive (without the 'sha256:' prefix).
 # Find at: https://github.com/fluxcd/flux2/releases/download/v{{ flux_cli_version }}/flux_{{ flux_cli_version }}_checksums.txt
 # Leave empty to skip verification (not recommended for production).
-flux_cli_checksum: ""
+flux_cli_checksum: "493a8df42bf89f8481f03afb44b6f4801a76ec0f0b9233042487d0cb5c6cf4e3"
 
 # Directory where the flux binary is installed on the Ansible controller.
 flux_install_dir: "{{ lookup('env', 'HOME') }}/.local/bin"
