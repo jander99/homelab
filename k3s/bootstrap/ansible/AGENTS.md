@@ -26,7 +26,7 @@ ansible/
 | Task | Location | Notes |
 |------|----------|-------|
 | Add/remove cluster nodes | `inventory/hosts.yml` | Testbed: 192.168.1.128; target cluster: .40/.41/.42 |
-| Change k3s version | `inventory/group_vars/all.yml` | `k3s_version: v1.35.4+k3s1` |
+| Change k3s version | `inventory/group_vars/all.yml` | `k3s_version: v1.36.0+k3s1` |
 | Flux repo settings | `inventory/group_vars/all.yml` | `flux_github_owner: jander99`, `flux_github_repo: homelab`, `flux_git_branch: master` |
 | K3s server config | `roles/k3s-server/` | Writes `/etc/rancher/k3s/config.yaml` on remote |
 | Add OS packages/UFW rules | `inventory/group_vars/all.yml` | Common role reads from here |

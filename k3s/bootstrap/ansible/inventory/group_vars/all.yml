@@ -39,7 +39,7 @@ k3s_sysctl_params:
 
 # K3s version installed on all nodes — pin to a specific release.
 # Find the latest: https://github.com/k3s-io/k3s/releases
-k3s_version: "v1.35.4+k3s1"
+k3s_version: "v1.36.0+k3s1"
 
 # K3s built-in components to disable — these are replaced by external controllers.
 # servicelb (klipper-lb) must be disabled when MetalLB is installed to prevent

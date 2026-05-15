@@ -142,6 +142,7 @@
     (k3s_installed_version.stdout is defined and
      k3s_version not in k3s_installed_version.stdout)
   changed_when: true
+  notify: Restart k3s
 
 - name: Enable and start K3s service
   ansible.builtin.systemd:
@@ -149,6 +150,9 @@
     state: started
     enabled: true
     daemon_reload: true
+
+- name: Flush handlers so K3s restarts before readiness checks
+  ansible.builtin.meta: flush_handlers
 
 - name: Wait for K3s API server port to open
   ansible.builtin.wait_for:
