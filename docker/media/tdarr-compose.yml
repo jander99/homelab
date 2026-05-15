@@ -14,7 +14,12 @@ services:
       - serverIP=0.0.0.0
       - serverPort=8266
       - webUIPort=8265
-      - internalNode=false
+      - internalNode=true
+      - nodeName=synology-healthcheck
+      - transcodecpuWorkers=0
+      - transcodegpuWorkers=0
+      - healthcheckcpuWorkers=2
+      - healthcheckgpuWorkers=0
     volumes:
       - /volume1/data:/media
       - /volume1/docker/config/tdarr/configs:/app/configs

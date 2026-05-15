@@ -7,3 +7,4 @@ resources:
   - monitoring.yaml
   - pihole.yaml
   - authentik.yaml
+  - tdarr.yaml
