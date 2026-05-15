@@ -151,6 +151,9 @@
     enabled: true
     daemon_reload: true
 
+- name: Flush handlers so K3s restarts before readiness checks
+  ansible.builtin.meta: flush_handlers
+
 - name: Wait for K3s API server port to open
   ansible.builtin.wait_for:
     host: 127.0.0.1
