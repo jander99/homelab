@@ -142,6 +142,7 @@
     (k3s_installed_version.stdout is defined and
      k3s_version not in k3s_installed_version.stdout)
   changed_when: true
+  notify: Restart k3s
 
 - name: Enable and start K3s service
   ansible.builtin.systemd:
