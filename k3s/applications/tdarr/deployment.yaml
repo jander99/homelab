@@ -1,0 +1,67 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: tdarr-node
+  namespace: tdarr
+  labels:
+    app: tdarr-node
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: tdarr-node
+  template:
+    metadata:
+      labels:
+        app: tdarr-node
+    spec:
+      runtimeClassName: nvidia
+      securityContext:
+        runAsUser: 1027
+        runAsGroup: 100
+        fsGroup: 100
+      containers:
+        - name: tdarr-node
+          image: haveagitgat/tdarr_node:latest
+          env:
+            - name: TZ
+              value: America/New_York
+            - name: PUID
+              value: "1027"
+            - name: PGID
+              value: "100"
+            - name: inContainer
+              value: "true"
+            - name: ffmpegVersion
+              value: "7"
+            - name: serverURL
+              value: "http://192.168.1.20:8266"
+            - name: nodeName
+              value: "k3s-rtx3070"
+            - name: NVIDIA_DRIVER_CAPABILITIES
+              value: all
+            - name: NVIDIA_VISIBLE_DEVICES
+              value: all
+          resources:
+            limits:
+              nvidia.com/gpu: "1"
+            requests:
+              memory: "2Gi"
+              cpu: "1"
+          volumeMounts:
+            - name: media
+              mountPath: /media
+            - name: transcode-cache
+              mountPath: /temp
+            - name: config
+              mountPath: /app/configs
+      volumes:
+        - name: media
+          persistentVolumeClaim:
+            claimName: tdarr-media
+        - name: transcode-cache
+          emptyDir: {}
+        - name: config
+          hostPath:
+            path: /var/lib/tdarr-node/configs
+            type: DirectoryOrCreate
