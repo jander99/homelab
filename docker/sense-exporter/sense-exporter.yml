@@ -2,7 +2,7 @@ version: '3.8'
 
 services: 
   sense-exporter: 
-    image: ejsuncy/sense_energy_prometheus_exporter:latest
+    image: ghcr.io/ejsuncy/sense_energy_prometheus_exporter:v1.0.0  # Docker Hub is stale (4+ years); image moved to ghcr.io
     container_name: sense-exporter
     hostname: sense-exporter
     ports: 

@@ -2,7 +2,7 @@ version: "3.8"
 
 services:
   cm1000-exporter:
-    image: hsnodgrass3/prom_cm1000_exporter
+    image: hsnodgrass3/prom_cm1000_exporter:latest  # no versioned releases published; pinning by digest not feasible
     container_name: cm1000-exporter
     hostname: cm1000-exporter
     ports:
