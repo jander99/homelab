@@ -24,7 +24,7 @@
   ansible.posix.mount:
     src: "{{ item.src }}"
     path: "{{ item.path }}"
-    fstype: nfs4
+    fstype: nfs
     opts: "{{ item.opts }}"
     state: mounted
     dump: "0"
