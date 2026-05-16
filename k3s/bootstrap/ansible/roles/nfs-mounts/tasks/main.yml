@@ -1,0 +1,32 @@
+---
+# roles/nfs-mounts/tasks/main.yml
+# Configures OS-level NFS mounts via /etc/fstab + systemd (_netdev).
+# Mounting at the OS level (rather than via K8s PV/PVC) avoids kubelet
+# lifecycle entanglement: stale mounts no longer block pod termination
+# or require k3s restarts to recover.
+
+- name: Ensure nfs-common is installed
+  ansible.builtin.apt:
+    name: nfs-common
+    state: present
+    update_cache: false
+
+- name: Create NFS mount point directories
+  ansible.builtin.file:
+    path: "{{ item.path }}"
+    state: directory
+    mode: "0755"
+    owner: root
+    group: root
+  loop: "{{ nfs_mounts }}"
+
+- name: Configure NFS mounts in /etc/fstab and mount immediately
+  ansible.posix.mount:
+    src: "{{ item.src }}"
+    path: "{{ item.path }}"
+    fstype: nfs4
+    opts: "{{ item.opts }}"
+    state: mounted
+    dump: "0"
+    passno: "0"
+  loop: "{{ nfs_mounts }}"

@@ -1,19 +1,4 @@
 ---
-apiVersion: v1
-kind: PersistentVolumeClaim
-metadata:
-  name: tdarr-media
-  namespace: tdarr
-spec:
-  accessModes:
-    - ReadWriteMany
-  storageClassName: ""
-  volumeName: synology-media-rw
-  resources:
-    requests:
-      storage: 28Ti
-
----
 # Local PVC for tdarr node config — persists node identity (nodeName, worker config)
 # Uses K3s local-path provisioner; directory auto-created on first bind,
 # pinned to whichever node the pod schedules to (homelab testbed).

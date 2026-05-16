@@ -15,6 +15,7 @@ common_packages:
   - unzip
   - jq
   - update-notifier-common
+  - nfs-common
 
 # UFW rules — K3s required ports + SSH
 k3s_firewall_rules:
@@ -61,3 +62,13 @@ k3s_oidc_issuer_url: "https://auth.homelab.properties/application/o/headlamp/"
 k3s_oidc_client_id: "headlamp"
 k3s_oidc_username_claim: "preferred_username"
 k3s_oidc_groups_claim: "groups"
+
+# ─── NFS mounts ──────────────────────────────────────────────────────────────
+# OS-level NFS mounts configured via /etc/fstab by the nfs-mounts role.
+# Mounting at OS level avoids kubelet lifecycle entanglement (stale mounts
+# no longer block pod termination or require k3s restarts to recover).
+# soft + timeo=30 + retrans=3: fail cleanly after ~9s instead of blocking forever.
+nfs_mounts:
+  - src: 192.168.1.20:/volume1/data
+    path: /mnt/synology/media
+    opts: vers=4.1,rsize=32768,wsize=32768,soft,timeo=30,retrans=3,_netdev,noresvport,noatime
