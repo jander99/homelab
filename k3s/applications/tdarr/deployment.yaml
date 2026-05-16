@@ -21,6 +21,22 @@ spec:
       runtimeClassName: nvidia
       securityContext:
         fsGroup: 100
+      initContainers:
+        - name: verify-nfs-mount
+          image: busybox:latest
+          command:
+            - sh
+            - -c
+            - |
+              if ! grep -q ' /mnt/synology/media nfs4 ' /host-proc/mounts; then
+                echo 'ERROR: /mnt/synology/media is not mounted as nfs4 — refusing to start'
+                exit 1
+              fi
+              echo 'NFS4 mountpoint verified'
+          volumeMounts:
+            - name: host-proc-mounts
+              mountPath: /host-proc/mounts
+              readOnly: true
       containers:
         - name: tdarr-node
           image: haveagitgat/tdarr_node:latest
@@ -68,11 +84,16 @@ spec:
               mountPath: /app/configs
       volumes:
         - name: media
-          persistentVolumeClaim:
-            claimName: tdarr-media
+          hostPath:
+            path: /mnt/synology/media
+            type: Directory
         - name: transcode-cache
           emptyDir:
             sizeLimit: 200Gi
         - name: config
           persistentVolumeClaim:
             claimName: tdarr-node-config
+        - name: host-proc-mounts
+          hostPath:
+            path: /proc/mounts
+            type: File
