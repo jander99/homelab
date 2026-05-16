@@ -1,0 +1,6 @@
+---
+# roles/nvidia-gpu/defaults/main.yml
+# Override nvidia_encode_package in group_vars or host_vars when the driver
+# series changes (e.g. upgrade from 595-server to 600-series requires updating
+# this value to libnvidia-encode-600-server).
+nvidia_encode_package: libnvidia-encode-595-server

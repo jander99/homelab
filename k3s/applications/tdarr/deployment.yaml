@@ -43,6 +43,14 @@ spec:
               value: all
             - name: NVIDIA_VISIBLE_DEVICES
               value: all
+            - name: transcodecpuWorkers
+              value: "0"
+            - name: transcodegpuWorkers
+              value: "1"
+            - name: healthcheckcpuWorkers
+              value: "1"
+            - name: healthcheckgpuWorkers
+              value: "0"
           resources:
             limits:
               nvidia.com/gpu: "1"
