@@ -4,7 +4,7 @@ services:
 
   cloudflared:
     container_name: cloudflared
-    image: cloudflare/cloudflared:latest
+    image: cloudflare/cloudflared:2026.5.0
     environment:
       - TZ='America/New_York'
       - TUNNEL_DNS_UPSTREAM=https://1.1.1.1/dns-query,https://1.0.0.1/dns-query,https://9.9.9.9/dns-query,https://149.112.112.9/dns-query
@@ -19,7 +19,7 @@ services:
 
   pihole:
     container_name: pihole
-    image: pihole/pihole:latest
+    image: pihole/pihole:2026.05.0
     environment:
       - TZ='America/New_York'
       - WEBPASSWORD=admin
@@ -40,7 +40,7 @@ services:
 
   pihole-exporter:
     container_name: pihole-exporter
-    image: ekofr/pihole-exporter
+    image: ekofr/pihole-exporter:v1.2.0
     environment: 
       - TZ='America/New_York'
       - PIHOLE_HOSTNAME=172.20.1.2

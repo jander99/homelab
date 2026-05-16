@@ -30,7 +30,7 @@ services:
     restart: unless-stopped
 
   transmission-exporter:
-    image: metalmatze/transmission-exporter
+    image: metalmatze/transmission-exporter:0.3.0
     container_name: transmission-exporter
     environment: 
       - TZ=America/New_York

@@ -3,7 +3,7 @@ version: "3.8"
 services:
 
   tdarr:
-    image: haveagitgat/tdarr:latest
+    image: haveagitgat/tdarr:2.73.01
     container_name: tdarr
     environment:
       - PUID=1027
