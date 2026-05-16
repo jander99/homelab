@@ -18,8 +18,6 @@ spec:
     spec:
       runtimeClassName: nvidia
       securityContext:
-        runAsUser: 1027
-        runAsGroup: 100
         fsGroup: 100
       containers:
         - name: tdarr-node
