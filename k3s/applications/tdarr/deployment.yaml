@@ -61,7 +61,7 @@ spec:
             - name: media
               mountPath: /media
             - name: transcode-cache
-              mountPath: /temp
+              mountPath: /tmp
             - name: config
               mountPath: /app/configs
       volumes:
