@@ -28,11 +28,11 @@ spec:
             - sh
             - -c
             - |
-              if ! grep -q ' /mnt/synology/media nfs4 ' /host-proc/mounts; then
-                echo 'ERROR: /mnt/synology/media is not mounted as nfs4 — refusing to start'
+              if ! grep -q ' /mnt/synology/media nfs ' /host-proc/mounts; then
+                echo 'ERROR: /mnt/synology/media is not mounted as nfs — refusing to start'
                 exit 1
               fi
-              echo 'NFS4 mountpoint verified'
+              echo 'NFS mountpoint verified'
           volumeMounts:
             - name: host-proc-mounts
               mountPath: /host-proc/mounts
