@@ -26,10 +26,9 @@ spec:
     # libraries are mounted into the container. Without this the plugin crashes
     # with ERROR_LIBRARY_NOT_FOUND when using the default runc runtime.
     runtimeClassName: nvidia
-    # Exclusive GPU allocation: no sharing config means the device plugin assigns
-    # the full GPU to one pod at a time (the chart's default behavior).
-    # migStrategy: none disables MIG partitioning — the RTX 3070 does not support
-    # MIG, but being explicit avoids ambiguity.
+    # GPU time-slicing: advertise 2 virtual GPU slots from the single RTX 3070.
+    # The resources list is required by the v1 config schema; omitting it causes
+    # the plugin to fail with 'no resources specified'.
     config:
       map:
         default: |-
@@ -38,4 +37,6 @@ spec:
             migStrategy: none
           sharing:
             timeSlicing:
-              replicas: 2
+              resources:
+                - name: nvidia.com/gpu
+                  replicas: 2
