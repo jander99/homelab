@@ -6,4 +6,3 @@ resources:
   - cert-manager
   - monitoring
   - authentik
-  - storage
