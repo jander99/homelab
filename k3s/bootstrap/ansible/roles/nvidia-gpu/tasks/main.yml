@@ -1,8 +1,12 @@
 ---
 # roles/nvidia-gpu/tasks/main.yml
-# Installs nvidia-container-toolkit. K3s 1.35+ auto-detects the NVIDIA
-# container runtime at startup and adds it to containerd config automatically.
-# Assumes NVIDIA drivers are already installed on the node.
+# Installs nvidia-container-toolkit and libnvidia-encode (required for NVENC GPU
+# transcoding). K3s 1.35+ auto-detects the NVIDIA container runtime at startup
+# and adds it to containerd config automatically.
+# Assumes base NVIDIA drivers are already installed on the node (e.g. via
+# nvidia-headless-no-dkms-*-server-open). libnvidia-encode is a separate package
+# not included in the headless variant; without it NVENC encoding fails inside
+# containers even when the GPU is visible.
 #
 # Tested against: Ubuntu 26.04, K3s 1.35.x (containerd 2.x)
 
@@ -31,9 +35,11 @@
     content: |
       deb [signed-by=/usr/share/keyrings/nvidia-container-toolkit-keyring.gpg] https://nvidia.github.io/libnvidia-container/stable/deb/$(ARCH) /
 
-- name: Install nvidia-container-toolkit
+- name: Install nvidia-container-toolkit and NVENC encode library
   ansible.builtin.apt:
-    name: nvidia-container-toolkit
+    name:
+      - nvidia-container-toolkit
+      - libnvidia-encode-595-server
     state: present
     update_cache: true
   notify: Restart k3s
