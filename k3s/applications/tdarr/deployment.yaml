@@ -69,7 +69,8 @@ spec:
           persistentVolumeClaim:
             claimName: tdarr-media
         - name: transcode-cache
-          emptyDir: {}
+          emptyDir:
+            sizeLimit: 200Gi
         - name: config
           hostPath:
             path: /var/lib/tdarr-node/configs
