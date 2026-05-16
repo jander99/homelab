@@ -39,7 +39,7 @@
   ansible.builtin.apt:
     name:
       - nvidia-container-toolkit
-      - libnvidia-encode-595-server
+      - "{{ nvidia_encode_package }}"
     state: present
     update_cache: true
   notify: Restart k3s
