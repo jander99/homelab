@@ -70,4 +70,4 @@ k3s_oidc_groups_claim: "groups"
 nfs_mounts:
   - src: 192.168.1.20:/volume1/data
     path: /mnt/synology/media
-    opts: vers=3,proto=tcp,rsize=1048576,wsize=1048576,soft,timeo=30,retrans=3,_netdev,noatime
+    opts: vers=4.1,proto=tcp,rsize=1048576,wsize=1048576,soft,timeo=30,retrans=3,_netdev,noatime
