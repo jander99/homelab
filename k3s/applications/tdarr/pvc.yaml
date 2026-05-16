@@ -12,3 +12,20 @@ spec:
   resources:
     requests:
       storage: 28Ti
+
+---
+# Local PVC for tdarr node config — persists node identity (nodeName, worker config)
+# Uses K3s local-path provisioner; directory auto-created on first bind,
+# pinned to whichever node the pod schedules to (homelab testbed).
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: tdarr-node-config
+  namespace: tdarr
+spec:
+  accessModes:
+    - ReadWriteOnce
+  storageClassName: local-path
+  resources:
+    requests:
+      storage: 1Gi

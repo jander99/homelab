@@ -74,6 +74,5 @@ spec:
           emptyDir:
             sizeLimit: 200Gi
         - name: config
-          hostPath:
-            path: /var/lib/tdarr-node/configs
-            type: DirectoryOrCreate
+          persistentVolumeClaim:
+            claimName: tdarr-node-config
