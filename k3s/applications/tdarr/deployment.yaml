@@ -70,7 +70,7 @@ spec:
             claimName: tdarr-media
         - name: transcode-cache
           emptyDir:
-            sizeLimit: 100Gi
+            sizeLimit: 50Gi
         - name: config
           hostPath:
             path: /var/lib/tdarr-node/configs
