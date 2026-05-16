@@ -36,3 +36,6 @@ spec:
           version: v1
           flags:
             migStrategy: none
+          sharing:
+            timeSlicing:
+              replicas: 2
