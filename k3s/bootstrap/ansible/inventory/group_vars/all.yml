@@ -17,6 +17,11 @@ common_packages:
   - update-notifier-common
   - cifs-utils
 
+# DNS servers written to /etc/netplan/99-homelab-dns.yaml — overrides DHCP-provided DNS.
+dns_servers:
+  - 192.168.1.20
+  - 192.168.1.201
+
 # UFW rules — K3s required ports + SSH
 k3s_firewall_rules:
   - { port: 22,    proto: tcp, comment: "SSH" }

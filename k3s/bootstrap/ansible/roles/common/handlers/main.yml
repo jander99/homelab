@@ -4,3 +4,10 @@
 - name: Reload UFW
   community.general.ufw:
     state: reloaded
+
+- name: Apply netplan
+  ansible.builtin.command:
+    cmd: netplan apply
+  async: 30
+  poll: 0
+  changed_when: true

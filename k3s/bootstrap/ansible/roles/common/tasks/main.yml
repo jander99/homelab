@@ -11,6 +11,8 @@
       - common_packages | length > 0
       - timezone is defined
       - timezone | length > 0
+      - dns_servers is defined
+      - dns_servers | length > 0
     fail_msg: >-
       Required variables are missing or empty. Ensure you are running
       ansible-playbook from k3s/bootstrap/ansible/ so that ansible.cfg
@@ -78,3 +80,18 @@
   community.general.ufw:
     state: enabled
   notify: Reload UFW
+
+- name: Write netplan DNS override (locks out DHCP-provided DNS)
+  ansible.builtin.copy:
+    dest: /etc/netplan/99-homelab-dns.yaml
+    content: |
+      network:
+        version: 2
+        ethernets:
+          {{ ansible_default_ipv4.interface }}:
+            nameservers:
+              addresses: {{ dns_servers | to_json }}
+            dhcp4-overrides:
+              use-dns: false
+    mode: "0600"
+  notify: Apply netplan
