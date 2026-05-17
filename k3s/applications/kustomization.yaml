@@ -4,6 +4,7 @@ kind: Kustomization
 resources:
   - headlamp/
   - pihole/
+  - portainer/
   # - tdarr/  # disabled: see PR infra/disable-tdarr
 # Hand-authored manifests (e.g. headlamp/) and CDK8s-rendered output both live here.
 # CDK8s: run: nx run cdk8s:synth  (from repo root) — output lands in this directory.
