@@ -6,3 +6,4 @@ resources:
   - cert-manager
   - nvidia-device-plugin
   - node-feature-discovery
+  - csi-driver-smb
