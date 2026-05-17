@@ -15,6 +15,7 @@ common_packages:
   - unzip
   - jq
   - update-notifier-common
+  - cifs-utils
 
 # UFW rules — K3s required ports + SSH
 k3s_firewall_rules:
