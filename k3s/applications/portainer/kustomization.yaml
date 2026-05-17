@@ -5,3 +5,4 @@ resources:
   - serviceaccount.yaml
   - services.yaml
   - deployment.yaml
+  - portainer-agent-secret.sops.yaml
