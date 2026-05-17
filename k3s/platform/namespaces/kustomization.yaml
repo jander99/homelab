@@ -8,3 +8,4 @@ resources:
   - pihole.yaml
   - authentik.yaml
   - tdarr.yaml
+  - portainer.yaml
