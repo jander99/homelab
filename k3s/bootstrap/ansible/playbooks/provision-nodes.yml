@@ -1,8 +1,7 @@
 ---
 # provision-nodes.yml
 # Prepares Ubuntu nodes for K3s: OS hardening, package management, K3s prerequisites,
-# NVIDIA GPU support (nvidia-container-toolkit + containerd runtime config),
-# and OS-level NFS mounts (more stable than K8s PV/PVC for single-node workloads).
+# and NVIDIA GPU support (nvidia-container-toolkit + containerd runtime config).
 #
 # Usage: ansible-playbook -i inventory/hosts.yml playbooks/provision-nodes.yml -v
 
@@ -13,4 +12,3 @@
     - common
     - k3s-prereqs
     - nvidia-gpu
-    - nfs-mounts
