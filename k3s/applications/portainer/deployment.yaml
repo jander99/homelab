@@ -27,11 +27,6 @@ spec:
           valueFrom:
             fieldRef:
               fieldPath: status.podIP
-        - name: AGENT_SECRET
-          valueFrom:
-            secretKeyRef:
-              name: portainer-agent-secret
-              key: AGENT_SECRET
         ports:
         - containerPort: 9001
           protocol: TCP
