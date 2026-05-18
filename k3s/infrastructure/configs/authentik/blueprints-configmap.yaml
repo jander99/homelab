@@ -145,3 +145,49 @@ data:
           config:
             authentik_host: https://auth.homelab.properties
             authentik_host_insecure: false
+  portainer-ldap.yaml: |
+    version: 1
+    metadata:
+      name: portainer-ldap
+    entries:
+      - model: authentik_providers_ldap.ldapprovider
+        state: present
+        identifiers:
+          name: Portainer LDAP
+        attrs:
+          name: Portainer LDAP
+          base_dn: dc=ldap,dc=goauthentik,dc=io
+          bind_flow: !Find [authentik_flows.flow, [slug, default-authentication-flow]]
+          search_group: null
+          bind_mode: cached
+          search_mode: cached
+      - model: authentik_core.application
+        state: present
+        identifiers:
+          slug: portainer
+        attrs:
+          name: Portainer
+          slug: portainer
+          provider: !Find [authentik_providers_ldap.ldapprovider, [name, Portainer LDAP]]
+      - model: authentik_core.token
+        state: present
+        identifiers:
+          identifier: ldap-outpost-token
+        attrs:
+          identifier: ldap-outpost-token
+          key: !Env AUTHENTIK_ENV__LDAP_OUTPOST_TOKEN
+          intent: api
+          user: !Find [authentik_core.user, [username, akadmin]]
+      - model: authentik_outposts.outpost
+        state: present
+        identifiers:
+          name: homelab-ldap-outpost
+        attrs:
+          name: homelab-ldap-outpost
+          type: ldap
+          token: !Find [authentik_core.token, [identifier, ldap-outpost-token]]
+          providers:
+            - !Find [authentik_providers_ldap.ldapprovider, [name, Portainer LDAP]]
+          config:
+            authentik_host: https://auth.homelab.properties
+            authentik_host_insecure: false
