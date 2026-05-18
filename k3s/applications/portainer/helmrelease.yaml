@@ -40,6 +40,7 @@ spec:
         - host: portainer.homelab.properties
           paths:
             - path: /
+              pathType: Prefix
       tls:
         - secretName: portainer-tls
           hosts:
