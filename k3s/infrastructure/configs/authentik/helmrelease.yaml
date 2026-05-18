@@ -58,6 +58,10 @@ spec:
       targetPath: authentik.env.OUTPOST_TOKEN
     - kind: Secret
       name: authentik-secret
+      valuesKey: ldap-outpost-token
+      targetPath: authentik.env.LDAP_OUTPOST_TOKEN
+    - kind: Secret
+      name: authentik-secret
       valuesKey: postgresql-password
       targetPath: authentik.postgresql.password
     - kind: Secret

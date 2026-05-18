@@ -6,5 +6,6 @@ resources:
   - helmrelease.yaml
   - authentik-secret.sops.yaml
   - outpost-deployment.yaml
+  - ldap-outpost-deployment.yaml
   - blueprints-configmap.yaml
   - headlamp-oidc-rbac.yaml
