@@ -157,8 +157,8 @@ data:
         attrs:
           name: Portainer LDAP
           base_dn: dc=ldap,dc=goauthentik,dc=io
-          bind_flow: !Find [authentik_flows.flow, [slug, default-authentication-flow]]
-          search_group: null
+          authorization_flow: !Find [authentik_flows.flow, [slug, default-authentication-flow]]
+          invalidation_flow: !Find [authentik_flows.flow, [slug, default-invalidation-flow]]
           bind_mode: cached
           search_mode: cached
       - model: authentik_core.application
