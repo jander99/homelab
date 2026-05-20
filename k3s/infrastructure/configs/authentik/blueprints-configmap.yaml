@@ -188,24 +188,3 @@ data:
           group: !Find [authentik_core.group, [name, homelab-admins]]
           order: 0
           enabled: true
-  portainer-ldap-cleanup.yaml: |
-    version: 1
-    metadata:
-      name: "Portainer LDAP Cleanup"
-    entries:
-      - model: authentik_outposts.outpost
-        state: absent
-        identifiers:
-          name: homelab-ldap-outpost
-      - model: authentik_providers_ldap.ldapprovider
-        state: absent
-        identifiers:
-          name: Portainer LDAP
-      - model: authentik_flows.flow
-        state: absent
-        identifiers:
-          slug: ldap-authentication-flow
-      - model: authentik_core.user
-        state: absent
-        identifiers:
-          username: portainer-ldap-reader
