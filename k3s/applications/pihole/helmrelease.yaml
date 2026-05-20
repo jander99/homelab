@@ -24,8 +24,12 @@ spec:
         namespace: flux-system
       interval: 12h
   values:
-    # Pi-hole v6 (appVersion: 2025.11.1) — chart version 2.35.0
+    # Pi-hole v6 (appVersion: 2026.05.0) — chart version 2.35.0
     replicaCount: 1
+
+    # -- Pi-hole container image: pin to specific version for Dependabot tracking
+    image:
+      tag: "2026.05.0"
 
     # -- Upstream DNS: plain DNS to Cloudflare
     DNS1: "1.1.1.1"
@@ -110,6 +114,9 @@ spec:
         enabled: true
       sidecar:
         enabled: true
+        image:
+          # ekofr/pihole-exporter: v1.2.0 required for Pi-hole v6 API
+          tag: "v1.2.0"
 
     # -- Pod DNS config: ensure pihole pod uses external DNS, not itself
     podDnsConfig:
