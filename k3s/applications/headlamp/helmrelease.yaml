@@ -48,7 +48,7 @@ spec:
       oidc:
         clientID: headlamp
         issuerURL: https://auth.homelab.properties/application/o/headlamp/
-        scopes: openid email profile
+        scopes: openid email profile offline_access
         externalSecret:
           enabled: true
           name: headlamp-oidc-secret
