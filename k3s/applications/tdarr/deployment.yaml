@@ -68,9 +68,8 @@ spec:
               mountPath: /app/configs
       volumes:
         - name: media
-          hostPath:
-            path: /mnt/synology/media
-            type: Directory
+          persistentVolumeClaim:
+            claimName: tdarr-media
         - name: transcode-cache
           emptyDir:
             sizeLimit: 200Gi
