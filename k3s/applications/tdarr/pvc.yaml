@@ -14,3 +14,51 @@ spec:
   resources:
     requests:
       storage: 1Gi
+---
+# Static PV for tdarr media — mounts //192.168.1.20/data (Synology NAS) via SMB CSI.
+# Uses smb-media StorageClass provisioner (smb.csi.k8s.io); credentials in kube-system/smbcreds.
+# ReadWriteMany allows multiple pods to mount the same share if needed.
+apiVersion: v1
+kind: PersistentVolume
+metadata:
+  name: tdarr-media
+spec:
+  capacity:
+    storage: 10Ti
+  accessModes:
+    - ReadWriteMany
+  persistentVolumeReclaimPolicy: Retain
+  storageClassName: smb-media
+  mountOptions:
+    - vers=3.0
+    - dir_mode=0777
+    - file_mode=0777
+    - uid=1027
+    - gid=100
+    - noperm
+    - cache=strict
+    - noserverino
+  csi:
+    driver: smb.csi.k8s.io
+    readOnly: false
+    volumeHandle: tdarr-media-volume
+    volumeAttributes:
+      source: "//192.168.1.20/data"
+    nodeStageSecretRef:
+      name: smbcreds
+      namespace: kube-system
+---
+# PVC for tdarr media — binds to the static tdarr-media PV above.
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: tdarr-media
+  namespace: tdarr
+spec:
+  accessModes:
+    - ReadWriteMany
+  storageClassName: smb-media
+  volumeName: tdarr-media
+  resources:
+    requests:
+      storage: 10Ti
