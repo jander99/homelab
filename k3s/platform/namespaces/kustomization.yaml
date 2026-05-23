@@ -9,3 +9,4 @@ resources:
   - authentik.yaml
   - tdarr.yaml
   - portainer.yaml
+  - media.yaml
