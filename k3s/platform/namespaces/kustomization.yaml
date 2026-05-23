@@ -10,3 +10,4 @@ resources:
   - tdarr.yaml
   - portainer.yaml
   - media.yaml
+  - external-dns.yaml
