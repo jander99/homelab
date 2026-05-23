@@ -7,3 +7,4 @@ resources:
   - nvidia-device-plugin
   - node-feature-discovery
   - csi-driver-smb
+  - external-dns
