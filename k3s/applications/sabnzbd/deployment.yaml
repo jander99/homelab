@@ -1,0 +1,223 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: sabnzbd
+  namespace: sabnzbd
+spec:
+  replicas: 1
+  strategy:
+    type: Recreate
+  selector:
+    matchLabels:
+      app: sabnzbd
+  template:
+    metadata:
+      labels:
+        app: sabnzbd
+        app.kubernetes.io/name: sabnzbd
+    spec:
+      securityContext:
+        fsGroup: 100
+      volumes:
+        - name: sabnzbd-config
+          persistentVolumeClaim:
+            claimName: sabnzbd-config
+        - name: sabnzbd-downloads
+          persistentVolumeClaim:
+            claimName: sabnzbd-downloads
+        - name: sabnzbd-media
+          persistentVolumeClaim:
+            claimName: sabnzbd-media
+        - name: gluetun-config
+          persistentVolumeClaim:
+            claimName: gluetun-config
+        - name: tun-device
+          hostPath:
+            path: /dev/net/tun
+            type: CharDevice
+      containers:
+        - name: gluetun
+          image: ghcr.io/qdm42/gluetun:v3.42.0
+          imagePullPolicy: IfNotPresent
+          securityContext:
+            capabilities:
+              add:
+                - NET_ADMIN
+          ports:
+            - name: health
+              containerPort: 9999
+              protocol: TCP
+            - name: control
+              containerPort: 8000
+              protocol: TCP
+          env:
+            - name: VPN_SERVICE_PROVIDER
+              value: "nordvpn"
+            - name: VPN_TYPE
+              value: "wireguard"
+            - name: WIREGUARD_PRIVATE_KEY
+              valueFrom:
+                secretKeyRef:
+                  name: nordvpn-credentials
+                  key: wireguard-private-key
+            - name: WIREGUARD_ADDRESSES
+              value: "10.5.0.2/32"
+            - name: SERVER_COUNTRIES
+              value: "Netherlands"
+            - name: HEALTH_SERVER_ADDRESS
+              value: "0.0.0.0:9999"
+            - name: HTTP_CONTROL_SERVER_ADDRESS
+              value: "0.0.0.0:8000"
+            - name: FIREWALL_INPUT_PORTS
+              value: "8080,9711,9586"
+            - name: FIREWALL_OUTBOUND_SUBNETS
+              value: "10.244.0.0/16,192.168.1.0/24"
+            - name: DNS_KEEP_NAMESERVER
+              value: "on"
+            - name: DOT
+              value: "off"
+            - name: TZ
+              value: "America/New_York"
+          volumeMounts:
+            - name: gluetun-config
+              mountPath: /gluetun
+            - name: tun-device
+              mountPath: /dev/net/tun
+          livenessProbe:
+            httpGet:
+              path: /
+              port: 9999
+            initialDelaySeconds: 15
+            periodSeconds: 30
+            failureThreshold: 5
+          readinessProbe:
+            httpGet:
+              path: /
+              port: 9999
+            initialDelaySeconds: 10
+            periodSeconds: 15
+            failureThreshold: 3
+          resources:
+            requests:
+              cpu: 100m
+              memory: 128Mi
+            limits:
+              cpu: 500m
+              memory: 256Mi
+        - name: sabnzbd
+          image: lscr.io/linuxserver/sabnzbd:5.0.3
+          imagePullPolicy: IfNotPresent
+          ports:
+            - name: http
+              containerPort: 8080
+              protocol: TCP
+          env:
+            - name: PUID
+              value: "1027"
+            - name: PGID
+              value: "100"
+            - name: TZ
+              value: "America/New_York"
+          volumeMounts:
+            - name: sabnzbd-config
+              mountPath: /config
+            - name: sabnzbd-downloads
+              mountPath: /downloads
+            - name: sabnzbd-media
+              mountPath: /data
+          livenessProbe:
+            tcpSocket:
+              port: 8080
+            initialDelaySeconds: 30
+            periodSeconds: 30
+            failureThreshold: 5
+          readinessProbe:
+            tcpSocket:
+              port: 8080
+            initialDelaySeconds: 15
+            periodSeconds: 15
+            failureThreshold: 3
+          resources:
+            requests:
+              cpu: 200m
+              memory: 256Mi
+            limits:
+              cpu: 2000m
+              memory: 2Gi
+        - name: exportarr
+          image: ghcr.io/onedr0p/exportarr:v2.3.0
+          imagePullPolicy: IfNotPresent
+          args:
+            - sabnzbd
+          ports:
+            - name: metrics
+              containerPort: 9711
+              protocol: TCP
+          env:
+            - name: PORT
+              value: "9711"
+            - name: URL
+              value: "http://localhost:8080"
+            - name: APIKEY
+              valueFrom:
+                secretKeyRef:
+                  name: sabnzbd-apikey
+                  key: api-key
+          livenessProbe:
+            httpGet:
+              path: /healthz
+              port: 9711
+            initialDelaySeconds: 30
+            periodSeconds: 30
+            failureThreshold: 5
+          readinessProbe:
+            httpGet:
+              path: /healthz
+              port: 9711
+            initialDelaySeconds: 15
+            periodSeconds: 15
+            failureThreshold: 3
+          resources:
+            requests:
+              cpu: 50m
+              memory: 64Mi
+            limits:
+              cpu: 200m
+              memory: 256Mi
+        - name: gluetun-exporter
+          image: ghcr.io/crstian19/gluetun-exporter:v0.1.1
+          imagePullPolicy: IfNotPresent
+          ports:
+            - name: gluetun-metrics
+              containerPort: 9586
+              protocol: TCP
+          env:
+            - name: GLUETUN_URL
+              value: "http://localhost:8000"
+            - name: INTERFACE_NAME
+              value: "tun0"
+            - name: LISTEN_ADDRESS
+              value: ":9586"
+            - name: METRICS_PATH
+              value: "/metrics"
+          livenessProbe:
+            httpGet:
+              path: /metrics
+              port: 9586
+            initialDelaySeconds: 30
+            periodSeconds: 30
+            failureThreshold: 5
+          readinessProbe:
+            httpGet:
+              path: /metrics
+              port: 9586
+            initialDelaySeconds: 15
+            periodSeconds: 15
+            failureThreshold: 3
+          resources:
+            requests:
+              cpu: 25m
+              memory: 32Mi
+            limits:
+              cpu: 100m
+              memory: 128Mi
