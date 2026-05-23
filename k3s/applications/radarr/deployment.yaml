@@ -1,0 +1,106 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: radarr
+  namespace: media
+spec:
+  replicas: 1
+  strategy:
+    type: Recreate
+  selector:
+    matchLabels:
+      app: radarr
+  template:
+    metadata:
+      labels:
+        app: radarr
+        app.kubernetes.io/name: radarr
+    spec:
+      securityContext:
+        fsGroup: 100
+      containers:
+        - name: radarr
+          image: lscr.io/linuxserver/radarr:latest
+          ports:
+            - name: http
+              containerPort: 7878
+              protocol: TCP
+          env:
+            - name: PUID
+              value: "1027"
+            - name: PGID
+              value: "100"
+            - name: TZ
+              value: America/New_York
+          volumeMounts:
+            - name: config
+              mountPath: /config
+            - name: media
+              mountPath: /data/media
+          livenessProbe:
+            httpGet:
+              path: /ping
+              port: 7878
+            initialDelaySeconds: 30
+            periodSeconds: 30
+            failureThreshold: 5
+          readinessProbe:
+            httpGet:
+              path: /ping
+              port: 7878
+            initialDelaySeconds: 15
+            periodSeconds: 15
+            failureThreshold: 3
+          resources:
+            requests:
+              cpu: 200m
+              memory: 256Mi
+            limits:
+              cpu: 1000m
+              memory: 1Gi
+        - name: exportarr
+          image: ghcr.io/onedr0p/exportarr:v2.3.0
+          args:
+            - radarr
+          ports:
+            - name: metrics
+              containerPort: 9707
+              protocol: TCP
+          env:
+            - name: PORT
+              value: "9707"
+            - name: URL
+              value: http://localhost:7878
+            - name: APIKEY
+              valueFrom:
+                secretKeyRef:
+                  name: radarr-apikey
+                  key: api-key
+          livenessProbe:
+            httpGet:
+              path: /healthz
+              port: 9707
+            initialDelaySeconds: 30
+            periodSeconds: 30
+            failureThreshold: 5
+          readinessProbe:
+            httpGet:
+              path: /healthz
+              port: 9707
+            initialDelaySeconds: 15
+            periodSeconds: 15
+            failureThreshold: 3
+          resources:
+            requests:
+              cpu: 50m
+              memory: 64Mi
+            limits:
+              cpu: 200m
+              memory: 256Mi
+      volumes:
+        - name: config
+          persistentVolumeClaim:
+            claimName: radarr-config
+        - name: media
+          persistentVolumeClaim:
+            claimName: radarr-media

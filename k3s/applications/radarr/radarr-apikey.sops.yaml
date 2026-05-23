@@ -1,0 +1,14 @@
+# SOPS-encrypted Secret — DO NOT commit plaintext in production.
+# After first deploy, extract the API key from the Radarr UI:
+#   Settings -> General -> API Key
+# Then encrypt this file:
+#   sops --encrypt --age age1qntcdwtxrfu92lhj2nzhlc3uqt8nxks5vw7rd23w2cj7c0qyuqqqmey085 \
+#     k3s/applications/radarr/radarr-apikey.sops.yaml > /tmp/radarr-apikey.sops.yaml
+#   mv /tmp/radarr-apikey.sops.yaml k3s/applications/radarr/radarr-apikey.sops.yaml
+apiVersion: v1
+kind: Secret
+metadata:
+  name: radarr-apikey
+  namespace: media
+stringData:
+  api-key: REPLACE_ME_AFTER_FIRST_DEPLOY
