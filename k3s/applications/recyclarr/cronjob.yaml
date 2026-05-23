@@ -5,6 +5,7 @@ metadata:
   namespace: media
 spec:
   schedule: "30 2 * * *"
+  timeZone: America/New_York
   concurrencyPolicy: Forbid
   successfulJobsHistoryLimit: 3
   failedJobsHistoryLimit: 1

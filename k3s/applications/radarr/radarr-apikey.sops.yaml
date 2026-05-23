@@ -1,14 +1,29 @@
-# SOPS-encrypted Secret — DO NOT commit plaintext in production.
-# After first deploy, extract the API key from the Radarr UI:
-#   Settings -> General -> API Key
-# Then encrypt this file:
-#   sops --encrypt --age age1qntcdwtxrfu92lhj2nzhlc3uqt8nxks5vw7rd23w2cj7c0qyuqqqmey085 \
-#     k3s/applications/radarr/radarr-apikey.sops.yaml > /tmp/radarr-apikey.sops.yaml
-#   mv /tmp/radarr-apikey.sops.yaml k3s/applications/radarr/radarr-apikey.sops.yaml
-apiVersion: v1
-kind: Secret
+#ENC[AES256_GCM,data:4szCRYSrlQG6qDWrf5vpwFoxfTzJllHY+HF4il0h9V8ikvNcGOsRP5jqgCzHih6NvsXPzxG9UtERLXwVRKDCpOw=,iv:paesKv0L3AL8+11ER1fO+QyeQ/xW+EDjKhr/R5fZnwU=,tag:DfT4nfK9S4ZhnFK2plcBkg==,type:comment]
+#ENC[AES256_GCM,data:5LZRu6UuCSmOkb2iZt+u3sY4sRVsx08cpfKkaVZWn9c5qFrW/iGPzakslQTnsOH/ECLfENVfdCfml6Y4,iv:XEM0guoGzbN11kUyC246wKPBzPqTXX2RutKwGdgUzLE=,tag:AKcuuf6kf7KOPxtz1e5p8A==,type:comment]
+#ENC[AES256_GCM,data:DeOQXIL5nxh6i9Ywhpxs/DEjJRCoMRebZBwrvskaOFUJ,iv:OgXVxFfDYJI0sG/KmvfA1f/2D8j+aJYWUj7zuramRtg=,tag:QJ5VBR/HQSEfjE7HnVd95A==,type:comment]
+#ENC[AES256_GCM,data:cNBjhAfagGI7B6wNgbLgHPWlDayttFHx,iv:EYRxD7vnaKKd8zl8qiHm5zxb4SVSLkRb8OytHN89rZg=,tag:qVj6xBN2cZzL3HIIvi0+SA==,type:comment]
+#ENC[AES256_GCM,data:M28I8PlfxbugTmBMlpPS9cVDQ2Dx+88KwE/jaAiwu2RXHIqZ92zVIlaXO30zZ7KWjoqe/10H53WO1oGfOwegL2bze4s2HJbq96VeOGruTUVgTsi4Hefjgg==,iv:lH+JTek/nX1x9MzqDza2bndXrEdec9BNnjkB4Q4uHOU=,tag:upw6Fm7FXEotClUOALOGFg==,type:comment]
+#ENC[AES256_GCM,data:vK+ttMTcjfy7xn6xa8US4aTZAGrBsXx5n+t3kGm23pQC97ZB+MCikvH56T1xsqbsQcAR7XvUlD/nB4VesH6aDd0x4/CL2ljO0/LpAGw/k3rX0I8=,iv:cJy/3jNpYdD8TprBbzRMvk2HbqWI/vxxrt1ZZE+WSVk=,tag:EKPKjeRd99PNw536KP2+OQ==,type:comment]
+#ENC[AES256_GCM,data:p/P3Xxa/kULfA3jMFB2oQilDCm2cArTGN0nwSPIS06SmlE6gsQ0UqLesye3M1wk3/zSOa9WmIsc6ra/O7Q8cQp5qCWH0RKC/DgylpMUCeqBMLA==,iv:IiQkaFzrPEbkMin+9ASxrKl4u5VrTxkN74+3pKAHMBs=,tag:LQ2R1vO//nIlagBxFGoUqg==,type:comment]
+apiVersion: ENC[AES256_GCM,data:XYw=,iv:qRFdM7kSnRszKBt5kccqM/XqchK43Rao/Tt+GbXyCfQ=,tag:IueBlNka0skvBqKTVyroWA==,type:str]
+kind: ENC[AES256_GCM,data:xK/6Zz3u,iv:rEKIaVpkEKF9nr0fqgiZeOh5fYs5UxORej+WddVQTj4=,tag:tLdln77y13tP3zddYrwZlA==,type:str]
 metadata:
-  name: radarr-apikey
-  namespace: media
+    name: ENC[AES256_GCM,data:NzgVk8d81ZamRa85cw==,iv:x3do41bsEfBT8W+74XuBZ4IP+elJfgFdK3JVLwB1SRw=,tag:WEeIvrY0S/Wdaa/cAp9LiA==,type:str]
+    namespace: ENC[AES256_GCM,data:2ir/zzo=,iv:u1/TYqhTXEt+TSdqlLleFFDPCfjDs/2zqMnBiGZS99A=,tag:BMevQYmHpas6tVZCl0wRmQ==,type:str]
 stringData:
-  api-key: REPLACE_ME_AFTER_FIRST_DEPLOY
+    api-key: ENC[AES256_GCM,data:M8NlstKAZMoZLTuf+9OYzNUh9FDklNRAXIqnpOc=,iv:iIhOgCPSaFjVEN6Cz8SefvLKeGrimwEFlezOHFC5N1c=,tag:RQPIqLH5fyFHuIPVjJAhwQ==,type:str]
+sops:
+    age:
+        - recipient: age1qntcdwtxrfu92lhj2nzhlc3uqt8nxks5vw7rd23w2cj7c0qyuqqqmey085
+          enc: |
+            -----BEGIN AGE ENCRYPTED FILE-----
+            YWdlLWVuY3J5cHRpb24ub3JnL3YxCi0+IFgyNTUxOSBIT2FOVk9yNDhFTzlLRE9D
+            NmdEQVgwZGJCbkY0KzFQZXozR01MbGM1dEVnCnBxT2psOFJkNFFESVFZQVZIcVJy
+            RERhaXlkUU5mdmxzUTRIaDYyZkpoaUEKLS0tIFVVUi9HdWxoYU9hY3luMUk1L1Jp
+            akZrbmp1Uno0Z3RMZll6SnByZVUrU2cKhCK/26YiQ+EBLEUCyJrPfhY8LpfTk3Cq
+            wBAfbXzafPLLT66MeUfivVyaUKQTtqtKorP8knqh7UAoaGO9RlSUrw==
+            -----END AGE ENCRYPTED FILE-----
+    lastmodified: "2026-05-23T18:08:36Z"
+    mac: ENC[AES256_GCM,data:mC6XQ/dLUPl0BF/dY6Xg/+y5TRVF+2nLPwy5Il7iMXHWYD90OaGZhVZSlDuJNiFSO1wo5DpZA16Af9KBPxjmVbn8T40mvfCHosnUX0czGDFyR+PB8N+g7xE8ZHgMwuOMb2ckn+VA+0L58a8qy3DT8V2cS1WWKLSzNygKTMdVDwA=,iv:LeW0qQRfP18EC7WSwuEEkGL0lDFPqf1Ij0bkmmSBK+g=,tag:ECrhU/AU261ZfxuqkbPIZA==,type:str]
+    unencrypted_suffix: _unencrypted
+    version: 3.12.2
