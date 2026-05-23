@@ -1,0 +1,102 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: prowlarr
+  namespace: media
+spec:
+  replicas: 1
+  strategy:
+    type: Recreate
+  selector:
+    matchLabels:
+      app: prowlarr
+  template:
+    metadata:
+      labels:
+        app: prowlarr
+        app.kubernetes.io/name: prowlarr
+    spec:
+      securityContext:
+        fsGroup: 100
+      containers:
+        - name: prowlarr
+          image: lscr.io/linuxserver/prowlarr:2.3.5
+          imagePullPolicy: IfNotPresent
+          ports:
+            - name: http
+              containerPort: 9696
+              protocol: TCP
+          env:
+            - name: PUID
+              value: "1027"
+            - name: PGID
+              value: "100"
+            - name: TZ
+              value: America/New_York
+          volumeMounts:
+            - name: config
+              mountPath: /config
+          livenessProbe:
+            httpGet:
+              path: /ping
+              port: 9696
+            initialDelaySeconds: 30
+            periodSeconds: 30
+            failureThreshold: 5
+          readinessProbe:
+            httpGet:
+              path: /ping
+              port: 9696
+            initialDelaySeconds: 15
+            periodSeconds: 15
+            failureThreshold: 3
+          resources:
+            requests:
+              cpu: 100m
+              memory: 128Mi
+            limits:
+              cpu: 500m
+              memory: 512Mi
+        - name: exportarr
+          image: ghcr.io/onedr0p/exportarr:v2.3.0
+          args:
+            - prowlarr
+          ports:
+            - name: metrics
+              containerPort: 9710
+              protocol: TCP
+          env:
+            - name: PORT
+              value: "9710"
+            - name: URL
+              value: http://localhost:9696
+            - name: APIKEY
+              valueFrom:
+                secretKeyRef:
+                  name: prowlarr-apikey
+                  key: api-key
+          livenessProbe:
+            httpGet:
+              path: /healthz
+              port: 9710
+            initialDelaySeconds: 30
+            periodSeconds: 30
+            failureThreshold: 5
+          readinessProbe:
+            httpGet:
+              path: /healthz
+              port: 9710
+            initialDelaySeconds: 15
+            periodSeconds: 15
+            failureThreshold: 3
+          resources:
+            requests:
+              cpu: 50m
+              memory: 64Mi
+            limits:
+              cpu: 200m
+              memory: 256Mi
+      volumes:
+        - name: config
+          persistentVolumeClaim:
+            claimName: prowlarr-config
