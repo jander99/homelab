@@ -6,6 +6,9 @@ resources:
   - pihole/
   - portainer/
   - tdarr/
+  - sonarr/
+  - radarr/
+  - recyclarr/
 # Hand-authored manifests (e.g. headlamp/) and CDK8s-rendered output both live here.
 # CDK8s: run: nx run cdk8s:synth  (from repo root) — output lands in this directory.
 # Commit both hand-authored sources and rendered CDK8s output together.
