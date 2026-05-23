@@ -29,7 +29,7 @@ spec:
       webhook:
         image:
           repository: ghcr.io/tarantini-io/external-dns-pihole-webhook
-          tag: main
+          tag: v1.0.0
         env:
           - name: PIHOLE_PASSWORD
             valueFrom:
