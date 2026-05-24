@@ -37,7 +37,7 @@ spec:
             - name: config
               mountPath: /config
             - name: media
-              mountPath: /data
+              mountPath: /data/media
           livenessProbe:
             httpGet:
               path: /ping

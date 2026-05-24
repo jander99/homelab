@@ -32,29 +32,43 @@ qBittorrent downloads go to `/data/torrents/`. The NAS directory layout:
 └── tv/             ← Sonarr library root
 ```
 
-**TRaSH Guides alignment**: This matches the recommended single-volume layout where the
-download client and *arr apps share the same root (`/data`).
-
 ## *arr Download Client Integration
 
-After adding qBittorrent as a download client in Radarr/Sonarr:
+qBittorrent and the *arr apps mount the **same NAS SMB share** at different container paths:
+
+| App | SMB mount point | NAS torrents path |
+|-----|-----------------|-------------------|
+| qBittorrent | `/data` | `/data/torrents/` = NAS `/volume1/data/torrents/` |
+| Radarr | `/data/media` | `/data/media/torrents/` = NAS `/volume1/data/torrents/` |
+| Sonarr | `/data/media` | `/data/media/torrents/` = NAS `/volume1/data/torrents/` |
+
+Both paths resolve to the **same physical directory** on the NAS. Use **Remote Path Mapping** in
+Radarr/Sonarr to bridge the two container views.
+
+### 1. Add qBittorrent as Download Client
+
+In Radarr and Sonarr: `Settings → Download Clients → +`
 
 - **Host**: `qbittorrent.qbittorrent.svc.cluster.local`
 - **Port**: `8080`
-- **Category (movies)**: `movies` — sets save path to `/data/torrents/movies/`
-- **Category (tv)**: `tv` — sets save path to `/data/torrents/tv/`
+- **Username / Password**: match the `qbittorrent-credentials` secret values
+- **Category (Radarr)**: `movies` — saves to `/data/torrents/movies/`
+- **Category (Sonarr)**: `tv` — saves to `/data/torrents/tv/`
 
-### Radarr/Sonarr Mount Path Migration
+### 2. Configure Remote Path Mapping
 
-The radarr and sonarr deployments were updated to mount the NAS SMB share at `/data`
-(previously `/data/media`). After applying these changes:
+In Radarr: `Settings → Download Clients → Remote Path Mappings → +`
 
-1. Update **Root Folder** in Radarr UI: `Settings → Media Management`
-   - Remove `/data/media/movies`, add `/data/movies`
-2. Update **Root Folder** in Sonarr UI: `Settings → Media Management`
-   - Remove `/data/media/tv`, add `/data/tv`
+| Field | Value |
+|-------|-------|
+| Host | `qbittorrent.qbittorrent.svc.cluster.local` |
+| Remote Path | `/data/torrents/` |
+| Local Path | `/data/media/torrents/` |
 
-The actual NAS paths are unchanged — only the container mount point changed.
+Add the same mapping in Sonarr.
+
+This maps qBittorrent's view (`/data/torrents/`) to Radarr/Sonarr's view (`/data/media/torrents/`),
+both pointing to NAS `/volume1/data/torrents/`.
 
 ## SOPS Secrets Required
 
