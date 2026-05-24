@@ -1,0 +1,60 @@
+---
+apiVersion: monitoring.coreos.com/v1
+kind: PrometheusRule
+metadata:
+  name: app-alerts
+  namespace: monitoring
+  labels:
+    release: kube-prometheus-stack
+spec:
+  groups:
+    - name: app.availability.rules
+      rules:
+        - alert: AppDown
+          expr: up{namespace=~"headlamp|pihole|media|sabnzbd|qbittorrent|authentik"} == 0
+          for: 5m
+          labels:
+            severity: warning
+          annotations:
+            summary: "App {{ $labels.job }} is down"
+            description: "{{ $labels.job }} in {{ $labels.namespace }} has been unreachable for 5 minutes."
+
+        - alert: PiholeDown
+          expr: up{job="pihole"} == 0
+          for: 5m
+          labels:
+            severity: critical
+          annotations:
+            summary: "Pi-hole is down"
+            description: "Pi-hole has been unreachable for 5 minutes. DNS resolution may be failing."
+
+        - alert: BlackboxProbeFailed
+          expr: probe_success{namespace="monitoring"} == 0
+          for: 5m
+          labels:
+            severity: warning
+          annotations:
+            summary: "HTTP probe failed for {{ $labels.instance }}"
+            description: "The blackbox probe for {{ $labels.instance }} has been failing for 5 minutes."
+
+    - name: vpn.rules
+      rules:
+        - alert: GluetunVPNDisconnected
+          expr: gluetun_vpn_connected == 0
+          for: 2m
+          labels:
+            severity: critical
+          annotations:
+            summary: "VPN disconnected for {{ $labels.namespace }}"
+            description: "Gluetun VPN in {{ $labels.namespace }} has been disconnected for 2 minutes. Traffic may be leaking."
+
+    - name: cronjob.rules
+      rules:
+        - alert: RecyclarrJobFailed
+          expr: kube_job_failed{job_name=~"recyclarr.*"} > 0
+          for: 5m
+          labels:
+            severity: warning
+          annotations:
+            summary: "Recyclarr sync job failed"
+            description: "A Recyclarr CronJob run failed. Alert resolves when Job is deleted or next run succeeds."
