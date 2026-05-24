@@ -180,13 +180,6 @@ spec:
             initialDelaySeconds: 30
             periodSeconds: 30
             failureThreshold: 5
-          readinessProbe:
-            httpGet:
-              path: /metrics
-              port: 9090
-            initialDelaySeconds: 15
-            periodSeconds: 15
-            failureThreshold: 3
           resources:
             requests:
               cpu: 25m
