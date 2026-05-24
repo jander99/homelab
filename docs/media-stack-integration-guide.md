@@ -89,8 +89,8 @@ Navigate to **Settings > Download Clients** and add **NZBGet**.
 | -------- | ----------------- | ----------------- |
 | Host     | `172.20.0.15`     | `172.20.0.15`     |
 | Port     | `6789`            | `6789`            |
-| Username | `${NZBGET_USER}`  | `${NZBGET_USER}`  |
-| Password | `${NZBGET_PASS}`  | `${NZBGET_PASS}`  |
+| Username | your NZBGet username  | your NZBGet username  |
+| Password | your NZBGet password  | your NZBGet password  |
 | Category | `tv`              | `movies`          |
 
 > `NZBGET_USER` and `NZBGET_PASS` must match the **Control** credentials in NZBGet Security settings.
@@ -130,7 +130,7 @@ mkdir -p /volume1/data/usenet/incomplete
 
 ## 4. Sonarr and Radarr → qBittorrent (Torrents)
 
-qBittorrent runs in the K3s cluster. Docker containers must reach it via the K3s node's physical IP or a LoadBalancer service IP.
+qBittorrent runs in the K3s cluster and is exposed via Ingress at `qbittorrent.homelab.properties`. Docker containers reach it over the LAN through the MetalLB-assigned Traefik IP.
 
 ### Configuration in Sonarr/Radarr UI
 
@@ -138,8 +138,9 @@ Navigate to **Settings > Download Clients** and add **qBittorrent**.
 
 | Field    | Sonarr Value              | Radarr Value              |
 | -------- | ------------------------- | ------------------------- |
-| Host     | `<k3s-node-physical-ip>`  | `<k3s-node-physical-ip>`  |
-| Port     | `8080`                    | `8080`                    |
+| Host     | `qbittorrent.homelab.properties` | `qbittorrent.homelab.properties` |
+| Port     | `443`                            | `443`                            |
+| SSL      | Yes                              | Yes                              |
 | Category | `tv`                      | `movies`                  |
 
 ### qBittorrent Category Paths (set in qBittorrent UI)
@@ -161,7 +162,7 @@ If qBittorrent reports download paths that differ from what Sonarr/Radarr expect
 
 | Field       | Value                     |
 | ----------- | ------------------------- |
-| Host        | `<k3s-node-physical-ip>`  |
+| Host        | `qbittorrent.homelab.properties` |
 | Remote Path | `/downloads/`             |
 | Local Path  | `/data/torrents/`         |
 
@@ -169,7 +170,7 @@ If qBittorrent reports download paths that differ from what Sonarr/Radarr expect
 
 ## 5. Recyclarr
 
-Recyclarr automates synchronization of quality profiles and custom formats from the TRaSH Guides. It runs as a K3s CronJob at 2:30am America/New_York using the config in `k3s/applications/recyclarr/recyclarr-configmap.yaml`.
+Recyclarr automates synchronization of quality profiles and custom formats from the TRaSH Guides. It runs as a K3s CronJob at 2:30am America/New_York using the config in `k3s/applications/recyclarr/configmap.yaml`.
 
 ### Recommended `recyclarr.yml`
 
@@ -213,8 +214,8 @@ radarr:
 
 ### Key Notes
 
-- `delete_old_custom_formats: true` — removes stale TRaSH formats automatically; **not set in current ConfigMap**.
-- `replace_existing_custom_formats: true` — updates scoring when guides change; **not set in current ConfigMap**.
+- `delete_old_custom_formats: true` — removes stale TRaSH formats automatically; already set in the ConfigMap.
+- `replace_existing_custom_formats: true` — updates scoring when guides change; already set in the ConfigMap.
 - Secrets (`SONARR_API_KEY`, `RADARR_API_KEY`, etc.) are injected via the SOPS-encrypted secret in the same namespace.
 
 ### Manual Trigger
@@ -240,7 +241,7 @@ kubectl create job --from=cronjob/recyclarr recyclarr-manual -n <namespace>
 | ---- | ------ |
 | NZBGet categories | Configure `tv` and `movies` categories manually in NZBGet UI (see Section 3) |
 | NAS directories | Create `/volume1/data/usenet/complete/{tv,movies}` before first use |
-| Recyclarr ConfigMap | Add `delete_old_custom_formats: true` and `replace_existing_custom_formats: true` |
+| Recyclarr ConfigMap | Flags `delete_old_custom_formats` and `replace_existing_custom_formats` are already `true` — no change needed |
 | Prometheus config | Remove the stale `transmission-exporter` job from `docker/prometheus/etc/prometheus.yml` |
 
 ### What is Missing
