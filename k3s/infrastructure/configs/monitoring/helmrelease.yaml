@@ -86,23 +86,18 @@ spec:
             hosts:
               - prometheus.homelab.properties
 
-    # Alertmanager: null receiver only, emptyDir storage
+    # Alertmanager: PagerDuty via SOPS secret, 1Gi PVC storage
     alertmanager:
       alertmanagerSpec:
-        storage: {}
-      config:
-        global:
-          resolve_timeout: 5m
-        route:
-          group_by:
-            - namespace
-          group_wait: 30s
-          group_interval: 5m
-          repeat_interval: 12h
-          receiver: "null"
-        receivers:
-          - name: "null"
-        inhibit_rules: []
+        configSecret: alertmanager-pagerduty-config
+        storage:
+          volumeClaimTemplate:
+            spec:
+              storageClassName: local-path
+              accessModes: ["ReadWriteOnce"]
+              resources:
+                requests:
+                  storage: 1Gi
       ingress:
         enabled: true
         ingressClassName: traefik

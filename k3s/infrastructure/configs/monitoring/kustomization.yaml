@@ -8,8 +8,14 @@ resources:
   - helmrepository.yaml
   - helmrelease.yaml
   - helmrelease-blackbox.yaml
+  - probe-portainer.yaml
+  - probe-tdarr.yaml
+  - probe-headlamp.yaml
+  - probe-authentik.yaml
   - authentik-middleware.yaml
   - scrapeconfig-synology.yaml
   - podmonitor-flux.yaml
   - prometheusrule-apps.yaml
+  - prometheusrule-flux.yaml
+  - prometheusrule-cert-manager.yaml
   - podmonitor-cert-manager.yaml
