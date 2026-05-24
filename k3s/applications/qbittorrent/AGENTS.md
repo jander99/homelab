@@ -105,9 +105,14 @@ built-in setting to skip auth for localhost connections:
 WebUI\LocalHostAuth=false
 ```
 
-This is seeded into `qBittorrent.conf` on first boot via a `seed-config` init container that copies
-from the `qbittorrent-config-seed` ConfigMap into the PVC. The `if [ ! -f ]` guard ensures this only
-runs once — qBittorrent then owns the file and can update it freely.
+This setting is enforced on every pod start by the `seed-config` init container:
+
+- **Config missing**: copies the full seed file from the `qbittorrent-config-seed` ConfigMap
+- **Config exists**: checks for `WebUI\LocalHostAuth`; adds `WebUI\LocalHostAuth=false` if absent,
+  or updates the value if it was set to `true`
+
+This ensures `LocalHostAuth=false` survives pod restarts even after qBittorrent modifies its own
+config on shutdown.
 
 - **WebUI external access**: still password-protected (only localhost connections bypass auth)
 - **`qbt-exporter`**: no credentials needed; `QBITTORRENT_USER`/`QBITTORRENT_PASS` env vars removed
