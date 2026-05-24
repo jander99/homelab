@@ -20,5 +20,5 @@ resources:
   #   git add nordvpn-credentials.sops.yaml qbittorrent-credentials.sops.yaml
   #   git commit -m 'feat(qbittorrent): add SOPS-encrypted secrets'
   #   # Then uncomment the two lines below:
-  # - nordvpn-credentials.sops.yaml
-  # - qbittorrent-credentials.sops.yaml
+  - nordvpn-credentials.sops.yaml
+  - qbittorrent-credentials.sops.yaml
