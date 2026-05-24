@@ -32,6 +32,30 @@ spec:
           hostPath:
             path: /dev/net/tun
             type: CharDevice
+        - name: qbittorrent-config-seed
+          configMap:
+            name: qbittorrent-config-seed
+      initContainers:
+        - name: seed-config
+          image: busybox:1.37
+          command:
+            - sh
+            - -c
+            - |
+              CONF=/config/qBittorrent/qBittorrent.conf
+              if [ ! -f "$CONF" ]; then
+                echo "Seeding qBittorrent config..."
+                mkdir -p /config/qBittorrent
+                cp /seed/qBittorrent.conf "$CONF"
+                echo "Config seeded."
+              else
+                echo "Config exists, skipping seed."
+              fi
+          volumeMounts:
+            - name: qbittorrent-config
+              mountPath: /config
+            - name: qbittorrent-config-seed
+              mountPath: /seed
       containers:
         - name: gluetun
           image: qmcgaw/gluetun:v3.41.1
@@ -159,16 +183,6 @@ spec:
               value: "127.0.0.1"
             - name: QBITTORRENT_PORT
               value: "8080"
-            - name: QBITTORRENT_USER
-              valueFrom:
-                secretKeyRef:
-                  name: qbittorrent-credentials
-                  key: username
-            - name: QBITTORRENT_PASS
-              valueFrom:
-                secretKeyRef:
-                  name: qbittorrent-credentials
-                  key: password
             - name: EXPORTER_PORT
               value: "9090"
             - name: EXPORTER_LOG_LEVEL
