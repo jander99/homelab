@@ -1,0 +1,24 @@
+apiVersion: kustomize.config.k8s.io/v1beta1
+kind: Kustomization
+resources:
+  - pvc.yaml
+  - deployment.yaml
+  - service.yaml
+  - ingress.yaml
+  - servicemonitor.yaml
+  # ⚠️  HARD BLOCKER: These secrets MUST be created in the qbittorrent namespace before
+  # Flux can reconcile this app. The pod will fail to start without them.
+  # Steps:
+  #   cp nordvpn-credentials.sops.yaml.example nordvpn-credentials.sops.yaml
+  #   # Edit wireguard-private-key with your actual NordVPN WireGuard private key
+  #   SOPS_AGE_KEY_FILE=~/.kube/k3s-homelab-age.agekey sops --encrypt --in-place nordvpn-credentials.sops.yaml
+  #
+  #   cp qbittorrent-credentials.sops.yaml.example qbittorrent-credentials.sops.yaml
+  #   # Edit username/password to match your desired qBittorrent WebUI credentials
+  #   SOPS_AGE_KEY_FILE=~/.kube/k3s-homelab-age.agekey sops --encrypt --in-place qbittorrent-credentials.sops.yaml
+  #
+  #   git add nordvpn-credentials.sops.yaml qbittorrent-credentials.sops.yaml
+  #   git commit -m 'feat(qbittorrent): add SOPS-encrypted secrets'
+  #   # Then uncomment the two lines below:
+  - nordvpn-credentials.sops.yaml
+  - qbittorrent-credentials.sops.yaml

@@ -12,3 +12,4 @@ resources:
   - media.yaml
   - external-dns.yaml
   - sabnzbd.yaml
+  - qbittorrent.yaml

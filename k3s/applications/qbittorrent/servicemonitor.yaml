@@ -1,0 +1,29 @@
+apiVersion: monitoring.coreos.com/v1
+kind: ServiceMonitor
+metadata:
+  name: qbittorrent-exporter
+  namespace: qbittorrent
+spec:
+  selector:
+    matchLabels:
+      app.kubernetes.io/name: qbittorrent
+  endpoints:
+    - port: qbt-metrics
+      path: /metrics
+      interval: 4m
+      scrapeTimeout: 90s
+---
+apiVersion: monitoring.coreos.com/v1
+kind: ServiceMonitor
+metadata:
+  name: qbittorrent-gluetun
+  namespace: qbittorrent
+spec:
+  selector:
+    matchLabels:
+      app.kubernetes.io/name: qbittorrent
+  endpoints:
+    - port: gluetun-metrics
+      path: /metrics
+      interval: 4m
+      scrapeTimeout: 90s
