@@ -188,7 +188,7 @@ spec:
               cpu: 100m
               memory: 128Mi
         - name: gluetun-exporter
-          image: ghcr.io/crstian19/gluetun-exporter:latest
+          image: ghcr.io/crstian19/gluetun-exporter:v0.1.1
           imagePullPolicy: IfNotPresent
           ports:
             - name: gluetun-metrics
