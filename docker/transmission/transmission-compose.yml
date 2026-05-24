@@ -1,3 +1,7 @@
+# DEPRECATED: This service is replaced by qBittorrent running in K3s (k3s/applications/qbittorrent/).
+# The Docker-based Transmission+OpenVPN stack is superseded by qBittorrent+Gluetun (WireGuard/NordVPN).
+# This file is retained for reference. Do not start this service alongside the K3s deployment.
+#
 version: "3.8"
 
 services:

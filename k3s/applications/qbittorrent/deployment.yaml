@@ -1,0 +1,233 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: qbittorrent
+  namespace: qbittorrent
+spec:
+  replicas: 1
+  strategy:
+    type: Recreate
+  selector:
+    matchLabels:
+      app: qbittorrent
+  template:
+    metadata:
+      labels:
+        app: qbittorrent
+        app.kubernetes.io/name: qbittorrent
+    spec:
+      securityContext:
+        fsGroup: 100
+      volumes:
+        - name: qbittorrent-config
+          persistentVolumeClaim:
+            claimName: qbittorrent-config
+        - name: qbittorrent-media
+          persistentVolumeClaim:
+            claimName: qbittorrent-media
+        - name: gluetun-config
+          persistentVolumeClaim:
+            claimName: gluetun-config
+        - name: tun-device
+          hostPath:
+            path: /dev/net/tun
+            type: CharDevice
+      containers:
+        - name: gluetun
+          image: qmcgaw/gluetun:v3.41.1
+          imagePullPolicy: IfNotPresent
+          securityContext:
+            capabilities:
+              add:
+                - NET_ADMIN
+          ports:
+            - name: health
+              containerPort: 9999
+              protocol: TCP
+            - name: control
+              containerPort: 8000
+              protocol: TCP
+          env:
+            - name: VPN_SERVICE_PROVIDER
+              value: "nordvpn"
+            - name: VPN_TYPE
+              value: "wireguard"
+            - name: WIREGUARD_PRIVATE_KEY
+              valueFrom:
+                secretKeyRef:
+                  name: nordvpn-credentials
+                  key: wireguard-private-key
+            - name: WIREGUARD_ADDRESSES
+              value: "10.5.0.2/32"
+            - name: SERVER_COUNTRIES
+              value: "Netherlands"
+            - name: HEALTH_SERVER_ADDRESS
+              value: "0.0.0.0:9999"
+            - name: HTTP_CONTROL_SERVER_ADDRESS
+              value: "0.0.0.0:8000"
+            - name: FIREWALL_INPUT_PORTS
+              value: "8080,6881,9090,9586"
+            - name: FIREWALL_OUTBOUND_SUBNETS
+              value: "10.244.0.0/16,192.168.1.0/24"
+            - name: DNS_KEEP_NAMESERVER
+              value: "on"
+            - name: DOT
+              value: "off"
+            - name: TZ
+              value: "America/New_York"
+          volumeMounts:
+            - name: gluetun-config
+              mountPath: /gluetun
+            - name: tun-device
+              mountPath: /dev/net/tun
+          livenessProbe:
+            httpGet:
+              path: /
+              port: 9999
+            initialDelaySeconds: 15
+            periodSeconds: 30
+            failureThreshold: 5
+          readinessProbe:
+            httpGet:
+              path: /
+              port: 9999
+            initialDelaySeconds: 10
+            periodSeconds: 15
+            failureThreshold: 3
+          resources:
+            requests:
+              cpu: 100m
+              memory: 128Mi
+            limits:
+              cpu: 500m
+              memory: 256Mi
+        - name: qbittorrent
+          image: lscr.io/linuxserver/qbittorrent:5.0.4
+          imagePullPolicy: IfNotPresent
+          ports:
+            - name: http
+              containerPort: 8080
+              protocol: TCP
+            - name: bittorrent
+              containerPort: 6881
+              protocol: TCP
+            - name: bittorrent-udp
+              containerPort: 6881
+              protocol: UDP
+          env:
+            - name: PUID
+              value: "1027"
+            - name: PGID
+              value: "100"
+            - name: TZ
+              value: "America/New_York"
+            - name: WEBUI_PORT
+              value: "8080"
+          volumeMounts:
+            - name: qbittorrent-config
+              mountPath: /config
+            - name: qbittorrent-media
+              mountPath: /data
+          livenessProbe:
+            tcpSocket:
+              port: 8080
+            initialDelaySeconds: 30
+            periodSeconds: 30
+            failureThreshold: 5
+          readinessProbe:
+            tcpSocket:
+              port: 8080
+            initialDelaySeconds: 15
+            periodSeconds: 15
+            failureThreshold: 3
+          resources:
+            requests:
+              cpu: 200m
+              memory: 256Mi
+            limits:
+              cpu: 2000m
+              memory: 2Gi
+        - name: qbt-exporter
+          image: ghcr.io/esanchezm/prometheus-qbittorrent-exporter:v1.3.0
+          imagePullPolicy: IfNotPresent
+          ports:
+            - name: qbt-metrics
+              containerPort: 9090
+              protocol: TCP
+          env:
+            - name: QBITTORRENT_HOST
+              value: "127.0.0.1"
+            - name: QBITTORRENT_PORT
+              value: "8080"
+            - name: QBITTORRENT_USER
+              valueFrom:
+                secretKeyRef:
+                  name: qbittorrent-credentials
+                  key: username
+            - name: QBITTORRENT_PASS
+              valueFrom:
+                secretKeyRef:
+                  name: qbittorrent-credentials
+                  key: password
+            - name: METRICS_PORT
+              value: "9090"
+            - name: EXPORTER_LOG_LEVEL
+              value: "INFO"
+          livenessProbe:
+            httpGet:
+              path: /metrics
+              port: 9090
+            initialDelaySeconds: 30
+            periodSeconds: 30
+            failureThreshold: 5
+          readinessProbe:
+            httpGet:
+              path: /metrics
+              port: 9090
+            initialDelaySeconds: 15
+            periodSeconds: 15
+            failureThreshold: 3
+          resources:
+            requests:
+              cpu: 25m
+              memory: 32Mi
+            limits:
+              cpu: 100m
+              memory: 128Mi
+        - name: gluetun-exporter
+          image: ghcr.io/crstian19/gluetun-exporter:latest
+          imagePullPolicy: IfNotPresent
+          ports:
+            - name: gluetun-metrics
+              containerPort: 9586
+              protocol: TCP
+          env:
+            - name: GLUETUN_URL
+              value: "http://localhost:8000"
+            - name: INTERFACE_NAME
+              value: "tun0"
+            - name: LISTEN_ADDRESS
+              value: ":9586"
+            - name: METRICS_PATH
+              value: "/metrics"
+          livenessProbe:
+            httpGet:
+              path: /metrics
+              port: 9586
+            initialDelaySeconds: 30
+            periodSeconds: 30
+            failureThreshold: 5
+          readinessProbe:
+            httpGet:
+              path: /metrics
+              port: 9586
+            initialDelaySeconds: 15
+            periodSeconds: 15
+            failureThreshold: 3
+          resources:
+            requests:
+              cpu: 25m
+              memory: 32Mi
+            limits:
+              cpu: 100m
+              memory: 128Mi
