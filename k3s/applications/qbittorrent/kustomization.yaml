@@ -6,5 +6,9 @@ resources:
   - service.yaml
   - ingress.yaml
   - servicemonitor.yaml
-  - nordvpn-credentials.sops.yaml
-  - qbittorrent-credentials.sops.yaml
+  # PREREQUISITE: Create and SOPS-encrypt these secrets before applying:
+  # cp nordvpn-credentials.sops.yaml.example nordvpn-credentials.sops.yaml && sops --encrypt --in-place nordvpn-credentials.sops.yaml
+  # cp qbittorrent-credentials.sops.yaml.example qbittorrent-credentials.sops.yaml && sops --encrypt --in-place qbittorrent-credentials.sops.yaml
+  # Then uncomment the lines below:
+  # - nordvpn-credentials.sops.yaml
+  # - qbittorrent-credentials.sops.yaml

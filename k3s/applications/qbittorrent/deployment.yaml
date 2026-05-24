@@ -169,7 +169,7 @@ spec:
                 secretKeyRef:
                   name: qbittorrent-credentials
                   key: password
-            - name: METRICS_PORT
+            - name: EXPORTER_PORT
               value: "9090"
             - name: EXPORTER_LOG_LEVEL
               value: "INFO"
