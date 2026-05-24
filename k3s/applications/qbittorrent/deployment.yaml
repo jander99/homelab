@@ -66,7 +66,7 @@ spec:
             - name: HTTP_CONTROL_SERVER_ADDRESS
               value: "0.0.0.0:8000"
             - name: FIREWALL_INPUT_PORTS
-              value: "8080,6881,9090,9586"
+              value: "8080,6881,9090,9586,9999"
             - name: FIREWALL_OUTBOUND_SUBNETS
               value: "10.42.0.0/16,10.43.0.0/16,192.168.1.0/24"
             - name: DNS_KEEP_NAMESERVER
