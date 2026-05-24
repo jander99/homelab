@@ -1,0 +1,1 @@
+prometheusrule.monitoring.coreos.com/flux-alerts created (server dry run)
