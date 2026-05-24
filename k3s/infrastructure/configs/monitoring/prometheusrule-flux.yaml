@@ -23,9 +23,7 @@ spec:
             description: "Flux resource has been in a failed Ready state for more than 10 minutes."
         - alert: FluxReconciliationStale
           expr: |
-            time() - max by (namespace, name, kind) (
-              gotk_reconcile_duration_seconds_count
-            ) > 1800
+            increase(gotk_reconcile_duration_seconds_count[30m]) == 0
           for: 5m
           labels:
             severity: warning

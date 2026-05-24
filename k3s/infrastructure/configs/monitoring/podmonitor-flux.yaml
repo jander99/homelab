@@ -12,6 +12,6 @@ spec:
     matchLabels:
       app.kubernetes.io/part-of: flux
   podMetricsEndpoints:
-    - port: http
+    - port: http-prom
       path: /metrics
       interval: 60s

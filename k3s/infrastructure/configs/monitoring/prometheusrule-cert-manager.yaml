@@ -13,6 +13,7 @@ spec:
         - alert: CertificateExpiringSoon
           expr: |
             (certmanager_certificate_expiration_timestamp_seconds - time()) < 604800
+            and (certmanager_certificate_expiration_timestamp_seconds - time()) >= 86400
           for: 1h
           labels:
             severity: warning
