@@ -10,7 +10,7 @@ qbittorrent namespace
 ├── gluetun          (VPN sidecar — NordVPN WireGuard)
 ├── qbittorrent      (lscr.io/linuxserver/qbittorrent:5.0.4)
 ├── qbt-exporter     (ghcr.io/esanchezm/prometheus-qbittorrent-exporter:v1.3.0)
-└── gluetun-exporter (ghcr.io/crstian19/gluetun-exporter:latest)
+└── gluetun-exporter (ghcr.io/crstian19/gluetun-exporter:0.1.1)
 ```
 
 ## Storage / Directory Layout
