@@ -26,3 +26,5 @@ spec:
   values:
     crds:
       enabled: true
+    prometheus:
+      enabled: true
