@@ -50,7 +50,14 @@ spec:
                 chown 1027:100 "$CONF"
                 echo "Config seeded."
               else
-                echo "Config exists, skipping seed."
+                echo "Config exists, enforcing LocalHostAuth=false..."
+                if grep -q 'WebUI\\LocalHostAuth' "$CONF"; then
+                  sed -i 's|WebUI\\LocalHostAuth=.*|WebUI\\LocalHostAuth=false|' "$CONF"
+                else
+                  echo 'WebUI\LocalHostAuth=false' >> "$CONF"
+                fi
+                chown 1027:100 "$CONF"
+                echo "Done."
               fi
           volumeMounts:
             - name: qbittorrent-config
@@ -195,6 +202,7 @@ spec:
             initialDelaySeconds: 30
             periodSeconds: 30
             failureThreshold: 5
+            timeoutSeconds: 10
           resources:
             requests:
               cpu: 25m
