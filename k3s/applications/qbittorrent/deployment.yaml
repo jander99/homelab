@@ -47,6 +47,7 @@ spec:
                 echo "Seeding qBittorrent config..."
                 mkdir -p /config/qBittorrent
                 cp /seed/qBittorrent.conf "$CONF"
+                chown 1027:100 "$CONF"
                 echo "Config seeded."
               else
                 echo "Config exists, skipping seed."
