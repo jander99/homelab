@@ -1,10 +1,13 @@
 ---
 # bootstrap-flux.yml
-# Bootstraps Flux CD on a running K3s cluster and sets up SOPS/age encryption.
+# Bootstraps or upgrades Flux CD on a running K3s cluster and sets up SOPS/age encryption.
 # Run AFTER bootstrap-k3s.yml completes successfully.
 #
 # Usage:
-#   export GITHUB_TOKEN=ghp_xxxx
+#   Fresh install:  export GITHUB_TOKEN=ghp_xxxx
+#   ansible-playbook -i inventory/hosts.yml playbooks/bootstrap-flux.yml -v
+#
+#   Upgrade (controllers already running — no token needed):
 #   ansible-playbook -i inventory/hosts.yml playbooks/bootstrap-flux.yml -v
 #
 # The playbook runs tooling on the Ansible controller (delegate_to: localhost)
@@ -15,8 +18,10 @@
 #   2. Pre-creates the flux-system namespace
 #   3. Generates an age key and creates the sops-age Secret in flux-system
 #      (BEFORE bootstrap so Flux can decrypt from first reconciliation)
-#   4. Runs `flux bootstrap github` to install Flux controllers and commit
-#      flux-system/ into k3s/clusters/homelab/ on the master branch
+#   4a. (Fresh install) Runs `flux bootstrap github` to install Flux controllers and commit
+#       flux-system/ into k3s/clusters/homelab/ on the master branch. Requires GITHUB_TOKEN.
+#   4b. (Upgrade)       Runs `flux install` to apply updated controller manifests directly
+#       to the cluster from the pinned CLI version. No git push, no token required.
 #   5. Waits for all Flux controllers to be healthy
 
 - name: Bootstrap Flux CD
