@@ -104,7 +104,6 @@ spec:
         ingressClassName: traefik
         annotations:
           cert-manager.io/cluster-issuer: letsencrypt-prod
-          traefik.ingress.kubernetes.io/router.middlewares: monitoring-authentik-forwardauth@kubernetescrd
         hosts:
           - alertmanager.homelab.properties
         tls:
