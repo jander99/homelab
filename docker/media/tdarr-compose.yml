@@ -17,9 +17,9 @@ services:
       - internalNode=false
       - nodeName=synology-healthcheck
       - transcodecpuWorkers=0
-      - transcodegpuWorkers=0
+      - transcodegpuWorkers=1
       - healthcheckcpuWorkers=0
-      - healthcheckgpuWorkers=0
+      - healthcheckgpuWorkers=2
     volumes:
       - /volume1/data:/media
       - /volume1/docker/config/tdarr/configs:/app/configs
