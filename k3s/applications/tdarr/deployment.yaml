@@ -48,9 +48,9 @@ spec:
             - name: transcodegpuWorkers
               value: "1"
             - name: healthcheckcpuWorkers
-              value: "1"
-            - name: healthcheckgpuWorkers
               value: "0"
+            - name: healthcheckgpuWorkers
+              value: "2"
           resources:
             requests:
               cpu: 500m
