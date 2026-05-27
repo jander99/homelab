@@ -39,6 +39,10 @@ spec:
               value: "http://192.168.1.20:8266"
             - name: nodeName
               value: "k3s-rtx3070"
+            - name: nodeType
+              value: unmapped
+            - name: unmappedNodeCache
+              value: /cache
             - name: NVIDIA_DRIVER_CAPABILITIES
               value: all
             - name: NVIDIA_VISIBLE_DEVICES
@@ -63,7 +67,7 @@ spec:
             - name: media
               mountPath: /media
             - name: transcode-cache
-              mountPath: /tmp
+              mountPath: /cache
             - name: config
               mountPath: /app/configs
       volumes:
