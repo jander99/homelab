@@ -78,6 +78,10 @@ spec:
               value: "off"
             - name: TZ
               value: "America/New_York"
+            - name: HEALTH_VPN_DURATION_INITIAL
+              value: "30s"
+            - name: UPDATER_PERIOD
+              value: "24h"
           volumeMounts:
             - name: gluetun-config
               mountPath: /gluetun
@@ -99,11 +103,11 @@ spec:
             failureThreshold: 3
           resources:
             requests:
-              cpu: 100m
+              cpu: 250m
               memory: 128Mi
             limits:
-              cpu: 500m
-              memory: 256Mi
+              cpu: 2000m
+              memory: 512Mi
         - name: sabnzbd
           image: lscr.io/linuxserver/sabnzbd:5.0.3
           imagePullPolicy: IfNotPresent
