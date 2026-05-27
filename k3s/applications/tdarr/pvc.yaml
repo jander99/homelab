@@ -1,7 +1,25 @@
 ---
-# Local PVC for tdarr node config — persists node identity (nodeName, worker config)
+# Local PVC for tdarr server data — persists server DB, samples, plugins, and queues.
 # Uses K3s local-path provisioner; directory auto-created on first bind,
 # pinned to whichever node the pod schedules to (homelab testbed).
+# Populate via migration-job.yaml before starting the tdarr deployment.
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: tdarr-server-data
+  namespace: tdarr
+spec:
+  accessModes:
+    - ReadWriteOnce
+  storageClassName: local-path
+  resources:
+    requests:
+      storage: 10Gi
+---
+# Local PVC for tdarr node/server shared configs — persists node identity (nodeName, worker config)
+# and server config (Tdarr_Server_Config.json). Both tdarr-server and tdarr-node containers
+# mount this at /app/configs, matching the official docker-compose shared-configs pattern.
+# Uses K3s local-path provisioner; pinned to whichever node the pod schedules to.
 apiVersion: v1
 kind: PersistentVolumeClaim
 metadata:
