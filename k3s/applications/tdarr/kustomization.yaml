@@ -4,3 +4,6 @@ kind: Kustomization
 resources:
   - pvc.yaml
   - deployment.yaml
+  - service.yaml
+  - ingress.yaml
+  # migration-job.yaml is intentionally excluded — apply manually, not via Flux.
