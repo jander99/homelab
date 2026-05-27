@@ -1,0 +1,76 @@
+# ONE-SHOT migration job — do NOT add to kustomization.yaml (Flux must not manage it).
+# Apply manually after creating PVCs but BEFORE starting the tdarr deployment.
+#
+# === PREREQUISITES ===
+# On the Synology NAS, copy server data to the data share so it is accessible
+# via the tdarr-media PVC at /media:
+#
+#   ssh <synology-ip>
+#   mkdir -p /volume1/data/tdarr-backup
+#   cd /volume1/docker/config/tdarr
+#   tar -cpf /volume1/data/tdarr-backup/server.tar server/
+#   tar -cpf /volume1/data/tdarr-backup/configs.tar configs/
+#
+# === USAGE ===
+#   kubectl apply -f k3s/applications/tdarr/migration-job.yaml
+#   kubectl wait --for=condition=complete -n tdarr job/tdarr-data-migration --timeout=300s
+#   kubectl logs -n tdarr job/tdarr-data-migration
+#   kubectl delete -f k3s/applications/tdarr/migration-job.yaml
+#   rm /volume1/data/tdarr-backup/  # (optional cleanup on NAS)
+#
+# The job extracts server.tar → /app/server and configs.tar → /app/configs
+# in the respective PVCs, preserving file permissions and ownership (uid=1027, gid=100).
+---
+apiVersion: batch/v1
+kind: Job
+metadata:
+  name: tdarr-data-migration
+  namespace: tdarr
+spec:
+  ttlSecondsAfterFinished: 600
+  template:
+    spec:
+      restartPolicy: Never
+      securityContext:
+        runAsUser: 1027
+        runAsGroup: 100
+        fsGroup: 100
+      containers:
+        - name: migrate
+          image: alpine:3.21
+          command: ["/bin/sh", "-c"]
+          args:
+            - |
+              set -ex
+              echo "=== Verifying source tarballs ==="
+              ls -lh /media/tdarr-backup/
+
+              echo "=== Extracting server data ==="
+              tar -xpf /media/tdarr-backup/server.tar --strip-components=1 -C /app/server
+
+              echo "=== Extracting configs ==="
+              tar -xpf /media/tdarr-backup/configs.tar --strip-components=1 -C /app/configs
+
+              echo "=== Migration complete ==="
+              echo "--- /app/server ---"
+              ls -la /app/server/
+              echo "--- /app/configs ---"
+              ls -la /app/configs/
+          volumeMounts:
+            - name: server-data
+              mountPath: /app/server
+            - name: config
+              mountPath: /app/configs
+            - name: media
+              mountPath: /media
+              readOnly: true
+      volumes:
+        - name: server-data
+          persistentVolumeClaim:
+            claimName: tdarr-server-data
+        - name: config
+          persistentVolumeClaim:
+            claimName: tdarr-node-config
+        - name: media
+          persistentVolumeClaim:
+            claimName: tdarr-media
