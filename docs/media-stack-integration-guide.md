@@ -174,7 +174,7 @@ Ensure these directories exist on the NAS before first use:
 ```bash
 mkdir -p /volume1/data/usenet/completed/tv
 mkdir -p /volume1/data/usenet/completed/movies
-mkdir -p /volume1/data/usenet/incomplete
+mkdir -p /volume1/data/usenet/incomplete  # NZBGet only; SABnzbd uses its local /downloads PVC for temp files
 ```
 
 ## 5. Sonarr and Radarr → qBittorrent (Torrents)
@@ -215,7 +215,7 @@ If qBittorrent reports download paths that differ from what Sonarr/Radarr expect
 | Remote Path | `/downloads/`             |
 | Local Path  | `/data/torrents/`         |
 
-> For hardlinks to work, qBittorrent and the \*arr apps must resolve identical file paths. Confirm the K3s node mounts `/volume1/data` at `/data`.
+> For hardlinks to work, qBittorrent and the \*arr apps must mount the same SMB share (`//192.168.1.20/data`) at the same in-container path (`/data`). Verify each pod's PVC points to the same SMB source and uses the same `mountPath`.
 
 ## 6. Recyclarr
 
@@ -280,9 +280,9 @@ kubectl create job --from=cronjob/recyclarr recyclarr-manual -n <namespace>
 | Item | Notes |
 | ---- | ----- |
 | Shared volume root | `/volume1/data` mounted as `/data` in all K3s media containers (sonarr, radarr, sabnzbd, qbittorrent); library is at `/data/media/tv` and `/data/media/movies` via this mount |
-| Security | SOPS for K3s secrets; `.env` files for Docker prevents secrets in git |
+| Security | SOPS for K3s secrets; `.env` files for Docker prevent secrets in git |
 | Static bridge IPs | Deterministic addressing; no DNS resolution dependency |
-| Monitoring | Exportarr sidecar containers for Sonarr (9709) and Radarr (9708); NZBGet exporter (9452) |
+| Monitoring | Exportarr sidecar containers for Sonarr (port 9707) and Radarr (port 9707); NZBGet exporter (9452) |
 
 ### What Needs to Change
 
