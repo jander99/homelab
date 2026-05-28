@@ -2,26 +2,85 @@
 apiVersion: apps/v1
 kind: Deployment
 metadata:
-  name: tdarr-node
+  name: tdarr
   namespace: tdarr
   labels:
-    app: tdarr-node
+    app: tdarr
 spec:
   replicas: 1
   strategy:
     type: Recreate
   selector:
     matchLabels:
-      app: tdarr-node
+      app: tdarr
   template:
     metadata:
       labels:
-        app: tdarr-node
+        app: tdarr
+        app.kubernetes.io/name: tdarr
     spec:
       runtimeClassName: nvidia
       securityContext:
         fsGroup: 100
       containers:
+        - name: tdarr-server
+          image: haveagitgat/tdarr:2.75.01
+          env:
+            - name: TZ
+              value: America/New_York
+            - name: PUID
+              value: "1027"
+            - name: PGID
+              value: "100"
+            - name: inContainer
+              value: "true"
+            - name: ffmpegVersion
+              value: "7"
+            - name: serverIP
+              value: "0.0.0.0"
+            - name: serverPort
+              value: "8266"
+            - name: webUIPort
+              value: "8265"
+            - name: internalNode
+              value: "false"
+          ports:
+            - name: webui
+              containerPort: 8265
+              protocol: TCP
+            - name: server
+              containerPort: 8266
+              protocol: TCP
+          resources:
+            requests:
+              cpu: 100m
+              memory: 512Mi
+            limits:
+              cpu: 1000m
+              memory: 1Gi
+          livenessProbe:
+            httpGet:
+              path: /api/v2/status
+              port: 8265
+            initialDelaySeconds: 30
+            periodSeconds: 30
+            failureThreshold: 5
+          readinessProbe:
+            httpGet:
+              path: /api/v2/status
+              port: 8265
+            initialDelaySeconds: 15
+            periodSeconds: 15
+            failureThreshold: 3
+          volumeMounts:
+            - name: server-data
+              mountPath: /app/server
+            - name: config
+              mountPath: /app/configs
+            - name: media
+              mountPath: /media
+            - name: transcode-cache
+              mountPath: /temp
         - name: tdarr-node
           image: haveagitgat/tdarr_node:2.75.01
           env:
@@ -36,13 +95,11 @@ spec:
             - name: ffmpegVersion
               value: "7"
             - name: serverURL
-              value: "http://192.168.1.20:8266"
+              value: "http://localhost:8266"
             - name: nodeName
               value: "k3s-rtx3070"
             - name: nodeType
-              value: unmapped
-            - name: unmappedNodeCache
-              value: /cache
+              value: mapped
             - name: NVIDIA_DRIVER_CAPABILITIES
               value: all
             - name: NVIDIA_VISIBLE_DEVICES
@@ -67,16 +124,19 @@ spec:
             - name: media
               mountPath: /media
             - name: transcode-cache
-              mountPath: /cache
+              mountPath: /temp
             - name: config
               mountPath: /app/configs
       volumes:
+        - name: server-data
+          persistentVolumeClaim:
+            claimName: tdarr-server-data
+        - name: config
+          persistentVolumeClaim:
+            claimName: tdarr-node-config
         - name: media
           persistentVolumeClaim:
             claimName: tdarr-media
         - name: transcode-cache
           emptyDir:
             sizeLimit: 200Gi
-        - name: config
-          persistentVolumeClaim:
-            claimName: tdarr-node-config
