@@ -128,7 +128,56 @@ mkdir -p /volume1/data/usenet/complete/movies
 mkdir -p /volume1/data/usenet/incomplete
 ```
 
-## 4. Sonarr and Radarr → qBittorrent (Torrents)
+## 4. Sonarr and Radarr → SABnzbd (K3s Usenet)
+
+SABnzbd runs in the K3s cluster in the `sabnzbd` namespace. Sonarr and Radarr run in the `media` namespace, so use the Kubernetes service DNS name from the \*arr download client settings.
+
+### Configuration in Sonarr/Radarr UI
+
+Navigate to **Settings > Download Clients** and add **SABnzbd**.
+
+| Field    | Sonarr Value                         | Radarr Value                         |
+| -------- | ------------------------------------ | ------------------------------------ |
+| Host     | `sabnzbd.sabnzbd.svc.cluster.local`  | `sabnzbd.sabnzbd.svc.cluster.local`  |
+| Port     | `8080`                               | `8080`                               |
+| API Key  | value from the SABnzbd UI/API secret | value from the SABnzbd UI/API secret |
+| Category | `tv`                                 | `movies`                             |
+
+### Required SABnzbd UI Settings
+
+SABnzbd has a node-local `/downloads` PVC and a shared NAS `/data` SMB mount. Completed downloads must land on the shared NAS path so Sonarr and Radarr can import them from their own pods.
+
+**Settings > Folders:**
+
+```text
+Temporary Download Folder: /downloads/incomplete
+Completed Download Folder: /data/usenet/completed
+```
+
+**Settings > Categories:**
+
+| Category | Folder                      |
+| -------- | --------------------------- |
+| `tv`     | `/data/usenet/completed/tv` |
+| `movies` | `/data/usenet/completed/movies` |
+
+The `/downloads` path is only for temporary/incomplete data. If SABnzbd reports completed files under `/downloads`, Sonarr and Radarr cannot access those files because `/downloads` is local to the SABnzbd pod.
+
+### Path Mapping
+
+The K3s manifests mount the shared NAS root at `/data` in SABnzbd, Sonarr, and Radarr. With completed folders under `/data/usenet/completed`, no Remote Path Mapping is required for SABnzbd. If the SABnzbd UI reports a different remote path, fix the SABnzbd folder/category settings rather than mapping a node-local `/downloads` path.
+
+### NAS Directory Prep
+
+Ensure these directories exist on the NAS before first use:
+
+```bash
+mkdir -p /volume1/data/usenet/completed/tv
+mkdir -p /volume1/data/usenet/completed/movies
+mkdir -p /volume1/data/usenet/incomplete  # NZBGet only; SABnzbd uses its local /downloads PVC for temp files
+```
+
+## 5. Sonarr and Radarr → qBittorrent (Torrents)
 
 qBittorrent runs in the K3s cluster and is exposed via Ingress at `qbittorrent.homelab.properties`. Docker containers reach it over the LAN through the MetalLB-assigned Traefik IP.
 
@@ -166,9 +215,9 @@ If qBittorrent reports download paths that differ from what Sonarr/Radarr expect
 | Remote Path | `/downloads/`             |
 | Local Path  | `/data/torrents/`         |
 
-> For hardlinks to work, qBittorrent and the \*arr apps must resolve identical file paths. Confirm the K3s node mounts `/volume1/data` at `/data`.
+> For hardlinks to work, qBittorrent and the \*arr apps must mount the same SMB share (`//192.168.1.20/data`) at the same in-container path (`/data`). Verify each pod's PVC points to the same SMB source and uses the same `mountPath`.
 
-## 5. Recyclarr
+## 6. Recyclarr
 
 Recyclarr automates synchronization of quality profiles and custom formats from the TRaSH Guides. It runs as a K3s CronJob at 2:30am America/New_York using the config in `k3s/applications/recyclarr/configmap.yaml`.
 
@@ -224,23 +273,26 @@ radarr:
 kubectl create job --from=cronjob/recyclarr recyclarr-manual -n <namespace>
 ```
 
-## 6. Assessment
+## 7. Assessment
 
 ### What is Correct
 
 | Item | Notes |
 | ---- | ----- |
-| Shared volume root | `/volume1/data` mounted as `/data` across all containers enables atomic moves and hardlinks |
-| Security | SOPS for K3s secrets; `.env` files for Docker prevents secrets in git |
+| Shared volume root | `/volume1/data` mounted as `/data` in all K3s media containers (sonarr, radarr, sabnzbd, qbittorrent); library is at `/data/media/tv` and `/data/media/movies` via this mount |
+| Security | SOPS for K3s secrets; `.env` files for Docker prevent secrets in git |
 | Static bridge IPs | Deterministic addressing; no DNS resolution dependency |
-| Monitoring | Exportarr sidecar containers for Sonarr (9709) and Radarr (9708); NZBGet exporter (9452) |
+| Monitoring | Exportarr sidecar containers for Sonarr (port 9707) and Radarr (port 9707); NZBGet exporter (9452) |
 
 ### What Needs to Change
 
 | Item | Action |
 | ---- | ------ |
-| NZBGet categories | Configure `tv` and `movies` categories manually in NZBGet UI (see Section 3) |
-| NAS directories | Create `/volume1/data/usenet/complete/{tv,movies}` before first use |
+| NZBGet categories | Configure `tv` and `movies` categories manually in NZBGet UI for the Docker stack (see Section 3) |
+| SABnzbd categories | Configure `tv` and `movies` categories manually in SABnzbd UI for the K3s stack (see Section 4) |
+| Sonarr root folder | Set to `/data/media/tv` in Sonarr UI (Settings > Media Management > Root Folders) |
+| Radarr root folder | Set to `/data/media/movies` in Radarr UI (Settings > Media Management > Root Folders) |
+| NAS directories | Create `/volume1/data/usenet/complete/{tv,movies}` for Docker NZBGet and `/volume1/data/usenet/completed/{tv,movies}` for K3s SABnzbd before first use |
 | Recyclarr ConfigMap | Flags `delete_old_custom_formats` and `replace_existing_custom_formats` are already `true` — no change needed |
 | Prometheus config | Remove the stale `transmission-exporter` job from `docker/prometheus/etc/prometheus.yml` |
 
@@ -250,4 +302,4 @@ kubectl create job --from=cronjob/recyclarr recyclarr-manual -n <namespace>
 | ---- | ----- |
 | FlareSolverr | Many indexers require Cloudflare bypass; add a FlareSolverr container (suggest `172.20.0.19`) to `media-compose.yml` and configure in Prowlarr |
 | Prowlarr exporter | Prowlarr has no Prometheus exporter; indexer success rates and response times are unmonitored |
-| Remote Path Mappings | May be required if qBittorrent (K3s) and Docker \*arr apps resolve different paths for the same files |
+| Remote Path Mappings | May be required if a download client and \*arr apps resolve different paths for the same files; SABnzbd should instead complete to the shared `/data/usenet/completed` NAS path |
