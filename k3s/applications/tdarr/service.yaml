@@ -4,6 +4,8 @@ kind: Service
 metadata:
   name: tdarr
   namespace: tdarr
+  labels:
+    app.kubernetes.io/name: tdarr
 spec:
   type: ClusterIP
   selector:

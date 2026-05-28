@@ -16,7 +16,7 @@
 #   kubectl wait --for=condition=complete -n tdarr job/tdarr-data-migration --timeout=300s
 #   kubectl logs -n tdarr job/tdarr-data-migration
 #   kubectl delete -f k3s/applications/tdarr/migration-job.yaml
-#   rm /volume1/data/tdarr-backup/  # (optional cleanup on NAS)
+#   rm -r /volume1/data/tdarr-backup/  # (optional cleanup on NAS)
 #
 # The job extracts server.tar → /app/server and configs.tar → /app/configs
 # in the respective PVCs, preserving file permissions and ownership (uid=1027, gid=100).
@@ -31,9 +31,11 @@ spec:
   template:
     spec:
       restartPolicy: Never
+      # Run as root: tarballs were created on Synology by the admin user;
+      # SMB ACLs deny uid=1027 from reading them. Root bypasses that.
       securityContext:
-        runAsUser: 1027
-        runAsGroup: 100
+        runAsUser: 0
+        runAsGroup: 0
         fsGroup: 100
       containers:
         - name: migrate
