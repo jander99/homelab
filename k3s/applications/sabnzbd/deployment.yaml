@@ -147,7 +147,7 @@ spec:
               memory: 256Mi
             limits:
               cpu: 2000m
-              memory: 2Gi
+              memory: 4Gi
         - name: exportarr
           image: ghcr.io/onedr0p/exportarr:v2.3.0
           imagePullPolicy: IfNotPresent
