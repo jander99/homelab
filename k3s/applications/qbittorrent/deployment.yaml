@@ -83,14 +83,17 @@ spec:
             - name: VPN_SERVICE_PROVIDER
               value: "nordvpn"
             - name: VPN_TYPE
-              value: "wireguard"
-            - name: WIREGUARD_PRIVATE_KEY
+              value: "openvpn"
+            - name: OPENVPN_USER
               valueFrom:
                 secretKeyRef:
                   name: nordvpn-credentials
-                  key: wireguard-private-key
-            - name: WIREGUARD_ADDRESSES
-              value: "10.5.0.2/32"
+                  key: openvpn-username
+            - name: OPENVPN_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: nordvpn-credentials
+                  key: openvpn-password
             - name: SERVER_COUNTRIES
               value: "United States"
             - name: SERVER_CATEGORIES
