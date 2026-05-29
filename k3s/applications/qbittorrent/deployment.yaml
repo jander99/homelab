@@ -93,6 +93,8 @@ spec:
               value: "10.5.0.2/32"
             - name: SERVER_COUNTRIES
               value: "United States"
+            - name: SERVER_CATEGORIES
+              value: "P2P"
             - name: HEALTH_SERVER_ADDRESS
               value: "0.0.0.0:9999"
             - name: HTTP_CONTROL_SERVER_ADDRESS
