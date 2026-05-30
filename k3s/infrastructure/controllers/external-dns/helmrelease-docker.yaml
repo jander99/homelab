@@ -50,6 +50,12 @@ spec:
             port: http-webhook
           initialDelaySeconds: 10
           timeoutSeconds: 5
+        resources:
+          requests:
+            cpu: 10m
+            memory: 32Mi
+          limits:
+            memory: 64Mi
 
     sources:
       - ingress
@@ -65,3 +71,10 @@ spec:
     registry: noop
 
     logLevel: info
+
+    resources:
+      requests:
+        cpu: 10m
+        memory: 64Mi
+      limits:
+        memory: 128Mi

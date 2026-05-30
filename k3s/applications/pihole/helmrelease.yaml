@@ -117,6 +117,12 @@ spec:
         image:
           # ekofr/pihole-exporter: v1.2.0 required for Pi-hole v6 API
           tag: "v1.2.0"
+        resources:
+          requests:
+            cpu: 10m
+            memory: 32Mi
+          limits:
+            memory: 64Mi
 
     # -- Pod DNS config: ensure pihole pod uses external DNS, not itself
     podDnsConfig:
@@ -124,6 +130,14 @@ spec:
       policy: "None"
       nameservers:
         - 8.8.8.8
+
+    # -- Resource requests/limits for the Pi-hole container
+    resources:
+      requests:
+        cpu: 25m
+        memory: 256Mi
+      limits:
+        memory: 512Mi
 
     # -- Required for Pi-hole to listen on all interfaces in K3s CNI
     extraEnvVars:

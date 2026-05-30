@@ -60,6 +60,12 @@ spec:
             port: http-webhook
           initialDelaySeconds: 10
           timeoutSeconds: 5
+        resources:
+          requests:
+            cpu: 10m
+            memory: 32Mi
+          limits:
+            memory: 64Mi
 
     # Gate startup on Pi-hole web API being reachable.
     # The webhook provider authenticates to POST /api/auth immediately on
@@ -98,3 +104,10 @@ spec:
     registry: noop
 
     logLevel: info
+
+    resources:
+      requests:
+        cpu: 10m
+        memory: 64Mi
+      limits:
+        memory: 128Mi

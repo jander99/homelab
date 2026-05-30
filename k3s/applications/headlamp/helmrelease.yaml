@@ -54,6 +54,12 @@ spec:
           name: headlamp-oidc-secret
     clusterRoleBinding:
       clusterRoleName: cluster-admin
+    resources:
+      requests:
+        cpu: 10m
+        memory: 128Mi
+      limits:
+        memory: 256Mi
     initContainers:
       - name: headlamp-plugins
         image: ghcr.io/headlamp-k8s/headlamp-plugin-flux:v0.6.0

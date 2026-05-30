@@ -23,3 +23,18 @@ spec:
   upgrade:
     remediation:
       retries: 3
+  values:
+    controller:
+      resources:
+        requests:
+          cpu: 10m
+          memory: 64Mi
+        limits:
+          memory: 128Mi
+    speaker:
+      resources:
+        requests:
+          cpu: 10m
+          memory: 64Mi
+        limits:
+          memory: 128Mi
