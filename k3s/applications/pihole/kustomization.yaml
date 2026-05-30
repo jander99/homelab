@@ -5,3 +5,5 @@ resources:
   - helmrepository.yaml
   - helmrelease.yaml
   - pihole-admin-password.sops.yaml
+  - helmrelease-external-dns-k3s.yaml
+  - pihole-k3s-password.sops.yaml

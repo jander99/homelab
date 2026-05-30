@@ -3,7 +3,5 @@ apiVersion: kustomize.config.k8s.io/v1beta1
 kind: Kustomization
 resources:
   - helmrepository.yaml
-  - helmrelease-k3s.yaml
   - helmrelease-docker.yaml
-  - pihole-k3s-password.sops.yaml
   - pihole-docker-password.sops.yaml
