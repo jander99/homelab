@@ -83,6 +83,12 @@ spec:
         username: authentik
         database: authentik
       primary:
+        resources:
+          requests:
+            cpu: 25m
+            memory: 400Mi
+          limits:
+            memory: 512Mi
         persistence:
           size: 2Gi
           storageClass: local-path
@@ -97,6 +103,12 @@ spec:
           storageClass: local-path
 
     server:
+      resources:
+        requests:
+          cpu: 200m
+          memory: 1Gi
+        limits:
+          memory: 1500Mi
       ingress:
         enabled: true
         ingressClassName: traefik
@@ -111,6 +123,12 @@ spec:
               - auth.homelab.properties
 
     worker:
+      resources:
+        requests:
+          cpu: 100m
+          memory: 800Mi
+        limits:
+          memory: 1Gi
       volumes:
         - name: custom-blueprints
           configMap:

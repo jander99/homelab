@@ -65,6 +65,12 @@ spec:
         serviceMonitorSelectorNilUsesHelmValues: false
         scrapeConfigSelectorNilUsesHelmValues: false
         probeSelectorNilUsesHelmValues: false
+        resources:
+          requests:
+            cpu: 100m
+            memory: 1Gi
+          limits:
+            memory: 2Gi
         storageSpec:
           volumeClaimTemplate:
             spec:
@@ -90,6 +96,12 @@ spec:
     alertmanager:
       alertmanagerSpec:
         configSecret: alertmanager-pagerduty-config
+        resources:
+          requests:
+            cpu: 10m
+            memory: 64Mi
+          limits:
+            memory: 128Mi
         storage:
           volumeClaimTemplate:
             spec:
@@ -112,6 +124,12 @@ spec:
 
     # Grafana: SOPS-backed secret, persistent storage
     grafana:
+      resources:
+        requests:
+          cpu: 20m
+          memory: 900Mi
+        limits:
+          memory: 1Gi
       initChownData:
         enabled: false
       envFromSecret: grafana-oidc-secret
