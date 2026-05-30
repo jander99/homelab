@@ -5,6 +5,7 @@ resources:
   - grafana-secret.sops.yaml
   - alertmanager-pagerduty-secret.sops.yaml
   - grafana-oidc-secret.sops.yaml
+  - grafana-gitsync-pat.sops.yaml
   - helmrepository.yaml
   - helmrelease.yaml
   - helmrelease-blackbox.yaml
