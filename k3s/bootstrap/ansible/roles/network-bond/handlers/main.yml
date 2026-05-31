@@ -1,6 +1,4 @@
 ---
 # roles/network-bond/handlers/main.yml
-
-- name: Apply netplan
-  ansible.builtin.command: netplan apply
-  changed_when: true
+# Intentionally empty: relies on the "Apply netplan" handler from roles/common,
+# which runs netplan apply asynchronously (async: 30, poll: 0) to avoid SSH drops.
