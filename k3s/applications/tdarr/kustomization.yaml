@@ -3,7 +3,8 @@ apiVersion: kustomize.config.k8s.io/v1beta1
 kind: Kustomization
 resources:
   - pvc.yaml
-  - deployment.yaml
+  - deployment-server.yaml
+  - deployment-node.yaml
   - service.yaml
   - ingress.yaml
   # migration-job.yaml is intentionally excluded — apply manually, not via Flux.

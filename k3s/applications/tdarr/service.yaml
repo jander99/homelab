@@ -9,7 +9,7 @@ metadata:
 spec:
   type: ClusterIP
   selector:
-    app: tdarr
+    app: tdarr-server
   ports:
     - name: webui
       port: 8265
