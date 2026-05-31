@@ -1,0 +1,4 @@
+---
+# roles/network-bond/handlers/main.yml
+# Intentionally empty: relies on the "Apply netplan" handler from roles/common,
+# which runs netplan apply asynchronously (async: 30, poll: 0) to avoid SSH drops.

@@ -1,0 +1,26 @@
+# roles/network-bond/templates/netplan-bond.yaml.j2
+# Rendered to /etc/netplan/00-bond.yaml on the target host.
+# Replaces the subiquity installer config and the DNS override file.
+network:
+  version: 2
+  ethernets:
+{% for iface in network_bond.interfaces %}
+    {{ iface }}:
+      dhcp4: false
+      dhcp6: false
+{% endfor %}
+  bonds:
+    {{ network_bond.name }}:
+      interfaces: {{ network_bond.interfaces | to_json }}
+      macaddress: "{{ network_bond.macaddress }}"
+      addresses: ["{{ network_bond.address }}"]
+      routes:
+        - to: default
+          via: "{{ network_bond.gateway }}"
+      nameservers:
+        addresses: {{ dns_servers | to_json }}
+      parameters:
+        mode: {{ network_bond.parameters.mode }}
+        lacp-rate: {{ network_bond.parameters.lacp_rate }}
+        mii-monitor-interval: {{ network_bond.parameters.mii_monitor_interval }}
+        transmit-hash-policy: {{ network_bond.parameters.transmit_hash_policy }}

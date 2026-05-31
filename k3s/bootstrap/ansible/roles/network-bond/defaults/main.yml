@@ -1,0 +1,5 @@
+---
+# roles/network-bond/defaults/main.yml
+# Bond is opt-in — hosts without network_bond defined are skipped entirely.
+network_bond:
+  enabled: false
