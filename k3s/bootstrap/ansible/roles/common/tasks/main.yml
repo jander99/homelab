@@ -95,3 +95,4 @@
               use-dns: false
     mode: "0600"
   notify: Apply netplan
+  when: not (network_bond.enabled | default(false))

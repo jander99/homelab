@@ -1,0 +1,21 @@
+---
+# host_vars/testbed.yml
+# Host-specific overrides for the testbed node (192.168.1.128)
+# i7-4770k, ASUS Z87-PRO, Intel I217-V (eno1) + TP-LINK TX201/RTL8125 (enp4s0)
+
+network_bond:
+  enabled: true
+  name: bond0
+  interfaces:
+    - eno1
+    - enp4s0
+  # Pin to eno1 MAC so Unifi DHCP reservation survives (unused with static IP,
+  # but kept for clarity and in case DHCP is ever re-enabled).
+  macaddress: "e0:3f:49:9f:b3:dd"
+  address: "192.168.1.128/24"
+  gateway: "192.168.1.1"
+  parameters:
+    mode: 802.3ad
+    lacp_rate: fast
+    mii_monitor_interval: 100
+    transmit_hash_policy: layer3+4

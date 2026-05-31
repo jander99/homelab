@@ -10,5 +10,6 @@
   become: true
   roles:
     - common
+    - network-bond
     - k3s-prereqs
     - nvidia-gpu

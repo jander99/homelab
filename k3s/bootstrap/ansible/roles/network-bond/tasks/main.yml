@@ -1,0 +1,42 @@
+---
+# roles/network-bond/tasks/main.yml
+# Configures an 802.3ad LACP bond via netplan.
+# Skipped entirely on hosts where network_bond.enabled is false (the default).
+
+- name: Skip bond configuration on hosts without bonding enabled
+  ansible.builtin.meta: end_host
+  when: not network_bond.enabled
+
+- name: Validate required bond variables
+  ansible.builtin.assert:
+    that:
+      - network_bond.interfaces is defined
+      - network_bond.interfaces | length >= 2
+      - network_bond.macaddress is defined
+      - network_bond.address is defined
+      - network_bond.gateway is defined
+    fail_msg: >-
+      network_bond requires: interfaces (>=2), macaddress, address, gateway.
+      Check host_vars for this host.
+    quiet: true
+
+- name: Write netplan bond configuration
+  ansible.builtin.template:
+    src: netplan-bond.yaml.j2
+    dest: /etc/netplan/00-bond.yaml
+    owner: root
+    group: root
+    mode: "0600"
+  notify: Apply netplan
+
+- name: Remove subiquity installer netplan config (superseded by bond config)
+  ansible.builtin.file:
+    path: /etc/netplan/00-installer-config.yaml
+    state: absent
+  notify: Apply netplan
+
+- name: Remove DNS override netplan config (DNS now in bond config)
+  ansible.builtin.file:
+    path: /etc/netplan/99-homelab-dns.yaml
+    state: absent
+  notify: Apply netplan
