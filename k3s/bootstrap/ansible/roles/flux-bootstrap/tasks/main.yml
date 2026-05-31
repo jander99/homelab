@@ -1,21 +1,21 @@
 ---
 # roles/flux-bootstrap/tasks/main.yml
-# Bootstraps or upgrades Flux CD on a running K3s cluster.
+# Bootstraps Flux CD on a fresh K3s cluster for the first time.
 #
 # All tasks run on the Ansible controller (delegate_to: localhost) using the
 # kubeconfig that the k3s-server role fetched during K3s installation.
 #
 # Ordering is intentional:
-#   1. Detect install vs upgrade path (controllers already running?)
-#   2. Install tooling (flux CLI, age CLI)
-#   3. Pre-create {{ sops_secret_namespace }} namespace
-#   4. Generate age key and create sops-age Secret *before* bootstrap runs
-#      so that Flux can decrypt secrets from first reconciliation. (first install only)
-#   5a. (Fresh install)  Run flux bootstrap github — clones repo, pushes flux-system/ manifests,
-#       and installs controllers. Requires GITHUB_TOKEN with repo write access.
-#   5b. (Upgrade)        Run flux install — applies controller manifests from the pinned CLI
-#       version directly to the cluster without touching git. No token required.
-#   6. Wait for Flux controllers to be healthy
+#   1. Verify kubeconfig exists (cluster must be up)
+#   2. Fail fast if Flux controllers are already running (use upgrade-flux.yml instead)
+#   3. Assert GITHUB_TOKEN and repository settings are present
+#   4. Install tooling (flux CLI, age CLI)
+#   5. Pre-create {{ sops_secret_namespace }} namespace
+#   6. Generate age key and create sops-age Secret *before* bootstrap runs
+#      so that Flux can decrypt secrets from first reconciliation.
+#   7. Run flux bootstrap github — clones repo, pushes flux-system/ manifests,
+#      and installs controllers. Requires GITHUB_TOKEN with repo write access.
+#   8. Wait for Flux controllers to be healthy
 
 # ─── Prerequisites ────────────────────────────────────────────────────────────
 
@@ -37,8 +37,9 @@
   delegate_to: localhost
   become: false
 
-# ─── Detect install vs upgrade path ──────────────────────────────────────────
-# Must run before assertions so token/GitHub vars are only required when needed.
+# ─── Fail-fast if Flux is already installed ───────────────────────────────────
+# bootstrap-flux.yml is for first-time installs only. Upgrades must use
+# upgrade-flux.yml which handles CRD storedVersions migration safely.
 
 - name: Check if Flux controllers are already installed
   ansible.builtin.command: >
@@ -51,14 +52,21 @@
   delegate_to: localhost
   become: false
 
-- name: Set fact — Flux install mode
-  ansible.builtin.set_fact:
-    flux_is_upgrade: "{{ flux_controllers_check.rc == 0 }}"
+- name: Fail if Flux controllers are already running
+  ansible.builtin.fail:
+    msg: >-
+      Flux controllers are already installed in this cluster.
+      Use the upgrade playbook to update to a new version:
+
+        ansible-playbook -i inventory/hosts.yml playbooks/upgrade-flux.yml -v
+
+      Running bootstrap-flux.yml on an existing installation is not supported
+      and may overwrite cluster state managed by GitOps.
+  when: flux_controllers_check.rc == 0
   delegate_to: localhost
   become: false
 
-# ─── Assertions (fresh install only) ─────────────────────────────────────────
-# Upgrades use flux install and do not push to git, so no token is required.
+# ─── Assertions ───────────────────────────────────────────────────────────────
 
 - name: Assert flux_github_token is set
   ansible.builtin.assert:
@@ -74,7 +82,6 @@
 
       The token needs 'repo' scope to push the flux-system bootstrap files.
     quiet: true
-  when: not flux_is_upgrade | bool
   delegate_to: localhost
   become: false
 
@@ -93,7 +100,6 @@
       inventory/group_vars/all.yml or host/group vars before running
       bootstrap-flux.yml.
     quiet: true
-  when: not flux_is_upgrade | bool
   delegate_to: localhost
   become: false
 
@@ -312,7 +318,7 @@
   delegate_to: localhost
   become: false
 
-# ─── Flux Bootstrap / Upgrade ─────────────────────────────────────────────────
+# ─── Flux Bootstrap ───────────────────────────────────────────────────────────
 
 - name: Bootstrap Flux CD via GitHub (fresh install)
   ansible.builtin.command: >
@@ -331,19 +337,6 @@
     'pushed' in ((flux_bootstrap_result.stdout | default('')) ~ (flux_bootstrap_result.stderr | default(''))) or
     'installing components' in ((flux_bootstrap_result.stdout | default('')) ~ (flux_bootstrap_result.stderr | default('')))
   register: flux_bootstrap_result
-  when: not flux_is_upgrade | bool
-  delegate_to: localhost
-  become: false
-
-- name: Upgrade Flux controllers via flux install (upgrade path)
-  ansible.builtin.command: >
-    {{ flux_install_dir }}/flux install
-    --kubeconfig={{ flux_kubeconfig }}
-  changed_when: >
-    'applying manifests' in ((flux_install_result.stdout | default('')) ~ (flux_install_result.stderr | default(''))) or
-    'waiting for' in ((flux_install_result.stdout | default('')) ~ (flux_install_result.stderr | default('')))
-  register: flux_install_result
-  when: flux_is_upgrade | bool
   delegate_to: localhost
   become: false
 
@@ -358,10 +351,10 @@
   delegate_to: localhost
   become: false
 
-- name: Display Flux summary
+- name: Display Flux bootstrap summary
   ansible.builtin.debug:
     msg:
-      - "Flux CD is healthy ({{ 'upgraded to' if flux_is_upgrade | bool else 'bootstrapped at' }} v{{ flux_cli_version }})."
+      - "Flux CD bootstrapped at v{{ flux_cli_version }}."
       - "Watching branch '{{ flux_git_branch }}' at path '{{ flux_cluster_path }}'."
       - "Flux will reconcile {{ flux_cluster_path }} on every push to {{ flux_git_branch }}."
   delegate_to: localhost

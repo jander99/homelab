@@ -1,0 +1,23 @@
+---
+# upgrade-flux.yml
+# Upgrades Flux CD controllers on a running K3s cluster.
+# Run AFTER Flux is already bootstrapped. No GITHUB_TOKEN required.
+#
+# Usage:
+#   ansible-playbook -i inventory/hosts.yml playbooks/upgrade-flux.yml -v
+#
+# What it does:
+#   1. Installs/updates the pinned flux CLI on the Ansible controller
+#   2. Migrates stale CRD storedVersions (safe no-op if none are stale)
+#   3. Runs `flux install` to apply updated controller manifests to the cluster
+#   4. Waits for all Flux controllers to be healthy
+#
+# To upgrade Flux to a newer version, bump flux_cli_version and flux_cli_checksum
+# in roles/flux-upgrade/defaults/main.yml, then run this playbook.
+
+- name: Upgrade Flux CD
+  hosts: k3s_servers[0]  # Used to resolve inventory variables (e.g. ansible_host for kubeconfig path)
+  gather_facts: false
+  become: false
+  roles:
+    - role: flux-upgrade

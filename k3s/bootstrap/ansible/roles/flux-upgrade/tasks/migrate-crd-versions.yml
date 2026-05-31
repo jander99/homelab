@@ -1,0 +1,119 @@
+---
+# migrate-crd-versions.yml
+#
+# Migrates stale storedVersions on Flux toolkit CRDs before running flux install.
+#
+# When Flux drops a CRD API version, Kubernetes may still have that version listed
+# in the CRD's status.storedVersions. If any resources remain stored in the old
+# version, flux install will fail. This task file:
+#   1. Detects stale storedVersions on *.toolkit.fluxcd.io CRDs
+#   2. Checks if any resources exist (idempotent/safe no-op if resources = 0)
+#   3. Fails with guidance if resources need manual storage migration
+#   4. Patches storedVersions to match current spec.versions when safe
+
+- name: Get all CRDs from cluster
+  ansible.builtin.command: >
+    kubectl --kubeconfig={{ flux_kubeconfig }} get crd -o json
+  register: all_crds_raw
+  changed_when: false
+  delegate_to: localhost
+  become: false
+
+- name: Identify Flux CRDs with stale stored versions
+  ansible.builtin.set_fact:
+    flux_crds_stale: >-
+      {%- set ns = namespace(result=[]) -%}
+      {%- for crd in (all_crds_raw.stdout | from_json).items
+          if crd.metadata.name is search('\.toolkit\.fluxcd\.io$') -%}
+        {%- set spec_versions = crd.spec.versions | map(attribute='name') | list -%}
+        {%- set stored_versions = crd.status.storedVersions | default([]) -%}
+        {%- set stale = stored_versions | difference(spec_versions) -%}
+        {%- if stale | length > 0 -%}
+          {%- set _ = ns.result.append({
+              'name': crd.metadata.name,
+              'spec_versions': spec_versions,
+              'stored_versions': stored_versions,
+              'stale_versions': stale
+          }) -%}
+        {%- endif -%}
+      {%- endfor -%}
+      {{ ns.result }}
+  delegate_to: localhost
+  become: false
+
+- name: No stale CRD stored versions detected
+  ansible.builtin.debug:
+    msg: "All Flux CRD storedVersions are current — no migration needed."
+  when: flux_crds_stale | length == 0
+  delegate_to: localhost
+  become: false
+
+- name: Report CRDs with stale stored versions
+  ansible.builtin.debug:
+    msg: |
+      Found {{ flux_crds_stale | length }} Flux CRD(s) with stale storedVersions:
+      {% for crd in flux_crds_stale %}
+        - {{ crd.name }}
+            stored : {{ crd.stored_versions | join(', ') }}
+            spec   : {{ crd.spec_versions | join(', ') }}
+            stale  : {{ crd.stale_versions | join(', ') }}
+      {% endfor %}
+  when: flux_crds_stale | length > 0
+  delegate_to: localhost
+  become: false
+
+- name: Check for resources in CRDs with stale stored versions
+  ansible.builtin.command: >
+    kubectl --kubeconfig={{ flux_kubeconfig }}
+    get {{ item.name }} -A --ignore-not-found -o json
+  loop: "{{ flux_crds_stale }}"
+  loop_control:
+    label: "{{ item.name }}"
+  register: stale_crd_resources
+  changed_when: false
+  failed_when: stale_crd_resources.rc not in [0, 1]
+  when: flux_crds_stale | length > 0
+  delegate_to: localhost
+  become: false
+
+- name: Fail if resources exist that require manual storage migration
+  ansible.builtin.fail:
+    msg: |
+      Cannot safely migrate {{ item.item.name }}: {{ (item.stdout | from_json).items | length }} resource(s) found.
+
+      Resources stored in old API versions must be re-written before the version can be removed.
+      Run the following to force re-storage using the current API version, then retry:
+
+        kubectl get {{ item.item.name }} -A -o json | kubectl apply -f -
+
+      After migrating, re-run upgrade-flux.yml.
+  loop: "{{ stale_crd_resources.results | default([]) }}"
+  loop_control:
+    label: "{{ item.item.name }}"
+  when:
+    - flux_crds_stale | length > 0
+    - item.stdout is defined
+    - (item.stdout | from_json).items | length > 0
+  delegate_to: localhost
+  become: false
+
+- name: Patch storedVersions on safe CRDs
+  ansible.builtin.command: >
+    kubectl --kubeconfig={{ flux_kubeconfig }}
+    patch crd {{ item.name }}
+    --subresource=status --type=merge
+    -p '{"status":{"storedVersions":{{ item.spec_versions | to_json }}}}'
+  loop: "{{ flux_crds_stale }}"
+  loop_control:
+    label: "{{ item.name }}"
+  changed_when: true
+  when: flux_crds_stale | length > 0
+  delegate_to: localhost
+  become: false
+
+- name: Report successful CRD storedVersions migration
+  ansible.builtin.debug:
+    msg: "Patched storedVersions on {{ flux_crds_stale | length }} CRD(s) — ready for flux install."
+  when: flux_crds_stale | length > 0
+  delegate_to: localhost
+  become: false
