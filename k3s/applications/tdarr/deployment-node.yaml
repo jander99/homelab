@@ -1,0 +1,81 @@
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: tdarr-node
+  namespace: tdarr
+  labels:
+    app: tdarr-node
+spec:
+  replicas: 1
+  strategy:
+    type: Recreate
+  selector:
+    matchLabels:
+      app: tdarr-node
+  template:
+    metadata:
+      labels:
+        app: tdarr-node
+        app.kubernetes.io/name: tdarr-node
+    spec:
+      runtimeClassName: nvidia
+      securityContext:
+        fsGroup: 100
+      containers:
+        - name: tdarr-node
+          image: haveagitgat/tdarr_node:2.75.01
+          env:
+            - name: TZ
+              value: America/New_York
+            - name: PUID
+              value: "1027"
+            - name: PGID
+              value: "100"
+            - name: inContainer
+              value: "true"
+            - name: ffmpegVersion
+              value: "7"
+            - name: serverURL
+              value: "http://tdarr:8266"
+            - name: nodeName
+              value: "k3s-rtx3070"
+            - name: nodeType
+              value: mapped
+            - name: NVIDIA_DRIVER_CAPABILITIES
+              value: all
+            - name: NVIDIA_VISIBLE_DEVICES
+              value: all
+            - name: transcodecpuWorkers
+              value: "0"
+            - name: transcodegpuWorkers
+              value: "1"
+            - name: healthcheckcpuWorkers
+              value: "0"
+            - name: healthcheckgpuWorkers
+              value: "2"
+          resources:
+            requests:
+              cpu: 2000m
+              memory: 4Gi
+            limits:
+              cpu: 4000m
+              memory: 6Gi
+              nvidia.com/gpu: "1"
+          volumeMounts:
+            - name: media
+              mountPath: /media
+            - name: transcode-cache
+              mountPath: /temp
+            - name: config
+              mountPath: /app/configs
+      volumes:
+        - name: config
+          persistentVolumeClaim:
+            claimName: tdarr-node-config
+        - name: media
+          persistentVolumeClaim:
+            claimName: tdarr-media
+        - name: transcode-cache
+          emptyDir:
+            sizeLimit: 200Gi
