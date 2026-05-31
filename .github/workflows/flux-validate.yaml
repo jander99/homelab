@@ -1,0 +1,101 @@
+name: Flux Validate
+
+on:
+  pull_request:
+    paths:
+      - "k3s/**"
+      - "applications/cdk8s/**"
+      - "package.json"
+      - "yarn.lock"
+
+permissions:
+  contents: read
+  pull-requests: write
+
+env:
+  FLUX_LOCAL_VERSION: "8.2.0"
+  KUSTOMIZE_VERSION: "v5.7.1"
+
+jobs:
+  flux-validate:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: CDK8s Synth (placeholder)
+        # actionlint:ignore[if-cond]
+        if: false
+        run: |
+          echo "TODO: run cdk8s synth when cdk8s manifests are wired into k3s tree"
+
+      - name: Install kustomize
+        run: |
+          curl -sL "https://github.com/kubernetes-sigs/kustomize/releases/download/kustomize%2F${{ env.KUSTOMIZE_VERSION }}/kustomize_${{ env.KUSTOMIZE_VERSION }}_linux_amd64.tar.gz" | tar -xz
+          sudo mv kustomize /usr/local/bin/
+
+      - name: Install flux-local
+        run: pip install flux-local==${{ env.FLUX_LOCAL_VERSION }}
+
+      - name: flux-local test
+        id: flux_test
+        run: |
+          flux-local test --path k3s/clusters/homelab --skip-secrets 2>&1 | tee /tmp/flux-test-output.txt
+          exit ${PIPESTATUS[0]}
+
+      - name: flux-local diff
+        id: flux_diff
+        if: always()
+        run: |
+          set -o pipefail
+          flux-local diff ks --path k3s/clusters/homelab --skip-secrets 2>&1 | tee /tmp/flux-diff-output.txt
+
+      - name: kubeconformist (placeholder)
+        # actionlint:ignore[if-cond]
+        if: false
+        run: |
+          echo "TODO: run kubeconformist schema validation"
+
+      - name: Write step summary
+        if: always()
+        run: |
+          echo "## Flux Validation Results" >> $GITHUB_STEP_SUMMARY
+          echo "### flux-local test" >> $GITHUB_STEP_SUMMARY
+          head -c 30000 /tmp/flux-test-output.txt >> $GITHUB_STEP_SUMMARY || echo "(no test output)" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "### flux-local diff" >> $GITHUB_STEP_SUMMARY
+          head -c 30000 /tmp/flux-diff-output.txt >> $GITHUB_STEP_SUMMARY || echo "(no diff output)" >> $GITHUB_STEP_SUMMARY
+
+      - name: Post PR comment
+        if: always()
+        uses: actions/github-script@v7
+        with:
+          github-token: ${{ secrets.GITHUB_TOKEN }}
+          script: |
+            const fs = require('fs');
+            const maxLen = 60000;
+
+            let testOutput = '';
+            let diffOutput = '';
+            try { testOutput = fs.readFileSync('/tmp/flux-test-output.txt', 'utf8'); } catch(e) {}
+            try { diffOutput = fs.readFileSync('/tmp/flux-diff-output.txt', 'utf8'); } catch(e) {}
+
+            const combined = `### flux-local test\n\`\`\`\n${testOutput}\n\`\`\`\n\n### flux-local diff\n\`\`\`\n${diffOutput}\n\`\`\``;
+
+            let body;
+            if (!diffOutput.trim()) {
+              body = '## Flux Validation Results\n\nNo Flux changes detected.';
+            } else if (combined.length > maxLen) {
+              body = '## Flux Validation Results\n\n' + combined.slice(0, maxLen) + '\n\n... output truncated';
+            } else {
+              body = '## Flux Validation Results\n\n' + combined;
+            }
+
+            await github.rest.issues.createComment({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              issue_number: context.issue.number,
+              body: body
+            });
