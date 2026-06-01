@@ -24,7 +24,8 @@
       "rangeStrategy": "pin"
     },
     {
-      "description": "Disable updates for floating :latest tags - pin these manually",
+      "description": "Disable updates for floating :latest tags in container images - pin these manually",
+      "matchManagers": ["kubernetes", "docker-compose"],
       "matchCurrentValue": "latest",
       "enabled": false
     },
