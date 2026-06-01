@@ -1,0 +1,169 @@
+---
+# roles/flux-upgrade/tasks/main.yml
+# Upgrades Flux CD controllers on a running K3s cluster.
+#
+# All tasks run on the Ansible controller (delegate_to: localhost) using the
+# kubeconfig that the k3s-server role fetched during K3s installation.
+#
+# Ordering:
+#   1. Verify kubeconfig exists (cluster must be up)
+#   2. Guard — fail if Flux is not already bootstrapped
+#   3. Install/update the pinned flux CLI on the controller
+#   4. Migrate any stale CRD storedVersions before flux install
+#   5. Run flux install — applies controller manifests at the pinned CLI version
+#   6. Wait for Flux controllers to be healthy
+
+# ─── Prerequisites ────────────────────────────────────────────────────────────
+
+- name: Check that kubeconfig exists on controller
+  ansible.builtin.stat:
+    path: "{{ flux_kubeconfig }}"
+  register: kubeconfig_stat
+  delegate_to: localhost
+  become: false
+
+- name: Fail if kubeconfig is missing
+  ansible.builtin.fail:
+    msg: >-
+      Kubeconfig not found at {{ flux_kubeconfig }}.
+      Run bootstrap-k3s.yml first so the k3s-server role fetches it:
+
+        ansible-playbook -i inventory/hosts.yml playbooks/bootstrap-k3s.yml
+  when: not kubeconfig_stat.stat.exists
+  delegate_to: localhost
+  become: false
+
+# ─── Guard — Flux must already be bootstrapped ────────────────────────────────
+
+- name: Check that Flux controllers are running in flux-system
+  ansible.builtin.command: >
+    kubectl --kubeconfig={{ flux_kubeconfig }}
+    get deployment source-controller kustomize-controller
+    helm-controller notification-controller
+    -n flux-system
+  register: flux_controllers_check
+  changed_when: false
+  failed_when: false
+  delegate_to: localhost
+  become: false
+
+- name: Fail if Flux is not bootstrapped
+  ansible.builtin.fail:
+    msg: >-
+      Flux controllers not found in flux-system namespace.
+      This playbook upgrades an existing Flux installation only.
+      Run bootstrap-flux.yml first to perform the initial bootstrap:
+
+        GITHUB_TOKEN=<token> ansible-playbook -i inventory/hosts.yml playbooks/bootstrap-flux.yml
+  when: flux_controllers_check.rc != 0
+  delegate_to: localhost
+  become: false
+
+# ─── Flux CLI ─────────────────────────────────────────────────────────────────
+
+- name: Check if flux CLI is installed at the expected version
+  ansible.builtin.command: "{{ flux_install_dir }}/flux version --client"
+  register: flux_version_check
+  changed_when: false
+  failed_when: false
+  delegate_to: localhost
+  become: false
+
+- name: Set fact — flux CLI needs installation
+  ansible.builtin.set_fact:
+    flux_needs_install: >-
+      {{ flux_version_check.rc != 0 or
+         ('v' + flux_cli_version) not in (flux_version_check.stdout | default('')) }}
+  delegate_to: localhost
+  become: false
+
+- name: Detect controller architecture
+  ansible.builtin.command: uname -m
+  register: controller_arch_raw
+  changed_when: false
+  delegate_to: localhost
+  become: false
+
+- name: Normalise architecture name for download URL
+  ansible.builtin.set_fact:
+    flux_arch: "{{ 'arm64' if controller_arch_raw.stdout in ['arm64', 'aarch64'] else 'amd64' }}"
+  delegate_to: localhost
+  become: false
+
+- name: Ensure flux install directory exists on controller
+  ansible.builtin.file:
+    path: "{{ flux_install_dir }}"
+    state: directory
+    mode: "0755"
+  delegate_to: localhost
+  become: false
+
+- name: Download flux CLI archive
+  ansible.builtin.get_url:
+    url: "https://github.com/fluxcd/flux2/releases/download/v{{ flux_cli_version }}/flux_{{ flux_cli_version }}_linux_{{ flux_arch }}.tar.gz"
+    dest: "/tmp/flux_{{ flux_cli_version }}_linux_{{ flux_arch }}.tar.gz"
+    mode: "0644"
+    checksum: "{{ ('sha256:' + flux_cli_checksum) if flux_cli_checksum else omit }}"
+  when: flux_needs_install | bool
+  delegate_to: localhost
+  become: false
+
+- name: Extract flux binary from archive
+  ansible.builtin.unarchive:
+    src: "/tmp/flux_{{ flux_cli_version }}_linux_{{ flux_arch }}.tar.gz"
+    dest: "{{ flux_install_dir }}"
+    remote_src: true
+    include:
+      - flux
+    mode: "0755"
+  when: flux_needs_install | bool
+  delegate_to: localhost
+  become: false
+
+- name: Remove flux CLI download archive
+  ansible.builtin.file:
+    path: "/tmp/flux_{{ flux_cli_version }}_linux_{{ flux_arch }}.tar.gz"
+    state: absent
+  when: flux_needs_install | bool
+  delegate_to: localhost
+  become: false
+
+# ─── CRD storedVersions Migration ─────────────────────────────────────────────
+# Patches stale CRD storedVersions before flux install runs.
+# See tasks/migrate-crd-versions.yml for full algorithm.
+
+- name: Migrate stale Flux CRD storedVersions
+  ansible.builtin.include_tasks: migrate-crd-versions.yml
+
+# ─── Flux Upgrade ─────────────────────────────────────────────────────────────
+
+- name: Upgrade Flux controllers via flux install
+  ansible.builtin.command: >
+    {{ flux_install_dir }}/flux install
+    --kubeconfig={{ flux_kubeconfig }}
+    --components-extra=image-reflector-controller,image-automation-controller
+  changed_when: >
+    'applying manifests' in ((flux_install_result.stdout | default('')) ~ (flux_install_result.stderr | default(''))) or
+    'waiting for' in ((flux_install_result.stdout | default('')) ~ (flux_install_result.stderr | default('')))
+  register: flux_install_result
+  delegate_to: localhost
+  become: false
+
+- name: Wait for Flux controllers to become healthy
+  ansible.builtin.command: >
+    {{ flux_install_dir }}/flux --kubeconfig={{ flux_kubeconfig }} check
+  register: flux_ready_check
+  retries: 20
+  delay: 15
+  until: flux_ready_check.rc == 0
+  changed_when: false
+  delegate_to: localhost
+  become: false
+
+- name: Display Flux upgrade summary
+  ansible.builtin.debug:
+    msg:
+      - "Flux CD upgraded to v{{ flux_cli_version }} and is healthy."
+      - "Controllers updated in-place; GitOps reconciliation continues from the same branch."
+  delegate_to: localhost
+  become: false

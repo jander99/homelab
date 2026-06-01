@@ -1,7 +1,7 @@
 # ANSIBLE DIRECTORY
 
 ## OVERVIEW
-Ansible workspace for provisioning OS nodes, installing a single-node K3s server, and bootstrapping Flux CD. `provision-nodes.yml`, `bootstrap-k3s.yml`, and `bootstrap-flux.yml` are runnable when prerequisites are met.
+Ansible workspace for provisioning OS nodes, installing a single-node K3s server, and bootstrapping Flux CD. `provision-nodes.yml`, `bootstrap-k3s.yml`, `bootstrap-flux.yml`, and `upgrade-flux.yml` are runnable when prerequisites are met.
 
 ## STRUCTURE
 ```
@@ -13,13 +13,15 @@ ansible/
 ├── playbooks/
 │   ├── provision-nodes.yml            # ✓ Runnable — common + k3s-prereqs roles
 │   ├── bootstrap-k3s.yml              # ✓ Runnable — k3s-server role (single-node install)
-│   ├── bootstrap-flux.yml             # Flux CD bootstrap; requires GITHUB_TOKEN
+│   ├── bootstrap-flux.yml             # Flux CD first-time bootstrap; requires GITHUB_TOKEN
+│   ├── upgrade-flux.yml               # Flux CD upgrade (CRD migration + flux install); no token needed
 │   └── site.yml                       # Full entrypoint: runs all phases sequentially
 └── roles/
     ├── common/                        # apt upgrade, packages, timezone, UFW, passwordless sudo
     ├── k3s-prereqs/                   # swap disable, kernel modules (br_netfilter, overlay), sysctl
     ├── k3s-server/                    # K3s install, config, kubeconfig fetch, token persistence
-    └── flux-bootstrap/                # Flux CLI, age key, sops-age Secret, GitHub bootstrap
+    ├── flux-bootstrap/                # Flux CLI, age key, sops-age Secret, GitHub bootstrap (first-time only)
+    └── flux-upgrade/                  # Flux CLI install, CRD storedVersions migration, flux install
 ```
 
 ## WHERE TO LOOK
@@ -49,6 +51,8 @@ ansible-playbook -i inventory/hosts.yml playbooks/provision-nodes.yml
 ansible-playbook -i inventory/hosts.yml playbooks/bootstrap-k3s.yml
 GITHUB_TOKEN=ghp_xxxx ansible-playbook -i inventory/hosts.yml playbooks/bootstrap-flux.yml
 
+# Upgrade Flux to a new version (no token required):
+ansible-playbook -i inventory/hosts.yml playbooks/upgrade-flux.yml
 # Verify connectivity first:
 ansible all -i inventory/hosts.yml -m ping
 ```

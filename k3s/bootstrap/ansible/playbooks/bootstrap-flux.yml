@@ -1,29 +1,28 @@
 ---
 # bootstrap-flux.yml
-# Bootstraps or upgrades Flux CD on a running K3s cluster and sets up SOPS/age encryption.
+# Bootstraps Flux CD on a fresh K3s cluster for the first time.
 # Run AFTER bootstrap-k3s.yml completes successfully.
 #
 # Usage:
-#   Fresh install:  export GITHUB_TOKEN=ghp_xxxx
+#   export GITHUB_TOKEN=ghp_xxxx
 #   ansible-playbook -i inventory/hosts.yml playbooks/bootstrap-flux.yml -v
 #
-#   Upgrade (controllers already running — no token needed):
-#   ansible-playbook -i inventory/hosts.yml playbooks/bootstrap-flux.yml -v
+# This playbook is for FIRST-TIME installs only. If Flux controllers are already
+# running, use upgrade-flux.yml instead:
+#   ansible-playbook -i inventory/hosts.yml playbooks/upgrade-flux.yml -v
 #
 # The playbook runs tooling on the Ansible controller (delegate_to: localhost)
 # using the kubeconfig fetched by bootstrap-k3s.yml.
 #
 # What it does:
-#   1. Installs flux CLI and age CLI on the controller (if not present)
-#   2. Pre-creates the flux-system namespace
-#   3. Generates an age key and creates the sops-age Secret in flux-system
+#   1. Fails fast if Flux controllers are already installed (use upgrade-flux.yml)
+#   2. Installs flux CLI and age CLI on the controller (if not present)
+#   3. Pre-creates the flux-system namespace
+#   4. Generates an age key and creates the sops-age Secret in flux-system
 #      (BEFORE bootstrap so Flux can decrypt from first reconciliation)
-#   4a. (Fresh install) Runs `flux bootstrap github` to install Flux controllers and commit
-#       flux-system/ into k3s/clusters/homelab/ on the master branch. Requires GITHUB_TOKEN.
-#   4b. (Upgrade)       Runs `flux install` to apply updated controller manifests directly
-#       to the cluster from the pinned CLI version. No git push, no token required.
-#   5. Waits for all Flux controllers to be healthy
-
+#   5. Runs `flux bootstrap github` to install Flux controllers and commit
+#      flux-system/ into k3s/clusters/homelab/ on the master branch. Requires GITHUB_TOKEN.
+#   6. Waits for all Flux controllers to be healthy
 - name: Bootstrap Flux CD
   hosts: k3s_servers[0]  # Used to resolve inventory variables (e.g. ansible_host for kubeconfig path)
   gather_facts: false
