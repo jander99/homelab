@@ -127,3 +127,4 @@ ansible-playbook -i inventory/hosts.yml playbooks/site.yml -v
 ## Inventory
 
 Edit `inventory/hosts.yml` to add or change target nodes. The testbed node (192.168.1.128) is configured by default. Production cluster nodes (192.168.1.40-42) are commented out until they are provisioned.
+
