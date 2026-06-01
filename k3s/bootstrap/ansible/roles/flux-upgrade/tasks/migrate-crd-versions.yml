@@ -19,6 +19,7 @@
 - name: Export target Flux manifests for v{{ flux_cli_version }}
   ansible.builtin.command: >
     {{ flux_install_dir }}/flux install --export
+    --components-extra=image-reflector-controller,image-automation-controller
   register: flux_export_raw
   changed_when: false
   delegate_to: localhost
@@ -102,22 +103,15 @@
     label: "{{ item.name }}"
   register: stale_crd_resources
   changed_when: false
-  failed_when: stale_crd_resources.rc not in [0, 1]
   when: flux_crds_stale | length > 0
   delegate_to: localhost
   become: false
 
-- name: Fail if resources exist that require manual storage migration
-  ansible.builtin.fail:
-    msg: |
-      Cannot safely migrate {{ item.item.name }}: {{ (item.stdout | from_json).items | length }} resource(s) found.
-
-      Resources stored in old API versions must be re-written before the version can be removed.
-      Run the following to force re-storage using the current API version, then retry:
-
-        kubectl get {{ item.item.name }} -A -o json | kubectl apply -f -
-
-      After migrating, re-run upgrade-flux.yml.
+- name: Re-store resources in CRDs with stale stored versions
+  ansible.builtin.shell: >
+    kubectl --kubeconfig={{ flux_kubeconfig }}
+    get {{ item.item.name }} -A -o json |
+    kubectl --kubeconfig={{ flux_kubeconfig }} apply -f -
   loop: "{{ stale_crd_resources.results | default([]) }}"
   loop_control:
     label: "{{ item.item.name }}"
@@ -125,6 +119,7 @@
     - flux_crds_stale | length > 0
     - item.stdout is defined
     - (item.stdout | from_json).items | length > 0
+  changed_when: true
   delegate_to: localhost
   become: false
 

@@ -141,6 +141,7 @@
   ansible.builtin.command: >
     {{ flux_install_dir }}/flux install
     --kubeconfig={{ flux_kubeconfig }}
+    --components-extra=image-reflector-controller,image-automation-controller
   changed_when: >
     'applying manifests' in ((flux_install_result.stdout | default('')) ~ (flux_install_result.stderr | default(''))) or
     'waiting for' in ((flux_install_result.stdout | default('')) ~ (flux_install_result.stderr | default('')))
