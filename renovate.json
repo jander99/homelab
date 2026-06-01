@@ -58,9 +58,10 @@
       "groupName": "github-actions"
     },
     {
-      "description": "Group npm/yarn dependency updates",
+      "description": "Group npm/yarn dependency updates; require 7-day minimum age to guard against supply chain attacks",
       "matchManagers": ["npm"],
-      "groupName": "npm-dependencies"
+      "groupName": "npm-dependencies",
+      "minimumReleaseAge": "7 days"
     }
   ]
 }
