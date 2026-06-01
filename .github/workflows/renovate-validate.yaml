@@ -1,0 +1,21 @@
+name: Renovate Config Validate
+
+on:
+  pull_request:
+    paths:
+      - "renovate.json"
+
+permissions:
+  contents: read
+
+env:
+  RENOVATE_VERSION: "39.264.1"
+jobs:
+  validate:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Validate renovate.json
+        run: npx --yes --package renovate@${{ env.RENOVATE_VERSION }} -- renovate-config-validator renovate.json
