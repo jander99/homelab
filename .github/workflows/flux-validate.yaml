@@ -49,6 +49,14 @@ jobs:
       - name: Install flux-local
         run: pip install flux-local==${{ env.FLUX_LOCAL_VERSION }}
 
+      - name: Configure SOPS age key
+        if: ${{ secrets.SOPS_AGE_KEY != '' }}
+        env:
+          SOPS_AGE_KEY_CONTENT: ${{ secrets.SOPS_AGE_KEY }}
+        run: |
+          mkdir -p ~/.config/sops/age
+          echo "$SOPS_AGE_KEY_CONTENT" > ~/.config/sops/age/keys.txt
+
       - name: flux-local test
         id: flux_test
         run: |
@@ -58,6 +66,7 @@ jobs:
       - name: flux-local diff
         id: flux_diff
         if: always()
+        continue-on-error: true
         run: |
           set -o pipefail
           flux-local diff ks --path k3s/clusters/homelab --skip-secrets 2>&1 | tee /tmp/flux-diff-output.txt
