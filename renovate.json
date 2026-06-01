@@ -1,0 +1,65 @@
+{
+  "$schema": "https://docs.renovatebot.com/renovate-schema.json",
+  "extends": ["config:recommended"],
+  "timezone": "America/New_York",
+  "schedule": ["before 6am on Monday"],
+  "prHourlyLimit": 5,
+  "prConcurrentLimit": 10,
+  "ignorePaths": [
+    "**/*.sops.yaml",
+    "**/gotk-components.yaml",
+    "node_modules/**",
+    ".venv*/**"
+  ],
+  "flux": {
+    "fileMatch": ["(^|/)k3s/.+\\.yaml$"]
+  },
+  "kubernetes": {
+    "fileMatch": ["(^|/)k3s/.+\\.yaml$"]
+  },
+  "packageRules": [
+    {
+      "description": "Pin nx to a specific version instead of latest",
+      "matchPackageNames": ["nx"],
+      "rangeStrategy": "pin"
+    },
+    {
+      "description": "Disable updates for floating :latest tags - pin these manually",
+      "matchCurrentValue": "latest",
+      "enabled": false
+    },
+    {
+      "description": "Group Flux HelmRelease infrastructure controller updates",
+      "matchManagers": ["flux"],
+      "matchFileNames": ["k3s/infrastructure/controllers/**"],
+      "groupName": "flux-infra-controllers"
+    },
+    {
+      "description": "Group Flux HelmRelease infrastructure config updates",
+      "matchManagers": ["flux"],
+      "matchFileNames": ["k3s/infrastructure/configs/**"],
+      "groupName": "flux-infra-configs"
+    },
+    {
+      "description": "Group Flux application HelmRelease updates",
+      "matchManagers": ["flux"],
+      "matchFileNames": ["k3s/applications/**"],
+      "groupName": "flux-applications"
+    },
+    {
+      "description": "Group Kubernetes container image updates",
+      "matchManagers": ["kubernetes"],
+      "groupName": "kubernetes-images"
+    },
+    {
+      "description": "Group GitHub Actions version updates",
+      "matchManagers": ["github-actions"],
+      "groupName": "github-actions"
+    },
+    {
+      "description": "Group npm/yarn dependency updates",
+      "matchManagers": ["npm"],
+      "groupName": "npm-dependencies"
+    }
+  ]
+}
