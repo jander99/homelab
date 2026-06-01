@@ -185,7 +185,7 @@ spec:
               cpu: 2000m
               memory: 3Gi
         - name: qbt-exporter
-          image: ghcr.io/esanchezm/prometheus-qbittorrent-exporter:latest
+          image: ghcr.io/esanchezm/prometheus-qbittorrent-exporter:v1.7.0
           imagePullPolicy: IfNotPresent
           ports:
             - name: qbt-metrics
