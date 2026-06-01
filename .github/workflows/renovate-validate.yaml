@@ -16,4 +16,5 @@ jobs:
         uses: actions/checkout@v4
 
       - name: Validate renovate.json
-        run: npx --yes @renovatebot/config-validator renovate.json
+      - name: Validate renovate.json
+        run: npx --yes --package renovate -- renovate-config-validator renovate.json
