@@ -50,12 +50,16 @@ jobs:
         run: pip install flux-local==${{ env.FLUX_LOCAL_VERSION }}
 
       - name: Configure SOPS age key
-        if: ${{ secrets.SOPS_AGE_KEY != '' }}
         env:
           SOPS_AGE_KEY_CONTENT: ${{ secrets.SOPS_AGE_KEY }}
         run: |
-          mkdir -p ~/.config/sops/age
-          echo "$SOPS_AGE_KEY_CONTENT" > ~/.config/sops/age/keys.txt
+          if [ -n "$SOPS_AGE_KEY_CONTENT" ]; then
+            mkdir -p ~/.config/sops/age
+            echo "$SOPS_AGE_KEY_CONTENT" > ~/.config/sops/age/keys.txt
+            echo "SOPS age key configured for decryption"
+          else
+            echo "No SOPS_AGE_KEY secret set; encrypted kustomizations will be skipped"
+          fi
 
       - name: flux-local test
         id: flux_test
