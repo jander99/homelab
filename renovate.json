@@ -8,6 +8,7 @@
   "ignorePaths": [
     "**/*.sops.yaml",
     "**/gotk-components.yaml",
+    "docker/**",
     "node_modules/**",
     ".venv*/**"
   ],

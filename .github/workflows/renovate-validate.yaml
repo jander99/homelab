@@ -1,0 +1,19 @@
+name: Renovate Config Validate
+
+on:
+  pull_request:
+    paths:
+      - "renovate.json"
+
+permissions:
+  contents: read
+
+jobs:
+  validate:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Validate renovate.json
+        run: npx --yes @renovatebot/config-validator renovate.json
