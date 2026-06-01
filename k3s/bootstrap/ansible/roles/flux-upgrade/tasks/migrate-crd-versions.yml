@@ -3,13 +3,42 @@
 #
 # Migrates stale storedVersions on Flux toolkit CRDs before running flux install.
 #
+# Compares cluster status.storedVersions against *target* spec.versions from
+# `flux install --export` (not the currently installed CRD spec), so that
+# versions removed in the new release are correctly identified as stale.
+#
 # When Flux drops a CRD API version, Kubernetes may still have that version listed
 # in the CRD's status.storedVersions. If any resources remain stored in the old
 # version, flux install will fail. This task file:
-#   1. Detects stale storedVersions on *.toolkit.fluxcd.io CRDs
-#   2. Checks if any resources exist (idempotent/safe no-op if resources = 0)
-#   3. Fails with guidance if resources need manual storage migration
-#   4. Patches storedVersions to match current spec.versions when safe
+#   1. Exports target CRD specs from the pinned flux CLI (flux install --export)
+#   2. Detects stale storedVersions by comparing cluster state against target specs
+#   3. Checks if any resources exist (idempotent/safe no-op if resources = 0)
+#   4. Fails with guidance if resources need manual storage migration
+#   5. Patches storedVersions to match target spec.versions when safe
+
+- name: Export target Flux manifests for v{{ flux_cli_version }}
+  ansible.builtin.command: >
+    {{ flux_install_dir }}/flux install --export
+  register: flux_export_raw
+  changed_when: false
+  delegate_to: localhost
+  become: false
+
+- name: Parse target Flux CRD spec versions from export
+  ansible.builtin.set_fact:
+    flux_target_crd_versions: >-
+      {%- set ns = namespace(result={}) -%}
+      {%- for doc in flux_export_raw.stdout.split('\n---\n') -%}
+        {%- set parsed = doc | from_yaml -%}
+        {%- if parsed and parsed.kind == 'CustomResourceDefinition'
+               and parsed.metadata.name is search('\.toolkit\.fluxcd\.io$') -%}
+          {%- set versions = parsed.spec.versions | map(attribute='name') | list -%}
+          {%- set _ = ns.result.update({parsed.metadata.name: versions}) -%}
+        {%- endif -%}
+      {%- endfor -%}
+      {{ ns.result }}
+  delegate_to: localhost
+  become: false
 
 - name: Get all CRDs from cluster
   ansible.builtin.command: >
@@ -25,13 +54,15 @@
       {%- set ns = namespace(result=[]) -%}
       {%- for crd in (all_crds_raw.stdout | from_json).items
           if crd.metadata.name is search('\.toolkit\.fluxcd\.io$') -%}
-        {%- set spec_versions = crd.spec.versions | map(attribute='name') | list -%}
+        {%- set target_versions = flux_target_crd_versions.get(
+              crd.metadata.name,
+              crd.spec.versions | map(attribute='name') | list) -%}
         {%- set stored_versions = crd.status.storedVersions | default([]) -%}
-        {%- set stale = stored_versions | difference(spec_versions) -%}
+        {%- set stale = stored_versions | difference(target_versions) -%}
         {%- if stale | length > 0 -%}
           {%- set _ = ns.result.append({
               'name': crd.metadata.name,
-              'spec_versions': spec_versions,
+              'target_versions': target_versions,
               'stored_versions': stored_versions,
               'stale_versions': stale
           }) -%}
@@ -55,7 +86,7 @@
       {% for crd in flux_crds_stale %}
         - {{ crd.name }}
             stored : {{ crd.stored_versions | join(', ') }}
-            spec   : {{ crd.spec_versions | join(', ') }}
+            target : {{ crd.target_versions | join(', ') }}
             stale  : {{ crd.stale_versions | join(', ') }}
       {% endfor %}
   when: flux_crds_stale | length > 0
@@ -102,7 +133,7 @@
     kubectl --kubeconfig={{ flux_kubeconfig }}
     patch crd {{ item.name }}
     --subresource=status --type=merge
-    -p '{"status":{"storedVersions":{{ item.spec_versions | to_json }}}}'
+    -p '{"status":{"storedVersions":{{ item.target_versions | to_json }}}}'
   loop: "{{ flux_crds_stale }}"
   loop_control:
     label: "{{ item.name }}"

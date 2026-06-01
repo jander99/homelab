@@ -7,10 +7,11 @@
 #
 # Ordering:
 #   1. Verify kubeconfig exists (cluster must be up)
-#   2. Install/update the pinned flux CLI on the controller
-#   3. Migrate any stale CRD storedVersions before flux install
-#   4. Run flux install — applies controller manifests at the pinned CLI version
-#   5. Wait for Flux controllers to be healthy
+#   2. Guard — fail if Flux is not already bootstrapped
+#   3. Install/update the pinned flux CLI on the controller
+#   4. Migrate any stale CRD storedVersions before flux install
+#   5. Run flux install — applies controller manifests at the pinned CLI version
+#   6. Wait for Flux controllers to be healthy
 
 # ─── Prerequisites ────────────────────────────────────────────────────────────
 
@@ -29,6 +30,32 @@
 
         ansible-playbook -i inventory/hosts.yml playbooks/bootstrap-k3s.yml
   when: not kubeconfig_stat.stat.exists
+  delegate_to: localhost
+  become: false
+
+# ─── Guard — Flux must already be bootstrapped ────────────────────────────────
+
+- name: Check that Flux controllers are running in flux-system
+  ansible.builtin.command: >
+    kubectl --kubeconfig={{ flux_kubeconfig }}
+    get deployment source-controller kustomize-controller
+    helm-controller notification-controller
+    -n flux-system
+  register: flux_controllers_check
+  changed_when: false
+  failed_when: false
+  delegate_to: localhost
+  become: false
+
+- name: Fail if Flux is not bootstrapped
+  ansible.builtin.fail:
+    msg: >-
+      Flux controllers not found in flux-system namespace.
+      This playbook upgrades an existing Flux installation only.
+      Run bootstrap-flux.yml first to perform the initial bootstrap:
+
+        GITHUB_TOKEN=<token> ansible-playbook -i inventory/hosts.yml playbooks/bootstrap-flux.yml
+  when: flux_controllers_check.rc != 0
   delegate_to: localhost
   become: false
 
