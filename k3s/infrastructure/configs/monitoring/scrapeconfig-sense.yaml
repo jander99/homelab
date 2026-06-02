@@ -1,0 +1,13 @@
+---
+apiVersion: monitoring.coreos.com/v1alpha1
+kind: ScrapeConfig
+metadata:
+  name: sense-exporter
+  namespace: monitoring
+spec:
+  jobName: sense
+  staticConfigs:
+    - targets:
+        - 192.168.1.20:9993
+  scrapeInterval: 60s
+  metricsPath: /

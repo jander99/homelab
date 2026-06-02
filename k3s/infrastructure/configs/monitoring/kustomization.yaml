@@ -15,6 +15,7 @@ resources:
   - probe-authentik.yaml
   - authentik-middleware.yaml
   - scrapeconfig-synology.yaml
+  - scrapeconfig-sense.yaml
   - podmonitor-flux.yaml
   - prometheusrule-apps.yaml
   - prometheusrule-flux.yaml
