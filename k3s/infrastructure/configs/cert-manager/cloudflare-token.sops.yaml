@@ -1,5 +1,7 @@
-# Copy to cloudflare-token.sops.yaml, fill in token, then encrypt:
-# sops -e -i k3s/infrastructure/configs/cert-manager/cloudflare-token.sops.yaml
+# Encrypted SOPS secret. To create from template:
+#   cp cloudflare-token.sops.yaml.example cloudflare-token.sops.yaml
+#   # edit stringData.api-token, then encrypt:
+#   sops --encrypt --in-place cloudflare-token.sops.yaml
 apiVersion: v1
 kind: Secret
 metadata:
