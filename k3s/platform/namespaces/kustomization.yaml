@@ -13,3 +13,4 @@ resources:
   - external-dns.yaml
   - sabnzbd.yaml
   - qbittorrent.yaml
+  - sense-exporter.yaml

@@ -1,0 +1,9 @@
+---
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: sense-exporter-config
+  namespace: sense-exporter
+data:
+  config.yaml: |
+    namespace: sense_energy
