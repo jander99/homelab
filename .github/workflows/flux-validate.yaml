@@ -2,6 +2,7 @@ name: Flux Validate
 
 on:
   pull_request:
+  workflow_dispatch:
     paths:
       - "k3s/**"
       - "applications/cdk8s/**"
