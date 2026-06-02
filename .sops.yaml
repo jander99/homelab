@@ -20,4 +20,5 @@
 
 creation_rules:
   - path_regex: k3s/.*\.sops\.yaml$
+    encrypted_regex: ^(data|stringData)$
     age: age1qntcdwtxrfu92lhj2nzhlc3uqt8nxks5vw7rd23w2cj7c0qyuqqqmey085
