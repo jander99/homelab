@@ -7,6 +7,7 @@ on:
       - "applications/cdk8s/**"
       - "package.json"
       - "yarn.lock"
+  workflow_dispatch:
 
 permissions:
   contents: read
@@ -94,7 +95,7 @@ jobs:
           head -c 30000 /tmp/flux-diff-output.txt >> $GITHUB_STEP_SUMMARY || echo "(no diff output)" >> $GITHUB_STEP_SUMMARY
 
       - name: Post PR comment
-        if: always()
+        if: always() && github.event_name == 'pull_request'
         uses: actions/github-script@v7
         with:
           github-token: ${{ secrets.GITHUB_TOKEN }}
