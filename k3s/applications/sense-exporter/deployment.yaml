@@ -1,0 +1,56 @@
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: sense-exporter
+  namespace: sense-exporter
+  labels:
+    app: sense-exporter
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: sense-exporter
+  template:
+    metadata:
+      labels:
+        app: sense-exporter
+    spec:
+      containers:
+        - name: sense-exporter
+          image: ghcr.io/ejsuncy/sense_energy_prometheus_exporter:v1.0.0
+          ports:
+            - name: metrics
+              containerPort: 9993
+              protocol: TCP
+          env:
+            - name: TZ
+              value: America/New_York
+            - name: EXPORTER_LOG_LEVEL
+              value: INFO
+            - name: SENSE_ACCOUNT_NAME_1
+              value: Whiteoak
+            - name: SENSE_ACCOUNT_USERNAME_1
+              valueFrom:
+                secretKeyRef:
+                  name: sense-credentials
+                  key: SENSE_ACCOUNT_USERNAME_1
+            - name: SENSE_ACCOUNT_PASSWORD_1
+              valueFrom:
+                secretKeyRef:
+                  name: sense-credentials
+                  key: SENSE_ACCOUNT_PASSWORD_1
+          volumeMounts:
+            - name: config
+              mountPath: /etc/sense_energy_prometheus_exporter/config.yaml
+              subPath: config.yaml
+          resources:
+            requests:
+              cpu: 10m
+              memory: 64Mi
+            limits:
+              memory: 128Mi
+      volumes:
+        - name: config
+          configMap:
+            name: sense-exporter-config

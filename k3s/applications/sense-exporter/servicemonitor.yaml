@@ -1,0 +1,14 @@
+---
+apiVersion: monitoring.coreos.com/v1
+kind: ServiceMonitor
+metadata:
+  name: sense-exporter
+  namespace: sense-exporter
+spec:
+  endpoints:
+    - port: metrics
+      path: /
+      interval: 60s
+  selector:
+    matchLabels:
+      app: sense-exporter
