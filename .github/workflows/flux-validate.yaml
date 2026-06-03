@@ -76,7 +76,7 @@ jobs:
         continue-on-error: true
         run: |
           set -o pipefail
-          flux-local diff ks --path k3s/clusters/homelab --skip-invalid-kustomization-paths 2>&1 | tee /tmp/flux-diff-output.txt
+          flux-local diff ks --path k3s/clusters/homelab --skip-invalid-kustomization-paths --branch-orig origin/master 2>&1 | tee /tmp/flux-diff-output.txt
 
       - name: kubeconformist (placeholder)
         # actionlint:ignore[if-cond]
