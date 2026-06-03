@@ -1,0 +1,32 @@
+# $patch: delete directives for Flux controllers NOT installed in this cluster.
+# gotk-components.yaml declares all 7 controllers, but only 4 are deployed (the rest
+# are disabled at install time). Listing them here drops them from the kustomize build
+# output, so the kustomize-controller's inventory matches reality and doesn't try to
+# manage Deployments that don't exist.
+#
+# These are stripped from the inventory but their CRDs remain (they were installed
+# by the bootstrap). No-op for cluster state.
+#
+# namespace: flux-system is required so kustomize matches the namespaced Deployment
+# (the gotk components all live in flux-system).
+---
+$patch: delete
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: image-automation-controller
+  namespace: flux-system
+---
+$patch: delete
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: image-reflector-controller
+  namespace: flux-system
+---
+$patch: delete
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: source-watcher
+  namespace: flux-system

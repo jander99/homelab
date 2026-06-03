@@ -1,0 +1,35 @@
+# Flux Kustomization for Flux controller Deployments.
+#
+# Separate from the flux-system Kustomization because:
+# 1. The flux-system/ dir contains gotk-sync.yaml, which points at the parent
+#    kustomization. Listing flux-system/ directly in the parent would create a
+#    circular reference.
+# 2. We need dependsOn: flux-system to apply AFTER the bootstrap-owned
+#    Kustomization resources have been established.
+# 3. We need force: true so the kustomize-controller takes over the resource
+#    fields that `flux bootstrap` set via kubectl-client-side-apply.
+# 4. prune: true keeps the inventory tidy (drops the 3 unused controllers).
+#
+# First-merge behavior:
+# - kustomize-controller builds this dir → 4 Deployments (3 unused dropped by patch)
+# - applies via SSA with force=true → takes ownership of resources fields
+# - one of those Deployments is the kustomize-controller itself, so it restarts once
+# - on next reconcile, the build is idempotent → no further restarts
+# - the cluster stays converged; the kubectl-patched values from earlier become
+#   the GitOps source of truth.
+apiVersion: kustomize.toolkit.fluxcd.io/v1
+kind: Kustomization
+metadata:
+  name: flux-system-components
+  namespace: flux-system
+spec:
+  dependsOn:
+    - name: flux-system
+  force: true
+  interval: 10m0s
+  path: ./k3s/clusters/homelab/flux-system-components
+  prune: true
+  sourceRef:
+    kind: GitRepository
+    name: flux-system
+  timeout: 5m0s

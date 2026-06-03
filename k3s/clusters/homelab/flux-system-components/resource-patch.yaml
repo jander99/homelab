@@ -1,0 +1,78 @@
+# Resource patches for Flux controllers (2026-06-02 krr recommendations).
+# Strategic merge patches by Deployment name; merge key is metadata.name + metadata.namespace.
+# The flux-system components are all deployed in the `flux-system` namespace, so the
+# namespace must be specified on each patch — omitting it would have kustomize look
+# for cluster-scoped Deployments, which these aren't.
+# Drops the 1.0 CPU limit (over-provisioned by ~10-100x per krr) and pins memory to krr P95.
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: helm-controller
+  namespace: flux-system
+spec:
+  template:
+    spec:
+      containers:
+        - name: manager
+          resources:
+            requests:
+              cpu: 10m
+              memory: 156Mi
+            limits:
+              cpu: null
+              memory: 156Mi
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: kustomize-controller
+  namespace: flux-system
+spec:
+  template:
+    spec:
+      containers:
+        - name: manager
+          resources:
+            requests:
+              cpu: 12m
+              memory: 131Mi
+            limits:
+              cpu: null
+              memory: 131Mi
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: notification-controller
+  namespace: flux-system
+spec:
+  template:
+    spec:
+      containers:
+        - name: manager
+          resources:
+            requests:
+              cpu: 10m
+              memory: 100Mi
+            limits:
+              cpu: null
+              memory: 100Mi
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: source-controller
+  namespace: flux-system
+spec:
+  template:
+    spec:
+      containers:
+        - name: manager
+          resources:
+            requests:
+              cpu: 10m
+              memory: 207Mi
+            limits:
+              cpu: null
+              memory: 207Mi

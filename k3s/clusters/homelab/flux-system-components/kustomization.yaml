@@ -1,0 +1,16 @@
+# k3s/clusters/homelab/flux-system-components/kustomization.yaml
+#
+# Manages Flux controller Deployments via the kustomize-controller.
+#
+# This directory lives next to flux-system/ but does NOT include gotk-sync.yaml
+# (gotk-sync.yaml points its Kustomization at ./k3s/clusters/homelab, which would
+# create a circular reference if this dir were listed in the parent kustomization).
+# Instead, only the controller manifests are here, with patches to right-size the
+# 4 running controllers and drop the 3 unused ones from the kustomize build.
+apiVersion: kustomize.config.k8s.io/v1beta1
+kind: Kustomization
+resources:
+  - gotk-components.yaml
+patches:
+  - path: resource-patch.yaml
+  - path: remove-unused.yaml
