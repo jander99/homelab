@@ -35,3 +35,20 @@ spec:
             # uses for its default node affinity.
             deviceLabelFields:
               - vendor
+    # Resource tuning (2026-06-02 krr recommendations): drop memory limits,
+    # set requests to observed P95 usage. The chart default has no CPU limit
+    # and unbounded memory; this pins memory to the krr recommendation.
+    master:
+      resources:
+        requests:
+          cpu: 10m
+          memory: 100Mi
+        limits:
+          memory: 100Mi
+    gc:
+      resources:
+        requests:
+          cpu: 10m
+          memory: 100Mi
+        limits:
+          memory: 100Mi
