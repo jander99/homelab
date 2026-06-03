@@ -55,11 +55,13 @@ spec:
           - sourceLabels: [__name__]
             regex: "apiserver_.*|scheduler_.*"
             action: drop
-    # Resource tuning (2026-06-02 krr recommendations): subcharts that were
-    # deployed with no resources get a 10m baseline request and a memory limit
-    # pinned to observed P95. CPU limits stay unset (over-provisioned on this
-    # small cluster; throttling would hurt scrape reliability).
-    kubeStateMetrics:
+    # Resource tuning (2026-06-02 krr recommendations). KSM uses the subchart's
+    # own dependency name (kube-state-metrics, hyphenated) as the values key.
+    # Grafana sidecar resources is a single block — the chart applies it to all
+    # 11 sidecar container definitions; per-sidecar overrides are not supported.
+    # CPU limits stay unset (throttling would hurt scrape reliability on this
+    # single-node cluster).
+    kube-state-metrics:
       resources:
         requests:
           cpu: 10m
@@ -73,7 +75,6 @@ spec:
           memory: 100Mi
         limits:
           memory: 100Mi
-
 
     # Prometheus configuration
     prometheus:
@@ -152,20 +153,12 @@ spec:
       initChownData:
         enabled: false
       sidecar:
-        dashboards:
-          resources:
-            requests:
-              cpu: 10m
-              memory: 111Mi
-            limits:
-              memory: 111Mi
-        datasources:
-          resources:
-            requests:
-              cpu: 10m
-              memory: 100Mi
-            limits:
-              memory: 100Mi
+        resources:
+          requests:
+            cpu: 10m
+            memory: 100Mi
+          limits:
+            memory: 100Mi
 
       envFromSecret: grafana-oidc-secret
       grafana.ini:
