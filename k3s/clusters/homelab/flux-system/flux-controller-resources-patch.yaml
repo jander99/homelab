@@ -1,0 +1,84 @@
+---
+# Strategic merge patches for the four Flux controllers in gotk-components.yaml.
+# Applied by flux-system/kustomization.yaml; targets the manager container of each
+# Deployment. Drops the 1.0 CPU limit (10-100x over-provisioned) and aligns memory
+# limits with requests. Values are the 2026-06-02 krr recommendations.
+#
+# `cpu: null` in a strategic merge patch removes the field (kustomize idiom);
+# preserving it would leave the 1000m default in place.
+#
+# Scope note: the other 3 controllers in gotk-components.yaml (image-automation,
+# image-reflector-controller, source-watcher) are NOT installed in the cluster and
+# were not in the krr report. Patching them here would cause them to be deployed
+# with these resources on next reconcile — out of scope for the easy-wins change.
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: helm-controller
+  namespace: flux-system
+spec:
+  template:
+    spec:
+      containers:
+        - name: manager
+          resources:
+            requests:
+              cpu: 10m
+              memory: 156Mi
+            limits:
+              cpu: null
+              memory: 156Mi
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: kustomize-controller
+  namespace: flux-system
+spec:
+  template:
+    spec:
+      containers:
+        - name: manager
+          resources:
+            requests:
+              cpu: 12m
+              memory: 131Mi
+            limits:
+              cpu: null
+              memory: 131Mi
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: notification-controller
+  namespace: flux-system
+spec:
+  template:
+    spec:
+      containers:
+        - name: manager
+          resources:
+            requests:
+              cpu: 10m
+              memory: 100Mi
+            limits:
+              cpu: null
+              memory: 100Mi
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: source-controller
+  namespace: flux-system
+spec:
+  template:
+    spec:
+      containers:
+        - name: manager
+          resources:
+            requests:
+              cpu: 10m
+              memory: 207Mi
+            limits:
+              cpu: null
+              memory: 207Mi

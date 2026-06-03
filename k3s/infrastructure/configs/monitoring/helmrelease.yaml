@@ -55,6 +55,25 @@ spec:
           - sourceLabels: [__name__]
             regex: "apiserver_.*|scheduler_.*"
             action: drop
+    # Resource tuning (2026-06-02 krr recommendations): subcharts that were
+    # deployed with no resources get a 10m baseline request and a memory limit
+    # pinned to observed P95. CPU limits stay unset (over-provisioned on this
+    # small cluster; throttling would hurt scrape reliability).
+    kubeStateMetrics:
+      resources:
+        requests:
+          cpu: 10m
+          memory: 127Mi
+        limits:
+          memory: 127Mi
+    prometheusOperator:
+      resources:
+        requests:
+          cpu: 10m
+          memory: 100Mi
+        limits:
+          memory: 100Mi
+
 
     # Prometheus configuration
     prometheus:
@@ -67,8 +86,8 @@ spec:
         probeSelectorNilUsesHelmValues: false
         resources:
           requests:
-            cpu: 100m
-            memory: 1Gi
+            cpu: 51m
+            memory: 966Mi
           limits:
             memory: 2Gi
         storageSpec:
@@ -132,6 +151,22 @@ spec:
           memory: 1Gi
       initChownData:
         enabled: false
+      sidecar:
+        dashboards:
+          resources:
+            requests:
+              cpu: 10m
+              memory: 111Mi
+            limits:
+              memory: 111Mi
+        datasources:
+          resources:
+            requests:
+              cpu: 10m
+              memory: 100Mi
+            limits:
+              memory: 100Mi
+
       envFromSecret: grafana-oidc-secret
       grafana.ini:
         server:
