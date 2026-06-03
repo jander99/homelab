@@ -51,6 +51,8 @@ spec:
               value: "0.0.0.0:9130"
             - name: UP_UNIFI_DEFAULT_SAVE_SITES
               value: "true"
+            - name: UP_INFLUXDB_DISABLE
+              value: "true"
           startupProbe:
             tcpSocket:
               port: metrics
