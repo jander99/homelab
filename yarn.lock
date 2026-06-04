@@ -280,19 +280,19 @@ __metadata:
   languageName: node
   linkType: hard
 
+"@types/node@npm:24.12.4":
+  version: 24.12.4
+  resolution: "@types/node@npm:24.12.4"
+  dependencies:
+    undici-types: "npm:~7.16.0"
+  checksum: 10c0/d2c36b78b6050d8677769fa05a32243061675e81ddc2bb43955d91a671af3465506ef2731a24c0c9ab42b6b679bd5c1513de45bbe9ea278c2c07ee63b564b61b
+  languageName: node
+  linkType: hard
+
 "@types/node@npm:^16":
   version: 16.18.126
   resolution: "@types/node@npm:16.18.126"
   checksum: 10c0/5c137eb141d33de32b16ff26047ff6d449432b58d0d25f7cced2040c97727d81fe1099a7581eb336d14a6840f5b09e363bdd43d7a6995e8e81eb47aa51e413fc
-  languageName: node
-  linkType: hard
-
-"@types/node@npm:^18.0.0":
-  version: 18.19.130
-  resolution: "@types/node@npm:18.19.130"
-  dependencies:
-    undici-types: "npm:~5.26.4"
-  checksum: 10c0/22ba2bc9f8863101a7e90a56aaeba1eb3ebdc51e847cef4a6d188967ab1acbce9b4f92251372fd0329ecb924bbf610509e122c3dfe346c04dbad04013d4ad7d0
   languageName: node
   linkType: hard
 
@@ -550,7 +550,7 @@ __metadata:
   languageName: node
   linkType: hard
 
-"cdk8s-cli@npm:^2.206.10":
+"cdk8s-cli@npm:2.206.10":
   version: 2.206.10
   resolution: "cdk8s-cli@npm:2.206.10"
   dependencies:
@@ -589,7 +589,7 @@ __metadata:
   languageName: node
   linkType: hard
 
-"cdk8s@npm:^2.70.58, cdk8s@npm:^2.70.59":
+"cdk8s@npm:2.70.59, cdk8s@npm:^2.70.58":
   version: 2.70.59
   resolution: "cdk8s@npm:2.70.59"
   dependencies:
@@ -606,12 +606,12 @@ __metadata:
   version: 0.0.0-use.local
   resolution: "cdk8s@workspace:applications/cdk8s"
   dependencies:
-    "@types/node": "npm:^18.0.0"
-    cdk8s: "npm:^2.70.59"
-    cdk8s-cli: "npm:^2.206.10"
-    constructs: "npm:^10.6.0"
-    ts-node: "npm:^10.9.2"
-    typescript: "npm:~5.4.5"
+    "@types/node": "npm:24.12.4"
+    cdk8s: "npm:2.70.59"
+    cdk8s-cli: "npm:2.206.10"
+    constructs: "npm:10.6.0"
+    ts-node: "npm:10.9.2"
+    typescript: "npm:6.0.3"
   languageName: unknown
   linkType: soft
 
@@ -740,7 +740,7 @@ __metadata:
   languageName: node
   linkType: hard
 
-"constructs@npm:^10.6.0":
+"constructs@npm:10.6.0, constructs@npm:^10.6.0":
   version: 10.6.0
   resolution: "constructs@npm:10.6.0"
   checksum: 10c0/67fbd1719698509b527d2d7c1f8a6ac26d91eaf15edc69fedebc71100abf4d8ebc306184883fbb677299d6fd9c2dcbbea80db0e4201564f88f9ff88f15d6668f
@@ -2279,7 +2279,7 @@ __metadata:
   languageName: node
   linkType: hard
 
-"ts-node@npm:^10.9.2":
+"ts-node@npm:10.9.2":
   version: 10.9.2
   resolution: "ts-node@npm:10.9.2"
   dependencies:
@@ -2335,13 +2335,13 @@ __metadata:
   languageName: node
   linkType: hard
 
-"typescript@npm:~5.4.5":
-  version: 5.4.5
-  resolution: "typescript@npm:5.4.5"
+"typescript@npm:6.0.3":
+  version: 6.0.3
+  resolution: "typescript@npm:6.0.3"
   bin:
     tsc: bin/tsc
     tsserver: bin/tsserver
-  checksum: 10c0/2954022ada340fd3d6a9e2b8e534f65d57c92d5f3989a263754a78aba549f7e6529acc1921913560a4b816c46dce7df4a4d29f9f11a3dc0d4213bb76d043251e
+  checksum: 10c0/4a25ff5045b984370f48f196b3a0120779b1b343d40b9a68d114ea5e5fff099809b2bb777576991a63a5cd59cf7bffd96ff6fe10afcefbcb8bd6fb96ad4b6606
   languageName: node
   linkType: hard
 
@@ -2355,13 +2355,13 @@ __metadata:
   languageName: node
   linkType: hard
 
-"typescript@patch:typescript@npm%3A~5.4.5#optional!builtin<compat/typescript>":
-  version: 5.4.5
-  resolution: "typescript@patch:typescript@npm%3A5.4.5#optional!builtin<compat/typescript>::version=5.4.5&hash=5adc0c"
+"typescript@patch:typescript@npm%3A6.0.3#optional!builtin<compat/typescript>":
+  version: 6.0.3
+  resolution: "typescript@patch:typescript@npm%3A6.0.3#optional!builtin<compat/typescript>::version=6.0.3&hash=5786d5"
   bin:
     tsc: bin/tsc
     tsserver: bin/tsserver
-  checksum: 10c0/db2ad2a16ca829f50427eeb1da155e7a45e598eec7b086d8b4e8ba44e5a235f758e606d681c66992230d3fc3b8995865e5fd0b22a2c95486d0b3200f83072ec9
+  checksum: 10c0/2f25c74e65663c248fa1ade2b8459d9ce5372ff9dad07067310f132966ebec1d93f6c42f0baf77a6b6a7a91460463f708e6887013aaade22111037457c6b25df
   languageName: node
   linkType: hard
 
@@ -2375,10 +2375,10 @@ __metadata:
   languageName: node
   linkType: hard
 
-"undici-types@npm:~5.26.4":
-  version: 5.26.5
-  resolution: "undici-types@npm:5.26.5"
-  checksum: 10c0/bb673d7876c2d411b6eb6c560e0c571eef4a01c1c19925175d16e3a30c4c428181fb8d7ae802a261f283e4166a0ac435e2f505743aa9e45d893f9a3df017b501
+"undici-types@npm:~7.16.0":
+  version: 7.16.0
+  resolution: "undici-types@npm:7.16.0"
+  checksum: 10c0/3033e2f2b5c9f1504bdc5934646cb54e37ecaca0f9249c983f7b1fc2e87c6d18399ebb05dc7fd5419e02b2e915f734d872a65da2e3eeed1813951c427d33cc9a
   languageName: node
   linkType: hard
 

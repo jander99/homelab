@@ -11,9 +11,9 @@
     "constructs": "10.6.0"
   },
   "devDependencies": {
-    "@types/node": "18.19.130",
+    "@types/node": "24.12.4",
     "cdk8s-cli": "2.206.10",
     "ts-node": "10.9.2",
-    "typescript": "5.4.5"
+    "typescript": "6.0.3"
   }
 }
