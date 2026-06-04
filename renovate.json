@@ -13,10 +13,14 @@
     ".venv*/**"
   ],
   "flux": {
-    "fileMatch": ["(^|/)k3s/.+\\.yaml$"]
+    "managerFilePatterns": [
+      "/(^|/)k3s/.+\\.yaml$/"
+    ]
   },
   "kubernetes": {
-    "fileMatch": ["(^|/)k3s/.+\\.yaml$"]
+    "managerFilePatterns": [
+      "/(^|/)k3s/.+\\.yaml$/"
+    ]
   },
   "packageRules": [
     {
