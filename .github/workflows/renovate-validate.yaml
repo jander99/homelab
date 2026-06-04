@@ -9,7 +9,7 @@ permissions:
   contents: read
 
 env:
-  RENOVATE_VERSION: "39.264.1"
+  RENOVATE_VERSION: "40.5.0"
 jobs:
   validate:
     runs-on: ubuntu-latest
