@@ -14,3 +14,4 @@ resources:
   - sabnzbd.yaml
   - qbittorrent.yaml
   - sense-exporter.yaml
+  - unpoller.yaml
