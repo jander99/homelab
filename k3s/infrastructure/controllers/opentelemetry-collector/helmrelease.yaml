@@ -69,8 +69,12 @@ spec:
           allocatable_types_to_report: [cpu, memory, ephemeral-storage, pods]
         # Extend the preset's kubeletstats with the four "node utilization"
         # gauge metrics that aren't on by default. Endpoint/auth come from
-        # the preset (env: K8S_NODE_IP, serviceAccount).
+        # the preset (env: K8S_NODE_IP, serviceAccount). `node` must be set
+        # explicitly when the node-utilization metrics are enabled — the
+        # receiver's Validate() returns an error otherwise (the preset
+        # itself doesn't set it, which is an upstream chart gap).
         kubeletstats:
+          node: "${env:K8S_NODE_NAME}"
           metrics:
             k8s.container.cpu.node.utilization:
               enabled: true
