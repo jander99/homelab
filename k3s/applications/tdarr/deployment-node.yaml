@@ -49,11 +49,11 @@ spec:
             - name: transcodecpuWorkers
               value: "0"
             - name: transcodegpuWorkers
-              value: "1"
+              value: "2"
             - name: healthcheckcpuWorkers
               value: "0"
             - name: healthcheckgpuWorkers
-              value: "2"
+              value: "1"
           resources:
             requests:
               cpu: 2000m
