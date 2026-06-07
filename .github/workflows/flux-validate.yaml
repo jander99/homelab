@@ -1,12 +1,25 @@
 name: Flux Validate
 
 on:
+
   pull_request:
+
     paths:
+
       - "k3s/**"
+
       - "applications/cdk8s/**"
+
       - "package.json"
+
       - "yarn.lock"
+
+      - ".github/workflows/**"
+
+      - ".yamllint.yaml"
+
+      - ".pre-commit-config.yaml"
+
   workflow_dispatch:
 
 permissions:
