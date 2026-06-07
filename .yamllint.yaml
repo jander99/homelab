@@ -1,0 +1,66 @@
+---
+# yamllint configuration for homelab.
+#
+# The indentation rule is the most important one — it's the rule that
+# would have caught the bug in PR #188 where two `value:` lines under
+# an env list lost 2 spaces of leading indent and broke kustomize build.
+#
+# Line-length, document-start, and truthy are disabled because:
+#   - K8s/Helm YAML frequently has long labels and matchExpressions
+#   - K8s manifests in this repo don't consistently use `---`
+#   - GitHub Actions triggers (`on: pull_request:`, `on: workflow_dispatch:`)
+#     have null values that yamllint flags as truthy by design
+#
+# Extend yamllint's `default` ruleset and override only what we need.
+extends: default
+
+# Files yamllint should not touch. These are out of scope for our linter:
+#   - gotk-components.yaml / gotk-sync.yaml : Flux-generated, untouched by hand
+#   - *.sops.yaml                            : SOPS-encrypted, base64 content
+#   - k3s/bootstrap/ansible/                 : Ansible playbooks, not K8s YAML
+#   - node_modules/                          : frontend deps (future-proofing)
+ignore: |
+  **/gotk-components.yaml
+  **/gotk-sync.yaml
+  **/*.sops.yaml
+  k3s/bootstrap/ansible/**
+  node_modules/
+
+rules:
+  # Hard-disable rules that don't fit this repo
+  line-length: disable
+  document-start: disable
+  truthy: disable
+  octal-values: disable
+
+  # Stricter empty-lines: 2 max consecutive (was 2 already, but be explicit)
+  empty-lines:
+    max: 2
+    max-start: 0
+    max-end: 0
+
+  # Indentation is the headline rule. Enforce consistent 2-space
+  # indentation for sequences and block mappings. This is what catches
+  # the "dropped 2 spaces under an env list" class of bug.
+  indentation:
+    spaces: 2
+    indent-sequences: consistent
+    check-multi-line-strings: false
+
+  # Don't tolerate trailing spaces anywhere
+  trailing-spaces: enable
+
+  # A new line at end of file is conventional and matches POSIX
+  new-line-at-end-of-file: enable
+
+  # Catch duplicate keys (silent overrides)
+  key-duplicates: enable
+
+  # Braces and brackets: warn-only, since some of the existing
+  # workflow files use them with internal whitespace
+  braces:
+    min-spaces-inside: 0
+    max-spaces-inside: 1
+  brackets:
+    min-spaces-inside: 0
+    max-spaces-inside: 1

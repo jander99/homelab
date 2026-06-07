@@ -1,12 +1,25 @@
 name: Flux Validate
 
 on:
+
   pull_request:
+
     paths:
+
       - "k3s/**"
+
       - "applications/cdk8s/**"
+
       - "package.json"
+
       - "yarn.lock"
+
+      - ".github/workflows/**"
+
+      - ".yamllint.yaml"
+
+      - ".pre-commit-config.yaml"
+
   workflow_dispatch:
 
 permissions:
@@ -17,6 +30,7 @@ env:
   FLUX_LOCAL_VERSION: "8.2.0"
   KUSTOMIZE_VERSION: "v5.7.1"
   FLUX_VERSION: "2.8.7"
+  YAMLLINT_VERSION: "1.38.0"
 
 jobs:
   flux-validate:
@@ -50,6 +64,9 @@ jobs:
       - name: Install flux-local
         run: pip install flux-local==${{ env.FLUX_LOCAL_VERSION }}
 
+      - name: Install yamllint
+        run: pip install yamllint==${{ env.YAMLLINT_VERSION }}
+
       - name: Configure SOPS age key
         env:
           SOPS_AGE_KEY_CONTENT: ${{ secrets.SOPS_AGE_KEY }}
@@ -62,6 +79,20 @@ jobs:
             echo "No SOPS_AGE_KEY secret set; encrypted kustomizations will be skipped"
           fi
 
+      - name: Lint YAML
+        # Catches indentation, trailing-space, duplicate-key, and other
+        # YAML bugs that the kustomize-build step would only report
+        # opaquely. Scoped to k3s/** and .github/workflows/** to avoid
+        # noise from docker/** (existing trailing-space issues tracked
+        # separately).
+        run: |
+          yamllint -c .yamllint.yaml \
+            k3s/applications/ \
+            k3s/infrastructure/ \
+            k3s/platform/ \
+            k3s/clusters/homelab/ \
+            .github/workflows/
+
       - name: flux-local test
         id: flux_test
         run: |
@@ -72,8 +103,11 @@ jobs:
 
       - name: flux-local diff
         id: flux_diff
+        # NOTE: no `continue-on-error: true` here. A diff failure is a
+        # real signal that the kustomize build is broken (see PR #188
+        # for the indentation bug this caught). The `if: always()`
+        # still lets the post-comment step run regardless.
         if: always()
-        continue-on-error: true
         run: |
           set -o pipefail
           flux-local diff ks --path k3s/clusters/homelab --skip-invalid-kustomization-paths --branch-orig origin/master 2>&1 | tee /tmp/flux-diff-output.txt
