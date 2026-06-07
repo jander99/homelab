@@ -17,9 +17,10 @@ spec:
         namespace: flux-system
       interval: 12h
   values:
-    # Contrib "kube" distribution. Provides kubeletstats, k8scluster, hostmetrics
-    # on top of the core receivers. K8S_NODE_NAME is supplied via downward API
-    # by the chart's DaemonSet template.
+    # Contrib "kube" distribution. Provides kubeletstats, k8s_cluster,
+    # hostmetrics on top of the core receivers. Node identity is supplied
+    # via downward API as OTEL_K8S_NODE_NAME (chart convention, not the
+    # bare K8S_NODE_NAME).
     mode: daemonset
 
     image:
@@ -34,18 +35,24 @@ spec:
     config:
       receivers:
         # Cluster-wide condition/allocatable metrics from the K8s API.
-        k8scluster:
+        # The receiver type is `k8s_cluster` (with underscore) — the bare
+        # word `k8scluster` is not registered and the collector refuses
+        # to start with it in the config.
+        k8s_cluster:
           auth_type: serviceAccount
           collection_interval: 30s
           node_conditions_to_report: [Ready, MemoryPressure, DiskPressure]
           allocatable_types_to_report: [cpu, memory, ephemeral-storage, pods]
         # Per-node kubelet metrics (CPU, memory, network, fs at the pod level).
+        # The chart's DaemonSet template sets OTEL_K8S_NODE_NAME via the
+        # downward API — that's the env var the receiver resolves to find
+        # the local kubelet.
         kubeletstats:
           auth_type: serviceAccount
-          endpoint: "${env:K8S_NODE_NAME}:10250"
+          endpoint: "${env:OTEL_K8S_NODE_NAME}:10250"
           insecure_skip_verify: true
           collection_interval: 30s
-          node: "${env:K8S_NODE_NAME}"
+          node: "${env:OTEL_K8S_NODE_NAME}"
           k8s_api_config:
             auth_type: serviceAccount
           metrics:
@@ -94,8 +101,10 @@ spec:
         batch:
           send_batch_size: 1024
           timeout: 5s
+        # The K8s detector in the resourcedetection processor is registered
+        # as `k8s` (short name), distinct from the k8s_cluster receiver.
         resourcedetection:
-          detectors: [env, k8scluster]
+          detectors: [env, k8s]
 
       exporters:
         # Forward received traces to the in-cluster Tempo monolithic.
@@ -122,7 +131,7 @@ spec:
             processors: [memory_limiter, batch, resourcedetection]
             exporters: [otlp]
           metrics:
-            receivers: [otlp, k8scluster, kubeletstats, hostmetrics]
+            receivers: [otlp, k8s_cluster, kubeletstats, hostmetrics]
             processors: [memory_limiter, batch, resourcedetection]
             exporters: [debug]
           logs:
@@ -130,7 +139,7 @@ spec:
             processors: [memory_limiter, batch, resourcedetection]
             exporters: [debug]
 
-    # RBAC: the k8scluster and kubeletstats receivers need read access to
+    # RBAC: the k8s_cluster and kubeletstats receivers need read access to
     # pods, nodes, namespaces, services, and replicasets. The chart builds
     # the ClusterRole + ClusterRoleBinding off the ServiceAccount when
     # `clusterRole.create: true` is set, so no separate `rbac:` block.
