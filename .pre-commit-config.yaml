@@ -1,0 +1,46 @@
+---
+# Pre-commit hooks for homelab.
+#
+# Install once:
+#   pip install pre-commit
+#   pre-commit install
+#
+# Run on demand:
+#   pre-commit run --all-files
+#
+# The yamllint hook matches the CI check in flux-validate.yaml so the
+# same indentation / trailing-space / duplicate-key rules fire on
+# `git commit` instead of waiting for a PR. Catches the class of bug
+# from PR #188 (env list with inconsistent indent) at commit time.
+repos:
+  - repo: https://github.com/pre-commit/pre-commit-hooks
+    rev: v5.0.0
+    hooks:
+      - id: trailing-whitespace
+        # SOPS-encrypted files have padding trailing whitespace on
+        # purpose; the data block is fixed-width base64.
+        exclude: '\.sops\.ya?ml$'
+      - id: end-of-file-fixer
+        exclude: '\.sops\.ya?ml$'
+      - id: check-merge-conflict
+      - id: check-yaml
+        # yamllint (below) does the real validation; this one just
+        # parses. Disable its key-duplicates and indentation rules so
+        # it doesn't double-fail on the same thing.
+        args: ['--allow-multiple-documents']
+        exclude: '\.sops\.ya?ml$'
+      - id: mixed-line-ending
+        args: ['--fix=lf']
+        exclude: '\.sops\.ya?ml$'
+
+  - repo: https://github.com/adrienverge/yamllint
+    rev: v1.38.0
+    hooks:
+      - id: yamllint
+        # Use the project-level config; if absent yamllint uses its
+        # built-in default (which would fail the existing repo on
+        # line-length, document-start, and truthy).
+        args: ['-c', '.yamllint.yaml']
+        # Mirror the CI scope so devs and CI agree on what gets linted.
+        files: '^(k3s/|\.github/workflows/)'
+        exclude: '\.sops\.ya?ml$'
