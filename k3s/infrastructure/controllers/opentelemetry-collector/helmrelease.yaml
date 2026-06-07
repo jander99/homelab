@@ -129,12 +129,12 @@ spec:
             exporters: [debug]
 
     # RBAC: the k8scluster and kubeletstats receivers need read access to
-    # pods, nodes, namespaces, services, and replicasets.
+    # pods, nodes, namespaces, services, and replicasets. The chart builds
+    # the ClusterRole + ClusterRoleBinding off the ServiceAccount when
+    # `clusterRole.create: true` is set, so no separate `rbac:` block.
     serviceAccount:
       create: true
     clusterRole:
-      create: true
-    rbac:
       create: true
 
     # hostmetrics needs the host's /proc, /sys, and containerd socket mounted.
