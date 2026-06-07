@@ -1,0 +1,60 @@
+---
+apiVersion: helm.toolkit.fluxcd.io/v2
+kind: HelmRelease
+metadata:
+  name: tempo
+  namespace: telemetry
+spec:
+  interval: 1h
+  timeout: 10m
+  chart:
+    spec:
+      chart: tempo
+      version: "2.2.0"
+      sourceRef:
+        kind: HelmRepository
+        name: grafana-community
+        namespace: flux-system
+      interval: 12h
+  values:
+    # Single-binary (monolithic) mode is the chart's only deployment topology.
+    # Reasonable for a testbed; scales to ~hundreds of spans/sec.
+    tempo:
+      reportingEnabled: false
+      retention: 168h  # 7 days
+      # OTLP receivers are enabled by the chart's default values
+      # (grpc :4317, http :4318). Retention/ingester/querier are tuned below.
+      ingester:
+        trace_idle_period: 10s
+        max_block_duration: 5m
+        complete_block_timeout: 10m
+      querier:
+        max_concurrent_queries: 20
+      # Resources tuned for a single-node testbed. CPU limits stay unset
+      # (Go GC throttling is a footgun on this class of workload).
+      resources:
+        requests:
+          cpu: 50m
+          memory: 256Mi
+        limits:
+          memory: 512Mi
+
+    # 5Gi is enough for ~7 days of cluster-telemetry traces on a testbed.
+    # local-path matches the rest of the cluster (kube-prometheus-stack).
+    persistence:
+      enabled: true
+      enableStatefulSetAutoDeletePVC: false
+      storageClassName: local-path
+      accessModes:
+        - ReadWriteOnce
+      size: 5Gi
+
+    # No ingress on Tempo — queries flow through Grafana, which dials
+    # http://tempo.telemetry.svc.cluster.local:3200 in-cluster.
+
+    service:
+      type: ClusterIP
+      targetPort: 3200
+
+    serviceAccount:
+      create: true

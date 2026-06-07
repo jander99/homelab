@@ -1,0 +1,31 @@
+---
+# Grafana datasource for Tempo (traces). Picked up by the kube-prometheus-stack
+# Grafana sidecar via the `grafana_datasource: "1"` label.
+# Cluster-internal URL only — Grafana dials Tempo via the in-cluster service DNS.
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: grafana-datasource-tempo
+  namespace: monitoring
+  labels:
+    grafana_datasource: "1"
+data:
+  datasources.yaml: |
+    apiVersion: 1
+    deleteDatasources:
+      - name: Tempo
+        orgId: 1
+    datasources:
+      - name: Tempo
+        uid: tempo
+        type: tempo
+        access: proxy
+        url: http://tempo.telemetry.svc.cluster.local:3200
+        isDefault: false
+        editable: false
+        jsonData:
+          httpMethod: GET
+          serviceMap:
+            datasourceUid: prometheus
+          nodeGraph:
+            enabled: true

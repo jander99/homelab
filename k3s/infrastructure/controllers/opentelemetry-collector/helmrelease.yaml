@@ -1,0 +1,167 @@
+---
+apiVersion: helm.toolkit.fluxcd.io/v2
+kind: HelmRelease
+metadata:
+  name: opentelemetry-collector
+  namespace: telemetry
+spec:
+  interval: 1h
+  timeout: 10m
+  chart:
+    spec:
+      chart: opentelemetry-collector
+      version: "0.155.0"
+      sourceRef:
+        kind: HelmRepository
+        name: open-telemetry
+        namespace: flux-system
+      interval: 12h
+  values:
+    # Contrib "kube" distribution. Provides kubeletstats, k8scluster, hostmetrics
+    # on top of the core receivers. K8S_NODE_NAME is supplied via downward API
+    # by the chart's DaemonSet template.
+    mode: daemonset
+
+    image:
+      repository: ghcr.io/open-telemetry/opentelemetry-collector-releases/opentelemetry-collector-k8s
+      tag: "0.155.0"
+
+    command:
+      name: otelcol-k8s
+
+    config:
+      receivers:
+        # Cluster-wide condition/allocatable metrics from the K8s API.
+        k8scluster:
+          auth_type: serviceAccount
+          collection_interval: 30s
+          node_conditions_to_report: [Ready, MemoryPressure, DiskPressure]
+          allocatable_types_to_report: [cpu, memory, ephemeral-storage, pods]
+        # Per-node kubelet metrics (CPU, memory, network, fs at the pod level).
+        kubeletstats:
+          auth_type: serviceAccount
+          endpoint: "${env:K8S_NODE_NAME}:10250"
+          insecure_skip_verify: true
+          collection_interval: 30s
+          node: "${env:K8S_NODE_NAME}"
+          k8s_api_config:
+            auth_type: serviceAccount
+          metrics:
+            k8s.container.cpu.node.utilization:
+              enabled: true
+            k8s.pod.cpu.node.utilization:
+              enabled: true
+            k8s.container.memory.node.utilization:
+              enabled: true
+            k8s.pod.memory.node.utilization:
+              enabled: true
+        # Host-level metrics — needs /proc and /sys mounted (see extraVolumes).
+        hostmetrics:
+          collection_interval: 30s
+          scrapers:
+            cpu: {}
+            memory: {}
+            disk: {}
+            filesystem:
+              mount_points:
+                - mount_path: /
+                  fs_type: ext4
+                - mount_path: /var/lib/containerd
+              exclude_mount_points:
+                - mount_path: /proc*
+                - mount_path: /sys*
+                - mount_path: /dev/*
+                - mount_path: /var/lib/kubelet/*
+            load: {}
+            paging: {}
+            network: {}
+            processes: {}
+        # OTLP receiver — apps can ship traces/metrics/logs to us on 4317/4318.
+        otlp:
+          protocols:
+            grpc:
+              endpoint: 0.0.0.0:4317
+            http:
+              endpoint: 0.0.0.0:4318
+
+      processors:
+        memory_limiter:
+          check_interval: 5s
+          limit_percentage: 80
+          spike_limit_percentage: 20
+        batch:
+          send_batch_size: 1024
+          timeout: 5s
+        resourcedetection:
+          detectors: [env, k8scluster]
+
+      exporters:
+        # Forward received traces to the in-cluster Tempo monolithic.
+        otlp:
+          endpoint: tempo.telemetry.svc.cluster.local:4317
+          tls:
+            insecure: true
+        # Local debug exporter for metrics/logs (stdout) — cheap to leave on
+        # for visibility until a metrics pipeline is wired into Prometheus.
+        debug: {}
+
+      extensions:
+        health_check: {}
+        k8s_observer:
+          auth_type: serviceAccount
+          observe_pods: true
+          observe_nodes: true
+
+      service:
+        extensions: [health_check, k8s_observer]
+        pipelines:
+          traces:
+            receivers: [otlp]
+            processors: [memory_limiter, batch, resourcedetection]
+            exporters: [otlp]
+          metrics:
+            receivers: [otlp, k8scluster, kubeletstats, hostmetrics]
+            processors: [memory_limiter, batch, resourcedetection]
+            exporters: [debug]
+          logs:
+            receivers: [otlp]
+            processors: [memory_limiter, batch, resourcedetection]
+            exporters: [debug]
+
+    # RBAC: the k8scluster and kubeletstats receivers need read access to
+    # pods, nodes, namespaces, services, and replicasets.
+    serviceAccount:
+      create: true
+    clusterRole:
+      create: true
+    rbac:
+      create: true
+
+    # hostmetrics needs the host's /proc, /sys, and containerd socket mounted.
+    extraVolumes:
+      - name: host-proc
+        hostPath:
+          path: /proc
+      - name: host-sys
+        hostPath:
+          path: /sys
+      - name: host-containerd
+        hostPath:
+          path: /var/run/containerd
+    extraVolumeMounts:
+      - name: host-proc
+        mountPath: /hostfs/proc
+        readOnly: true
+      - name: host-sys
+        mountPath: /hostfs/sys
+        readOnly: true
+      - name: host-containerd
+        mountPath: /var/run/containerd
+        readOnly: true
+
+    resources:
+      requests:
+        cpu: 50m
+        memory: 128Mi
+      limits:
+        memory: 256Mi

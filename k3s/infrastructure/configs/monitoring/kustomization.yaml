@@ -20,3 +20,4 @@ resources:
   - prometheusrule-flux.yaml
   - prometheusrule-cert-manager.yaml
   - podmonitor-cert-manager.yaml
+  - grafanadatasource-tempo.yaml
