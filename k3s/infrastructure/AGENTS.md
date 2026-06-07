@@ -51,10 +51,10 @@ Flux Kustomization `infra-configs` has `dependsOn: [infra-controllers]`. This gu
 ### opentelemetry-collector
 - **Chart**: `open-telemetry/opentelemetry-collector` v0.155.0 (contrib "kube" image, appVersion 0.151.0) | namespace: `telemetry`
 - **Mode**: `daemonset` — one pod per node (single on the testbed, scales to N on HA cluster)
-- **Presets enabled**: `clusterMetrics`, `hostMetrics`, `kubeletMetrics`, `resourceDetection` — the chart generates correct receiver/ClusterRole/host-mount config for these, including `k8s_leader_elector` for the daemonset k8s_cluster receiver
-- **Custom receivers layered on top**: `otlp` (grpc :4317, http :4318) for app-side opt-ins; `k8s_cluster.distribution: kubernetes` (required by Validate() but the chart doesn't set it); `kubeletstats.metrics` enabling the four node-utilization gauges
+- **Presets enabled**: `clusterMetrics`, `hostMetrics`, `kubeletMetrics`, `resourceDetection` — the chart generates correct receiver/ClusterRole/host-mount config for these, including `k8s_leader_elector` for the daemonset k8s_cluster receiver. The chart also auto-adds the `resourcedetection/env` processor to the traces pipeline when the resourceDetection preset is enabled.
+- **Custom receivers layered on top**: `otlp` (grpc :4317, http :4318) for app-side opt-ins; `k8s_cluster.node_conditions_to_report` / `allocatable_types_to_report` extensions; `kubeletstats.node: "${env:K8S_NODE_NAME}"` (required by Validate() when node-utilization metrics are enabled; the preset doesn't set it) and `kubeletstats.metrics` enabling the four node-utilization gauges
 - **Exporters**: `otlp` → `tempo.telemetry.svc.cluster.local:4317`; `debug` (stdout) for metrics/logs
-- **Processors**: `memory_limiter`, `batch`, `resourcedetection` (detectors: `env`, `k8s_api`)
+- **Processors**: `memory_limiter`, `batch` (custom); `resourcedetection/env` (chart preset, auto-added to traces pipeline; detectors: `env`, `k8snode` — `k8snode` is the only registered K8s detector in v0.151.0; the `k8s_api` rename is a future-version change)
 - **Extensions**: `health_check` (chart default) — no k8s_observer/receiver_creator; we don't do annotation-based discovery
 - **Host mounts**: provided by the `hostMetrics` preset (hostfs → /, propagated HostToContainer)
 

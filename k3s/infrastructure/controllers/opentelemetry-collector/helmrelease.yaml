@@ -46,25 +46,28 @@ spec:
         enabled: true
         # This preset also sets the K8S_NODE_NAME / K8S_NODE_IP env vars
         # via downward API, which the kubeletstats receiver and the
-        # k8s_api resource detector both consume.
+        # resourcedetection k8snode detector both consume.
       resourceDetection:
         enabled: true
         env:
           enabled: true
-        # The chart's default uses the deprecated `k8snode` detector
-        # name. Disable it and add `k8s_api` (the non-deprecated name)
-        # via the custom config below.
+        # k8snode is the ONLY registered K8s detector in the v0.151.0
+        # collector binary (verified against factory.go at the matching
+        # git tag). The `k8s_api` rename is a future-version change.
+        # Leave the chart's default (k8snode.enabled: true). The chart's
+        # _config.tpl automatically adds the `resourcedetection/env`
+        # processor to the traces pipeline when this preset is enabled,
+        # so we don't reference it here either.
 
     # Custom config layered on top of the preset config. Helm merges this
     # into the chart-generated config; you can't remove preset entries,
     # but you can extend them.
     config:
       receivers:
-        # k8s_cluster from the preset doesn't set `distribution`; the
-        # receiver's Validate() requires it to be "kubernetes" or
-        # "openshift", so add it here.
+        # k8s_cluster from the preset already has Distribution: "kubernetes"
+        # as the factory default — no need to override.
+        # Extend the preset's k8s_cluster condition/allocatable reporting.
         k8s_cluster:
-          distribution: kubernetes
           node_conditions_to_report: [Ready, MemoryPressure, DiskPressure]
           allocatable_types_to_report: [cpu, memory, ephemeral-storage, pods]
         # Extend the preset's kubeletstats with the four "node utilization"
@@ -93,14 +96,6 @@ spec:
             http:
               endpoint: 0.0.0.0:4318
 
-      processors:
-        # The chart's resourceDetection preset adds a `resourcedetection`
-        # processor with the deprecated `k8snode` detector. Reconfigure
-        # it to use the non-deprecated `k8s_api` name (which reads
-        # K8S_NODE_NAME by default — set by the kubeletMetrics preset).
-        resourcedetection:
-          detectors: [env, k8s_api]
-
       exporters:
         # Forward received traces to the in-cluster Tempo monolithic.
         otlp:
@@ -114,11 +109,13 @@ spec:
       service:
         # Add a traces pipeline. The metrics/logs pipelines come from the
         # chart defaults + preset augments (we don't override them, so
-        # nothing gets dropped).
+        # nothing gets dropped). The resourcedetection/env processor is
+        # added to this pipeline automatically by the resourceDetection
+        # preset, so we don't reference it here.
         pipelines:
           traces:
             receivers: [otlp]
-            processors: [memory_limiter, batch, resourcedetection]
+            processors: [memory_limiter, batch]
             exporters: [otlp]
 
     serviceAccount:
