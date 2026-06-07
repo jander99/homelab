@@ -13,8 +13,10 @@ Flux-managed infrastructure layer split into two reconciliation stages:
 ```
 infrastructure/
 ├── controllers/
-│   ├── cert-manager/   # helmrelease.yaml, helmrepository.yaml, kustomization.yaml
-│   └── metallb/        # helmrelease.yaml, helmrepository.yaml, kustomization.yaml
+│   ├── cert-manager/           # helmrelease.yaml, helmrepository.yaml, kustomization.yaml
+│   ├── metallb/                # helmrelease.yaml, helmrepository.yaml, kustomization.yaml
+│   ├── opentelemetry-collector/# helmrelease.yaml, helmrepository.yaml, kustomization.yaml
+│   └── tempo/                  # helmrelease.yaml, helmrepository.yaml, kustomization.yaml
 └── configs/
     ├── cert-manager/   # cloudflare-token.sops.yaml, clusterissuer-{prod,staging}.yaml, kustomization.yaml
     ├── metallb/        # ipaddresspool.yaml, l2advertisement.yaml, kustomization.yaml
@@ -46,6 +48,24 @@ Flux Kustomization `infra-configs` has `dependsOn: [infra-controllers]`. This gu
 - **K3s scrapers disabled**: kubeEtcd, kubeScheduler, kubeControllerManager, kubeProxy (K3s uses SQLite; control plane binds to 127.0.0.1)
 - **PodMonitor discovery**: `podMonitorSelectorNilUsesHelmValues: false` + `serviceMonitorSelectorNilUsesHelmValues: false`
 
+### opentelemetry-collector
+- **Chart**: `open-telemetry/opentelemetry-collector` v0.155.0 (contrib "kube" image) | namespace: `telemetry`
+- **Mode**: `daemonset` — one pod per node (single on the testbed, scales to N on HA cluster)
+- **Receivers**: `k8scluster`, `kubeletstats`, `hostmetrics` (cluster telemetry), plus `otlp` (grpc :4317, http :4318) for app-side opt-ins
+- **Exporters**: `otlp` → `tempo.telemetry.svc.cluster.local:4317`; `debug` (stdout) for metrics/logs
+- **Processors**: `memory_limiter`, `batch`, `resourcedetection`
+- **Extensions**: `health_check`, `k8s_observer`
+- **Host mounts**: `/proc`, `/sys`, `/var/run/containerd` (required by hostmetrics + containerd scraper)
+- **RBAC**: created automatically by the chart (ClusterRole with read on pods/nodes/services/etc.)
+
+### tempo
+- **Chart**: `grafana-community/tempo` v2.2.0 (single-binary / monolithic) | namespace: `telemetry`
+- **Storage**: `local` backend, 5Gi PVC on `local-path`, WAL at `/var/tempo/wal`
+- **Receivers**: `otlp` (grpc :4317, http :4318) — defaults, no override needed
+- **Retention**: 168h (7 days)
+- **No ingress** — Grafana dials `http://tempo.telemetry.svc.cluster.local:3200` in-cluster
+- **Datasource**: `grafanadatasource-tempo.yaml` in `configs/monitoring/` (sidecar-discovered via `grafana_datasource: "1"` label); uid `tempo`, serviceMap back-linked to `prometheus`
+
 ### Headlamp (reference — lives in `k3s/applications/headlamp/`)
 - Uses `cert-manager.io/cluster-issuer: letsencrypt-prod` in Traefik ingress
 - URL: `headlamp.homelab.properties`
@@ -58,6 +78,7 @@ Flux Kustomization `infra-configs` has `dependsOn: [infra-controllers]`. This gu
 | Task | File |
 |------|------|
 | Add a new controller chart | `controllers/<name>/helmrelease.yaml` + `helmrepository.yaml` + `kustomization.yaml` |
+| Add a Grafana datasource | `configs/monitoring/grafanadatasource-<name>.yaml` (must have `grafana_datasource: "1"` label) |
 | Add a ClusterIssuer | `configs/cert-manager/` |
 | Change IP address pool | `configs/metallb/ipaddresspool.yaml` |
 | Edit Cloudflare token secret | `configs/cert-manager/cloudflare-token.sops.yaml` via `sops` CLI |

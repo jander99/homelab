@@ -15,3 +15,4 @@ resources:
   - qbittorrent.yaml
   - sense-exporter.yaml
   - unpoller.yaml
+  - telemetry.yaml

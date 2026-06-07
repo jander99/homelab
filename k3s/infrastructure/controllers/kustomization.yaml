@@ -9,3 +9,5 @@ resources:
   - csi-driver-smb
   - dcgm-exporter
   - external-dns
+  - opentelemetry-collector
+  - tempo
