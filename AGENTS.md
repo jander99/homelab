@@ -1,105 +1,128 @@
 # PROJECT KNOWLEDGE BASE
 
-**Generated:** 2026-05-06  
-**Branch:** master  
+**Updated:** 2026-06-07 · **Branch:** master
 
 ## OVERVIEW
-Homelab infrastructure managing 9 Docker services on a Synology NAS (macvlan networking), with a single-node K3s cluster (Ansible-bootstrapped) and Flux CD v2 GitOps with infrastructure deployed (cert-manager, metallb, headlamp, kube-prometheus-stack). Docker stack is operational; K3s cluster running on testbed node (192.168.1.128) with Flux managing controllers, a full monitoring stack (Prometheus + Grafana + Alertmanager), and applications (headlamp, pihole). CDK8s/Nx workspace initialized but contains only a stub chart.
 
-## STRUCTURE
+Single repo, two production stacks:
+
+- **Docker** — 9 services on a Synology NAS (macvlan networking): media automation, monitoring, networking, utilities. Operational; not migrating.
+- **K3s** — single-node testbed (192.168.1.128, SQLite datastore), managed by **Flux CD v2** rooted at `k3s/clusters/homelab/`. Target is 3-node HA on Dell Optiplexes (.40/.41/.42) with embedded etcd; hardware acquired, not yet provisioned.
+
+Flux-managed layers (wider than the previous AGENTS.md suggested):
+
 ```
-homelab/
-├── docker/             # All Docker-based services — see docker/AGENTS.md
-│   ├── media/          # Sonarr, Radarr, Prowlarr, NZBGet + exporters — see media/AGENTS.md
-│   ├── prometheus/     # Prometheus + Node Exporter + alerting — see prometheus/AGENTS.md
-│   ├── grafana/        # Grafana with Prometheus datasource provisioning
-│   ├── pihole/         # Pi-hole + cloudflared (DoH) + exporter
-│   ├── transmission/   # Transmission-OpenVPN + exporter
-│   ├── portainer/      # Portainer Docker management UI
-│   ├── watchtower/     # Auto-update containers, daily 2am schedule
-│   ├── sense-exporter/ # Sense home energy monitor Prometheus exporter
-│   ├── netgear-cm1000-exporter/  # Netgear CM1000 cable modem exporter
-│   └── scripts/        # network-setup.sh: creates macvlan Docker network
-├── k3s/                # K3s bootstrap (Ansible) + Flux GitOps with deployed infrastructure
-├── applications/
-│   └── cdk8s/          # CDK8s TypeScript stub (HelloChart only) — see cdk8s/AGENTS.md
-├── .sops.yaml          # SOPS age encryption rules for K3s secrets
-└── README.md
+platform  →  infra-controllers  →  infra-configs  →  apps
+(namespaces)  (CRD-bearing HelmReleases)  (configs that need those CRDs)  (workloads)
 ```
 
-## WHERE TO LOOK
-| Task | Location | Notes |
-|------|----------|-------|
-| Add/modify a Docker service | `docker/<service>/<service>-compose.yml` | Except: `docker/sense-exporter/sense-exporter.yml`; see `docker/AGENTS.md` for full service table |
-| Prometheus scrape targets | `docker/prometheus/etc/prometheus.yml` | Static configs, bridge IPs |
-| Alerting rules | `docker/prometheus/etc/alerts.yml` | Currently only InstanceDown alert |
-| SNMP exporter config | `docker/prometheus/snmp_exporter/snmp.yml` | Auto-generated; job commented out in compose |
-| Grafana datasource | `docker/grafana/datasources/prometheus_ds.yml` | Points to `http://prometheus:9090` |
-| Network initialization | `docker/scripts/network-setup.sh` | Run before starting any services |
-| K3s cluster bootstrap | `k3s/bootstrap/ansible/` | Single-node K3s server role implemented; provision-nodes + bootstrap-k3s runnable |
-| Flux Kustomizations | `k3s/clusters/homelab/` | Reconciliation graph: platform → infra-controllers → infra-configs → apps |
-| Flux system manifests | `k3s/clusters/homelab/flux-system/` | Flux v2.3.0; GitRepository watches `master` branch |
-| SOPS/age config | `.sops.yaml` | age key encryption; see k3s/AGENTS.md for key fingerprint |
-| Headlamp app | `k3s/applications/headlamp/` | headlamp.homelab.properties; TLS via letsencrypt-prod |
-| Pihole app | `k3s/applications/pihole/` | pihole.homelab.properties; DNS + PodMonitor enabled |
-| Monitoring stack (K3s) | `k3s/infrastructure/configs/monitoring/` | kube-prometheus-stack HelmRelease; grafana/prometheus/alertmanager.homelab.properties |
-| Grafana (K3s) | https://grafana.homelab.properties | Credentials in BitWarden; SOPS secret at `grafana-secret.sops.yaml` |
-| K3s infrastructure controllers | `k3s/infrastructure/controllers/` | cert-manager + metallb HelmReleases; see `k3s/infrastructure/AGENTS.md` |
-| K3s infrastructure controllers | `k3s/infrastructure/controllers/` | cert-manager + metallb HelmReleases; see `k3s/infrastructure/AGENTS.md` |
+- **platform/namespaces/**: cert-manager, headlamp, monitoring, pihole, telemetry
+- **infra-controllers/**: cert-manager, metallb, opentelemetry-collector, tempo, dcgm-exporter, external-dns, csi-driver-smb, node-feature-discovery, nvidia-device-plugin
+- **infra-configs/**: cert-manager ClusterIssuers, metallb IPAddressPool/L2Advertisement, kube-prometheus-stack (`configs/monitoring/`), Grafana datasources
+- **apps/**: headlamp, pihole, portainer, prowlarr, qbittorrent, radarr, recyclarr, sabnzbd, sense-exporter, sonarr, tdarr, unpoller, monitoring
 
-## NETWORKING
-Two external Docker networks (must exist before services start):
+Subdirectory deep-dives: `docker/AGENTS.md`, `docker/media/AGENTS.md`, `docker/prometheus/AGENTS.md`, `k3s/AGENTS.md`, `k3s/infrastructure/AGENTS.md`, `k3s/bootstrap/ansible/AGENTS.md`, `applications/cdk8s/AGENTS.md`. This file is the entry point only.
 
-| Network | Driver | Subnet | Purpose |
-|---------|--------|--------|---------|
-| `homelab_physical_network` | macvlan | 192.168.1.0/24, gw .1, range /28 | Physical LAN IPs for services |
-| `homelab_bridge_network` | bridge | 172.20.0.0/16 | Internal container-to-container |
+## DIRECTORY OWNERSHIP
 
-- Services needing physical LAN presence (prometheus: 192.168.1.3, pihole: 192.168.1.2) join both networks.
-- Exporters communicate to their parent service via static bridge IPs (e.g., radarr at 172.20.0.16, radarr-exporter at 172.20.1.16).
-- **Create networks first**: `./docker/scripts/network-setup.sh` (creates macvlan only; bridge created manually or via other compose).
+| Path | What lives there | Pointer |
+|------|-----------------|---------|
+| `docker/<svc>/<svc>-compose.yml` | Compose for one Docker service (one file per service) | `docker/AGENTS.md` |
+| `docker/prometheus/etc/{prometheus,alerts}.yml` | Prometheus scrape targets + alerts | `docker/prometheus/AGENTS.md` |
+| `docker/scripts/network-setup.sh` | Creates the macvlan network (bridge is created by compose) | — |
+| `k3s/bootstrap/ansible/` | Single-node K3s server role; `provision-nodes` + `bootstrap-k3s` | `k3s/bootstrap/ansible/AGENTS.md` |
+| `k3s/clusters/homelab/` | Flux Kustomization root (5 Kustomizations + flux-system/) | `k3s/AGENTS.md` |
+| `k3s/platform/namespaces/` | All namespaces (do not put namespaces in `configs/`) | — |
+| `k3s/infrastructure/controllers/<name>/` | One chart per dir: `helmrelease.yaml` + `helmrepository.yaml` + `kustomization.yaml` | `k3s/infrastructure/AGENTS.md` |
+| `k3s/infrastructure/configs/` | ClusterIssuers, IPAddressPools, kube-prometheus-stack, Grafana datasources | same |
+| `k3s/applications/<name>/` | Per-app workload manifests (consumed by Flux `apps` Kustomization) | — |
+| `applications/cdk8s/` | CDK8s TypeScript stub (HelloChart only). Nx workspace initialized, `synth` target configured. `dist/` is gitignored; promotion to `k3s/applications/` is not yet designed. | `applications/cdk8s/AGENTS.md` |
+| `.sops.yaml` | SOPS age rules — `k3s/.*\.sops\.yaml$` is encrypted under the homelab age key | `k3s/AGENTS.md` for the key fingerprint |
+| `docs/media-stack-integration-guide.md` | Long-form media-stack reference (12.9K) | — |
+
+## CI / VALIDATION
+
+`flux-validate.yaml` runs on every PR touching `k3s/**`, `applications/cdk8s/**`, or workflow files. Pipeline:
+
+1. `yamllint -c .yamllint.yaml` on `k3s/applications/`, `k3s/infrastructure/`, `k3s/platform/`, `k3s/clusters/homelab/`, `.github/workflows/` (NOT on `docker/**` — pre-existing trailing-space issues are tracked separately)
+2. `flux-local test --path k3s/clusters/homelab` (pytest fixtures; expected no-op today)
+3. `flux-local diff ks --path k3s/clusters/homelab --branch-orig origin/master` (post-comments on PR)
+4. `kubeconformist` and `cdk8s synth` steps are present but disabled (`if: false` placeholders)
+
+`.pre-commit-config.yaml` mirrors the yamllint rules at commit time so the same indentation / duplicate-key / trailing-space checks fire before push.
+
+**.yamllint.yaml** disables `line-length`, `document-start`, `truthy`, `octal-values` (K8s/Helm YAML frequently trips them by design). Indentation (2 spaces, consistent) and `key-duplicates` are the headline rules. `*.sops.yaml` is excluded everywhere (base64 padding, intentional trailing whitespace).
 
 ## CONVENTIONS
-- **Compose files**: Named `<service>-compose.yml`, NOT `docker-compose.yml`. Exception: `sense-exporter.yml`.
-- **External networks**: All compose files reference networks as `external: name: homelab_bridge_network`.
-- **LinuxServer.io containers**: Always `PUID=1027`, `PGID=100`, `TZ=America/New_York`.
-- **Data paths**: All persistent data at `/volume1/data/<service>` and `/volume1/docker/config/<service>` (Synology NAS).
-- **Exporter pattern**: Each stateful service (Sonarr, Radarr, NZBGet, etc.) has a paired exporter container in the same compose file.
-- **Secrets**: Via `.env` file alongside compose file (gitignored by `**/*.env`). Variables like `${RADARR_API_KEY}`, `${NORDVPN_USER}`.
+
+**Docker** (`docker/AGENTS.md` for the full list):
+- Compose files named `<service>-compose.yml`, never `docker-compose.yml`. Exception: `docker/sense-exporter/sense-exporter.yml`.
+- External networks only; both `homelab_physical_network` (macvlan) and `homelab_bridge_network` (bridge) are referenced as `external:`. Run `docker/scripts/network-setup.sh` once on a fresh host.
+- LinuxServer.io containers: `PUID=1027`, `PGID=100`, `TZ=America/New_York`. Persistent data on `/volume1/data/<service>` and `/volume1/config/<service>`.
+- Secrets via `${VAR}` referencing `.env` (gitignored by `**/*.env`).
+
+**K3s** (`k3s/AGENTS.md` for the full list):
+- Flux layering is load-bearing: `infra-configs` `dependsOn: [infra-controllers]`. Do not add a new chart that introduces CRDs without also adding the configs Kustomization entry in the right order.
+- Namespaces go in `k3s/platform/namespaces/`, never in `k3s/infrastructure/configs/`.
+- SOPS-encrypted secrets end in `.sops.yaml`. Encrypt with `sops` CLI; the age private key is at `~/.kube/k3s-homelab-age.agekey` (also deployed as `flux-system/sops-age` Secret in-cluster).
 
 ## ANTI-PATTERNS (THIS PROJECT)
-- **Do not** use standard `docker-compose.yml` naming — breaks the `<service>-compose.yml` convention.
-- **Do not** hardcode secrets in compose files — use `${VAR}` referencing `.env`.
-- **Do not** use host networking or named volumes — bind mounts to `/volume1/` only.
-- **Do not** assume K3s cluster exists on target hosts — Ansible provisions and installs K3s, but verify nodes are reachable first.
-- **snmp.yml is auto-generated** — do not hand-edit it (`WARNING: This file was auto-generated`).
-- **Typo in watchtower**: `WATHCTOWER_REVIVE_STOPPED` (misspelled) — do not "fix" it, it may break things.
 
-## UNIQUE STYLES
-- Watchtower Prometheus metrics require `Bearer` token auth at `/v1/metrics` (different from all other `/metrics` paths).
-- Sense/CM1000 exporters use `/` as metrics path (not `/metrics`).
-- Pi-hole DNS chain: Pi-hole → cloudflared (172.20.1.1:5053, DoH to 1.1.1.1).
-- Node Exporter runs in privileged mode with proc/sys mounts; explicitly excludes Synology volume mount points.
-- git-crypt is configured but encrypts only `*.gpg` files. K3s secrets use SOPS+age (`.sops.yaml`).
+- Do not name a compose file `docker-compose.yml` — breaks the convention other tooling (Renovate, scripts) assumes.
+- Do not hand-edit `docker/prometheus/snmp_exporter/snmp.yml` — auto-generated; banner says so.
+- Do not "fix" the typo `WATHCTOWER_REVIVE_STOPPED` in the watchtower compose — leaving it as-is is intentional.
+- Do not enable `kubeEtcd` / `kubeScheduler` / `kubeControllerManager` / `kubeProxy` scrapers in kube-prometheus-stack — K3s binds them to 127.0.0.1 and uses SQLite; they always fail to scrape.
+- Do not treat `k3s/k3s.md` as current state — it describes the target, not reality. `k3s/AGENTS.md` and sub-AGENTS.md files are the verified-now sources.
+- Do not add real workloads to `applications/cdk8s/src/main.ts` until the `dist/` → `k3s/applications/` promotion workflow is designed and documented.
+- Do not force-push to a merged branch. Once a PR is merged, the next fix goes on a **new** branch off current master with a new PR. Editing the merged PR's body is pointless.
+- Do not skip the existing branch / worktree / PR workflow (see `.claude/AGENTS.md` and the user-supplied system instructions at session start).
+
+## VERIFICATION GOTCHAS (hard-earned)
+
+The repo's CI validates **structure**, not **semantics**. Recent failure mode:
+
+- `yamllint` and `flux-local diff` will pass on a syntactically valid Helm release that the running chart binary refuses to start. The OTel collector bring-up in #190-#196 took seven PRs because the actual config-schema validation lives inside the running `otelcol-k8s` binary at startup, and there was no CI step that exercised it. The chart preset, the k8s_cluster receiver's `distribution` default, the kubeletstats receiver's `node:` requirement, the `k8snode` (not `k8s_api`) detector name — all rejected by the binary, none of them caught by yamllint or kustomize build.
+
+Rules of thumb for any chart that ships its own config schema (OTel, Prometheus, Grafana dashboards, etc.):
+
+1. **Read the source at the exact git tag the chart uses**, not the README on `main`. README-on-main described a future detector rename that didn't exist in `v0.151.0` (the binary actually running).
+2. **Chart version ≠ image tag.** OTel chart `v0.155.0` ships `appVersion: 0.151.0`; pulling `:0.155.0` fails. Pin the image tag explicitly when the chart version and appVersion diverge.
+3. **Use the chart's presets as the default, not the fallback.** OTel's `presets.clusterMetrics` / `hostMetrics` / `kubeletMetrics` / `resourceDetection` exist precisely because hand-rolling the same config (ClusterRole, host mounts, leader election) is where bugs creep in. Extend the preset; don't duplicate it.
+4. **The right validation step that is missing today:** render the chart with `helm template`, then run the resulting ConfigMap through the real binary's `validate` command (`otelcol-k8s validate --config=...`). Add this as a CI step before adding another chart with custom config.
 
 ## COMMANDS
+
 ```bash
-# Initialize networks (run once before first deploy)
+# Docker stack (one-time + per service)
 ./docker/scripts/network-setup.sh
+cd docker/<service>/ && docker-compose -f <service>-compose.yml up -d
 
-# Start a service
-cd docker/<service>/
-docker-compose -f <service>-compose.yml up -d
+# K3s cluster bootstrap (run on Ansible controller)
+cd k3s/bootstrap/ansible/
+ansible-playbook -i inventory/hosts.yml playbooks/provision-nodes.yml
+ansible-playbook -i inventory/hosts.yml playbooks/bootstrap-k3s.yml
+ansible-playbook -i inventory/hosts.yml playbooks/bootstrap-flux.yml
 
-# Example: start monitoring stack
-cd docker/prometheus/
-docker-compose -f prometheus-compose.yml up -d
+# CDK8s synth
+yarn nx run cdk8s:synth
+
+# Lint + validate (matches CI)
+yamllint -c .yamllint.yaml k3s/applications k3s/infrastructure k3s/platform k3s/clusters/homelab .github/workflows
+flux-local test --path k3s/clusters/homelab --skip-invalid-kustomization-paths
+flux-local diff ks --path k3s/clusters/homelab --skip-invalid-kustomization-paths --branch-orig origin/master
+
+# SOPS
+sops k3s/infrastructure/configs/<file>.sops.yaml     # edit
+sops -e -i k3s/infrastructure/configs/<file>.sops.yaml  # encrypt in place
+
+# Cluster inspection (testbed)
+KUBECONFIG=~/.kube/k3s-testbed.yaml kubectl get hr,pods -A
 ```
 
 ## NOTES
-- **K3s + Flux**: `bootstrap-k3s.yml` installs single-node K3s on testbed (192.168.1.128); `bootstrap-flux.yml` bootstraps Flux against `k3s/clusters/homelab/` with cert-manager, metallb (infra controllers), kube-prometheus-stack (infra configs), pihole, and headlamp (applications) deployed. See `k3s/AGENTS.md` and `k3s/infrastructure/AGENTS.md`.
-- **Prowlarr healthcheck is commented out** — its health endpoint wasn't stable.
-- **SNMP scrape is commented out** in `prometheus-compose.yml` — the config exists but the job is disabled.
-- **Nginx proxy config** (`docker/prometheus/syno-prom-proxy.conf`) is co-located with Prometheus, not in a separate nginx service.
-- Required env vars per service documented in each `*-compose.yml` — no centralized `.env.example`.
-- **CDK8s/Nx**: Workspace initialized (Yarn 4.14.1, nx.json); `applications/cdk8s/src/main.ts` is a HelloChart stub only. Synth target configured. No real workloads; dist/ → k3s/applications/ promotion not yet designed. See `applications/cdk8s/AGENTS.md`.
+
+- **Testbed kubeconfig**: `~/.kube/k3s-testbed.yaml` (fetched by `bootstrap-k3s.yml`). The K3s API is reachable from the LAN.
+- **Grafana**: https://grafana.homelab.properties — credentials in BitWarden; SOPS secret at `k3s/infrastructure/configs/monitoring/grafana-secret.sops.yaml`.
+- **Watchtower metrics** require `Bearer` token auth at `/v1/metrics` (every other exporter uses plain `/metrics`). Sense and Netgear CM1000 exporters use `/` as the metrics path. Pi-hole DNS chain: pihole → `cloudflared:172.20.1.1:5053` (DoH to 1.1.1.1).
+- **`.worktrees/`, `.sisyphus/`, `.omo/`, `.claude/`, `.agents/`** are local tooling state (gitignored) and not authoritative. Don't read project structure from there.
+- **Worktrees** go in `../homelab-<branch-suffix>` (siblings of the main repo, per the user-supplied session-start instructions). Use `git worktree list` to audit before starting new work.
