@@ -17,44 +17,60 @@ spec:
         namespace: flux-system
       interval: 12h
   values:
-    # Contrib "kube" distribution. Provides kubeletstats, k8s_cluster,
-    # hostmetrics on top of the core receivers. Node identity is supplied
-    # via downward API as OTEL_K8S_NODE_NAME (chart convention, not the
-    # bare K8S_NODE_NAME).
+    # Contrib "kube" distribution. Chart v0.155.0 ships appVersion 0.151.0;
+    # pin the image tag explicitly so the chart version vs binary version
+    # drift doesn't bite us on chart bumps.
     mode: daemonset
 
     image:
       repository: ghcr.io/open-telemetry/opentelemetry-collector-releases/opentelemetry-collector-k8s
-      # Chart v0.155.0 ships appVersion 0.151.0 (the collector binary, not the
-      # chart version). Pin the tag explicitly to avoid Chart vs image drift.
       tag: "0.151.0"
 
     command:
       name: otelcol-k8s
 
+    # Presets generate correct receiver configs (k8s_cluster, kubeletstats,
+    # hostmetrics) AND set the right ClusterRole rules AND mount the host
+    # paths the hostmetrics scraper needs. Trying to configure these by
+    # hand missed the `distribution: kubernetes` Validate() requirement
+    # on k8s_cluster, the schema differences between filesystem/disk/network
+    # scrapers, and the leader-election RBAC. Use the presets.
+    presets:
+      clusterMetrics:
+        enabled: true
+        # In daemonset mode the chart auto-enables k8s_leader_elector so
+        # only one node emits the k8s_cluster metrics. Keep it.
+      hostMetrics:
+        enabled: true
+      kubeletMetrics:
+        enabled: true
+        # This preset also sets the K8S_NODE_NAME / K8S_NODE_IP env vars
+        # via downward API, which the kubeletstats receiver and the
+        # k8s_api resource detector both consume.
+      resourceDetection:
+        enabled: true
+        env:
+          enabled: true
+        # The chart's default uses the deprecated `k8snode` detector
+        # name. Disable it and add `k8s_api` (the non-deprecated name)
+        # via the custom config below.
+
+    # Custom config layered on top of the preset config. Helm merges this
+    # into the chart-generated config; you can't remove preset entries,
+    # but you can extend them.
     config:
       receivers:
-        # Cluster-wide condition/allocatable metrics from the K8s API.
-        # The receiver type is `k8s_cluster` (with underscore) — the bare
-        # word `k8scluster` is not registered and the collector refuses
-        # to start with it in the config.
+        # k8s_cluster from the preset doesn't set `distribution`; the
+        # receiver's Validate() requires it to be "kubernetes" or
+        # "openshift", so add it here.
         k8s_cluster:
-          auth_type: serviceAccount
-          collection_interval: 30s
+          distribution: kubernetes
           node_conditions_to_report: [Ready, MemoryPressure, DiskPressure]
           allocatable_types_to_report: [cpu, memory, ephemeral-storage, pods]
-        # Per-node kubelet metrics (CPU, memory, network, fs at the pod level).
-        # The chart's DaemonSet template sets OTEL_K8S_NODE_NAME via the
-        # downward API — that's the env var the receiver resolves to find
-        # the local kubelet.
+        # Extend the preset's kubeletstats with the four "node utilization"
+        # gauge metrics that aren't on by default. Endpoint/auth come from
+        # the preset (env: K8S_NODE_IP, serviceAccount).
         kubeletstats:
-          auth_type: serviceAccount
-          endpoint: "${env:OTEL_K8S_NODE_NAME}:10250"
-          insecure_skip_verify: true
-          collection_interval: 30s
-          node: "${env:OTEL_K8S_NODE_NAME}"
-          k8s_api_config:
-            auth_type: serviceAccount
           metrics:
             k8s.container.cpu.node.utilization:
               enabled: true
@@ -64,28 +80,8 @@ spec:
               enabled: true
             k8s.pod.memory.node.utilization:
               enabled: true
-        # Host-level metrics — needs /proc and /sys mounted (see extraVolumes).
-        hostmetrics:
-          collection_interval: 30s
-          scrapers:
-            cpu: {}
-            memory: {}
-            disk: {}
-            filesystem:
-              mount_points:
-                - mount_path: /
-                  fs_type: ext4
-                - mount_path: /var/lib/containerd
-              exclude_mount_points:
-                - mount_path: /proc*
-                - mount_path: /sys*
-                - mount_path: /dev/*
-                - mount_path: /var/lib/kubelet/*
-            load: {}
-            paging: {}
-            network: {}
-            processes: {}
-        # OTLP receiver — apps can ship traces/metrics/logs to us on 4317/4318.
+        # OTLP receiver for app-side opt-ins (in addition to the chart's
+        # default Jaeger/Zipkin receivers, which we don't actually use).
         otlp:
           protocols:
             grpc:
@@ -94,17 +90,12 @@ spec:
               endpoint: 0.0.0.0:4318
 
       processors:
-        memory_limiter:
-          check_interval: 5s
-          limit_percentage: 80
-          spike_limit_percentage: 20
-        batch:
-          send_batch_size: 1024
-          timeout: 5s
-        # The K8s detector in the resourcedetection processor is registered
-        # as `k8s` (short name), distinct from the k8s_cluster receiver.
+        # The chart's resourceDetection preset adds a `resourcedetection`
+        # processor with the deprecated `k8snode` detector. Reconfigure
+        # it to use the non-deprecated `k8s_api` name (which reads
+        # K8S_NODE_NAME by default — set by the kubeletMetrics preset).
         resourcedetection:
-          detectors: [env, k8s]
+          detectors: [env, k8s_api]
 
       exporters:
         # Forward received traces to the in-cluster Tempo monolithic.
@@ -112,64 +103,28 @@ spec:
           endpoint: tempo.telemetry.svc.cluster.local:4317
           tls:
             insecure: true
-        # Local debug exporter for metrics/logs (stdout) — cheap to leave on
-        # for visibility until a metrics pipeline is wired into Prometheus.
+        # Debug exporter for everything else (logs, metrics) — cheap and
+        # useful until we wire a metrics pipeline into Prometheus.
         debug: {}
 
-      extensions:
-        health_check: {}
-        k8s_observer:
-          auth_type: serviceAccount
-          observe_pods: true
-          observe_nodes: true
-
       service:
-        extensions: [health_check, k8s_observer]
+        # Add a traces pipeline. The metrics/logs pipelines come from the
+        # chart defaults + preset augments (we don't override them, so
+        # nothing gets dropped).
         pipelines:
           traces:
             receivers: [otlp]
             processors: [memory_limiter, batch, resourcedetection]
             exporters: [otlp]
-          metrics:
-            receivers: [otlp, k8s_cluster, kubeletstats, hostmetrics]
-            processors: [memory_limiter, batch, resourcedetection]
-            exporters: [debug]
-          logs:
-            receivers: [otlp]
-            processors: [memory_limiter, batch, resourcedetection]
-            exporters: [debug]
 
-    # RBAC: the k8s_cluster and kubeletstats receivers need read access to
-    # pods, nodes, namespaces, services, and replicasets. The chart builds
-    # the ClusterRole + ClusterRoleBinding off the ServiceAccount when
-    # `clusterRole.create: true` is set, so no separate `rbac:` block.
     serviceAccount:
       create: true
-    clusterRole:
-      create: true
+    # No explicit clusterRole.create: the chart creates one because the
+    # clusterMetrics + kubeletMetrics presets need it, and the preset
+    # permissions are what we actually want.
 
-    # hostmetrics needs the host's /proc, /sys, and containerd socket mounted.
-    extraVolumes:
-      - name: host-proc
-        hostPath:
-          path: /proc
-      - name: host-sys
-        hostPath:
-          path: /sys
-      - name: host-containerd
-        hostPath:
-          path: /var/run/containerd
-    extraVolumeMounts:
-      - name: host-proc
-        mountPath: /hostfs/proc
-        readOnly: true
-      - name: host-sys
-        mountPath: /hostfs/sys
-        readOnly: true
-      - name: host-containerd
-        mountPath: /var/run/containerd
-        readOnly: true
-
+    # Tune for a single-node testbed. CPU limits stay unset (Go GC
+    # throttling is a footgun on this class of workload).
     resources:
       requests:
         cpu: 50m

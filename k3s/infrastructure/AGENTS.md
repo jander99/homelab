@@ -49,14 +49,14 @@ Flux Kustomization `infra-configs` has `dependsOn: [infra-controllers]`. This gu
 - **PodMonitor discovery**: `podMonitorSelectorNilUsesHelmValues: false` + `serviceMonitorSelectorNilUsesHelmValues: false`
 
 ### opentelemetry-collector
-- **Chart**: `open-telemetry/opentelemetry-collector` v0.155.0 (contrib "kube" image) | namespace: `telemetry`
+- **Chart**: `open-telemetry/opentelemetry-collector` v0.155.0 (contrib "kube" image, appVersion 0.151.0) | namespace: `telemetry`
 - **Mode**: `daemonset` — one pod per node (single on the testbed, scales to N on HA cluster)
-- **Receivers**: `k8s_cluster`, `kubeletstats`, `hostmetrics` (cluster telemetry), plus `otlp` (grpc :4317, http :4318) for app-side opt-ins
+- **Presets enabled**: `clusterMetrics`, `hostMetrics`, `kubeletMetrics`, `resourceDetection` — the chart generates correct receiver/ClusterRole/host-mount config for these, including `k8s_leader_elector` for the daemonset k8s_cluster receiver
+- **Custom receivers layered on top**: `otlp` (grpc :4317, http :4318) for app-side opt-ins; `k8s_cluster.distribution: kubernetes` (required by Validate() but the chart doesn't set it); `kubeletstats.metrics` enabling the four node-utilization gauges
 - **Exporters**: `otlp` → `tempo.telemetry.svc.cluster.local:4317`; `debug` (stdout) for metrics/logs
-- **Processors**: `memory_limiter`, `batch`, `resourcedetection` (detectors: `env`, `k8s`)
-- **Extensions**: `health_check`, `k8s_observer`
-- **Host mounts**: `/proc`, `/sys`, `/var/run/containerd` (required by hostmetrics + containerd scraper)
-- **RBAC**: created automatically by the chart (ClusterRole with read on pods/nodes/services/etc.)
+- **Processors**: `memory_limiter`, `batch`, `resourcedetection` (detectors: `env`, `k8s_api`)
+- **Extensions**: `health_check` (chart default) — no k8s_observer/receiver_creator; we don't do annotation-based discovery
+- **Host mounts**: provided by the `hostMetrics` preset (hostfs → /, propagated HostToContainer)
 
 ### tempo
 - **Chart**: `grafana-community/tempo` v2.2.0 (single-binary / monolithic) | namespace: `telemetry`
