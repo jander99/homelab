@@ -51,9 +51,9 @@ Flux Kustomization `infra-configs` has `dependsOn: [infra-controllers]`. This gu
 ### opentelemetry-collector
 - **Chart**: `open-telemetry/opentelemetry-collector` v0.155.0 (contrib "kube" image) | namespace: `telemetry`
 - **Mode**: `daemonset` — one pod per node (single on the testbed, scales to N on HA cluster)
-- **Receivers**: `k8scluster`, `kubeletstats`, `hostmetrics` (cluster telemetry), plus `otlp` (grpc :4317, http :4318) for app-side opt-ins
+- **Receivers**: `k8s_cluster`, `kubeletstats`, `hostmetrics` (cluster telemetry), plus `otlp` (grpc :4317, http :4318) for app-side opt-ins
 - **Exporters**: `otlp` → `tempo.telemetry.svc.cluster.local:4317`; `debug` (stdout) for metrics/logs
-- **Processors**: `memory_limiter`, `batch`, `resourcedetection`
+- **Processors**: `memory_limiter`, `batch`, `resourcedetection` (detectors: `env`, `k8s`)
 - **Extensions**: `health_check`, `k8s_observer`
 - **Host mounts**: `/proc`, `/sys`, `/var/run/containerd` (required by hostmetrics + containerd scraper)
 - **RBAC**: created automatically by the chart (ClusterRole with read on pods/nodes/services/etc.)
