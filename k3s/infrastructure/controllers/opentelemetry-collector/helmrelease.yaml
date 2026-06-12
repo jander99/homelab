@@ -10,7 +10,7 @@ spec:
   chart:
     spec:
       chart: opentelemetry-collector
-      version: "0.155.0"
+      version: "0.158.1"
       sourceRef:
         kind: HelmRepository
         name: open-telemetry
@@ -24,7 +24,7 @@ spec:
 
     image:
       repository: ghcr.io/open-telemetry/opentelemetry-collector-releases/opentelemetry-collector-k8s
-      tag: "0.151.0"
+      tag: "0.154.0"
 
     command:
       name: otelcol-k8s
