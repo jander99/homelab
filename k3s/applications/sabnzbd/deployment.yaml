@@ -109,7 +109,7 @@ spec:
               cpu: 2000m
               memory: 512Mi
         - name: sabnzbd
-          image: lscr.io/linuxserver/sabnzbd:5.0.3
+          image: lscr.io/linuxserver/sabnzbd:5.0.4
           imagePullPolicy: IfNotPresent
           ports:
             - name: http
