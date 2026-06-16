@@ -139,7 +139,7 @@ spec:
               cpu: 500m
               memory: 256Mi
         - name: qbittorrent
-          image: lscr.io/linuxserver/qbittorrent:5.2.1
+          image: lscr.io/linuxserver/qbittorrent:5.2.2
           imagePullPolicy: IfNotPresent
           ports:
             - name: http
