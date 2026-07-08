@@ -139,7 +139,7 @@ spec:
               cpu: 500m
               memory: 256Mi
         - name: qbittorrent
-          image: lscr.io/linuxserver/qbittorrent:5.2.2
+          image: lscr.io/linuxserver/qbittorrent:5.2.3
           imagePullPolicy: IfNotPresent
           ports:
             - name: http
@@ -216,7 +216,7 @@ spec:
               cpu: 100m
               memory: 128Mi
         - name: gluetun-exporter
-          image: ghcr.io/crstian19/gluetun-exporter:0.1.1
+          image: ghcr.io/crstian19/gluetun-exporter:0.1.2
           imagePullPolicy: IfNotPresent
           ports:
             - name: gluetun-metrics
