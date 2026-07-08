@@ -121,7 +121,7 @@ __metadata:
   languageName: node
   linkType: hard
 
-"@jsii/check-node@npm:1.138.0, @jsii/check-node@npm:^1.137.0":
+"@jsii/check-node@npm:1.138.0, @jsii/check-node@npm:^1.138.0":
   version: 1.138.0
   resolution: "@jsii/check-node@npm:1.138.0"
   dependencies:
@@ -145,7 +145,7 @@ __metadata:
   languageName: node
   linkType: hard
 
-"@jsii/spec@npm:1.138.0, @jsii/spec@npm:^1.137.0":
+"@jsii/spec@npm:1.138.0, @jsii/spec@npm:^1.138.0":
   version: 1.138.0
   resolution: "@jsii/spec@npm:1.138.0"
   checksum: 10c0/f02c89c6597aa237a35f184667aeaf4916af136fd854f148918569a43b91ac8378ffb20396ed0961079ec492037ab607177100d593c14965860173b7c0a7b37f
@@ -567,20 +567,20 @@ __metadata:
   languageName: node
   linkType: hard
 
-"cdk8s-cli@npm:2.207.31":
-  version: 2.207.31
-  resolution: "cdk8s-cli@npm:2.207.31"
+"cdk8s-cli@npm:2.207.33":
+  version: 2.207.33
+  resolution: "cdk8s-cli@npm:2.207.33"
   dependencies:
     "@types/node": "npm:^16"
     ajv: "npm:^8.20.0"
     cdk8s: "npm:^2.70.80"
-    cdk8s-plus-33: "npm:^2.5.32"
+    cdk8s-plus-33: "npm:^2.5.33"
     codemaker: "npm:^1.137.0"
     colors: "npm:1.4.0"
     constructs: "npm:^10.6.0"
     fs-extra: "npm:^8"
     jsii-pacmak: "npm:^1.137.0"
-    jsii-rosetta: "npm:^5.9.53"
+    jsii-rosetta: "npm:^5.9.54"
     jsii-srcmak: "npm:0.1.1319"
     json2jsii: "npm:0.5.19"
     semver: "npm:^7.8.5"
@@ -590,19 +590,19 @@ __metadata:
     yargs: "npm:^15"
   bin:
     cdk8s: bin/cdk8s
-  checksum: 10c0/76b564f06101a304b8ba8ae988c24b29589eb96463defee78934f1fbd73cba2d95a23fcc3c458c1eccfa8bcc9dd89c1d8eafa994d82a03471a0964de646e6e31
+  checksum: 10c0/7beb08f749619f33088d6c6b4b35230f060cd5d20e53107fbb90b580c4b132030e1ee0682360b3d5fbb70f798a52bcbd0d1ac206f57a053951ceb611ab7c8d32
   languageName: node
   linkType: hard
 
-"cdk8s-plus-33@npm:^2.5.32":
-  version: 2.5.34
-  resolution: "cdk8s-plus-33@npm:2.5.34"
+"cdk8s-plus-33@npm:^2.5.33":
+  version: 2.5.35
+  resolution: "cdk8s-plus-33@npm:2.5.35"
   dependencies:
     minimatch: "npm:^9.0.9"
   peerDependencies:
     cdk8s: ^2.68.11
     constructs: ^10.3.0
-  checksum: 10c0/0a55241ea8e8ebedd6f013ebf8bd76d565ed5a64c56b33082fe7cac307c1ce02d111ec36f27c04f2817b9b90a1785fb8962860ffc019834c8611e61bc7b52e9a
+  checksum: 10c0/063a88f282af32b6de99ede3381d52e7f8df3b64e12141743827ecd0c99e0ff914ada000ebec7b3eb7d5546f14d91c57265a7986281b0fecd0e4cd584d421ca1
   languageName: node
   linkType: hard
 
@@ -638,7 +638,7 @@ __metadata:
   dependencies:
     "@types/node": "npm:24.13.2"
     cdk8s: "npm:2.70.59"
-    cdk8s-cli: "npm:2.207.31"
+    cdk8s-cli: "npm:2.207.33"
     constructs: "npm:10.6.0"
     ts-node: "npm:10.9.2"
     typescript: "npm:6.0.3"
@@ -1504,12 +1504,12 @@ __metadata:
   languageName: node
   linkType: hard
 
-"jsii-rosetta@npm:^5.9.53":
-  version: 5.9.54
-  resolution: "jsii-rosetta@npm:5.9.54"
+"jsii-rosetta@npm:^5.9.54":
+  version: 5.9.55
+  resolution: "jsii-rosetta@npm:5.9.55"
   dependencies:
-    "@jsii/check-node": "npm:^1.137.0"
-    "@jsii/spec": "npm:^1.137.0"
+    "@jsii/check-node": "npm:^1.138.0"
+    "@jsii/spec": "npm:^1.138.0"
     "@xmldom/xmldom": "npm:^0.9.10"
     chalk: "npm:^4"
     commonmark: "npm:^0.31.2"
@@ -1523,7 +1523,7 @@ __metadata:
     yargs: "npm:^17.7.3"
   bin:
     jsii-rosetta: bin/jsii-rosetta
-  checksum: 10c0/c6a3f382a2051d6ad31c370dd94472ed657fa5f57dbf8245e3588b058493845440e622366093c3ac6bce83ba3fec34f3834861268a356f4dd3dd85e622fcd585
+  checksum: 10c0/728b151570c0ad934bc41763e1365189ac6aa89c0399aa791ac4d13344ba6e2e0625bd5141cf3ca6f0664b766f2c1fbc2f77f9720568c68274247a9475165353
   languageName: node
   linkType: hard
 
