@@ -24,7 +24,7 @@ spec:
         fsGroup: 100
       containers:
         - name: tdarr-node
-          image: haveagitgat/tdarr_node:2.82.02
+          image: haveagitgat/tdarr_node:2.83.01
           env:
             - name: TZ
               value: America/New_York
