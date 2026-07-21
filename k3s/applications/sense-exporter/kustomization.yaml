@@ -4,6 +4,7 @@ kind: Kustomization
 resources:
   - configmap.yaml
   - sense-secret.sops.yaml
+  - nordvpn-credentials.sops.yaml
   - deployment.yaml
   - service.yaml
   - servicemonitor.yaml
