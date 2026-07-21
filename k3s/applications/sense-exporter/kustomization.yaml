@@ -7,3 +7,15 @@ resources:
   - deployment.yaml
   - service.yaml
   - servicemonitor.yaml
+  # ⚠️  HARD BLOCKER: This secret MUST be created in the sense-exporter namespace before
+  # Flux can reconcile this app. The pod will fail to start (CrashLoopBackOff on
+  # gluetun) without it.
+  # Steps:
+  #   cp nordvpn-credentials.sops.yaml.example nordvpn-credentials.sops.yaml
+  #   # Edit openvpn-username/openvpn-password with your NordVPN service credentials
+  #   SOPS_AGE_KEY_FILE=~/.kube/k3s-homelab-age.agekey sops --encrypt --in-place nordvpn-credentials.sops.yaml
+  #
+  #   git add nordvpn-credentials.sops.yaml
+  #   git commit -m 'feat(sense-exporter): add SOPS-encrypted NordVPN credentials'
+  #   # Then uncomment the line below:
+  # - nordvpn-credentials.sops.yaml

@@ -8,6 +8,10 @@ metadata:
     app: sense-exporter
 spec:
   replicas: 1
+  # Recreate required because /dev/net/tun (hostPath CharDevice) cannot be
+  # shared between an old and a new pod during a rolling update.
+  strategy:
+    type: Recreate
   selector:
     matchLabels:
       app: sense-exporter
@@ -17,6 +21,84 @@ spec:
         app: sense-exporter
     spec:
       containers:
+        # NordVPN tunnel — all outbound traffic from this pod (including
+        # api.sense.com HTTPS + websocket polling from the exporter below)
+        # routes through tun0. Pattern matches qbittorrent (see
+        # k3s/applications/qbittorrent/deployment.yaml).
+        - name: gluetun
+          image: qmcgaw/gluetun:v3.41.1
+          imagePullPolicy: IfNotPresent
+          securityContext:
+            capabilities:
+              add:
+                - NET_ADMIN
+          ports:
+            - name: health
+              containerPort: 9999
+              protocol: TCP
+            - name: control
+              containerPort: 8000
+              protocol: TCP
+          env:
+            - name: VPN_SERVICE_PROVIDER
+              value: "nordvpn"
+            - name: VPN_TYPE
+              value: "openvpn"
+            - name: OPENVPN_USER
+              valueFrom:
+                secretKeyRef:
+                  name: nordvpn-credentials
+                  key: openvpn-username
+            - name: OPENVPN_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: nordvpn-credentials
+                  key: openvpn-password
+            - name: SERVER_COUNTRIES
+              value: "United States"
+            - name: SERVER_CATEGORIES
+              value: "P2P"
+            - name: HEALTH_SERVER_ADDRESS
+              value: "0.0.0.0:9999"
+            - name: HTTP_CONTROL_SERVER_ADDRESS
+              value: "0.0.0.0:8000"
+            # 9993 = Prometheus scrape target. 9999 = gluetun health endpoint.
+            # No outbound subnet bypasses — all egress goes through the tunnel.
+            - name: FIREWALL_INPUT_PORTS
+              value: "9993,9999"
+            - name: DNS_KEEP_NAMESERVER
+              value: "on"
+            - name: DOT
+              value: "off"
+            - name: TZ
+              value: "America/New_York"
+          volumeMounts:
+            - name: tun-device
+              mountPath: /dev/net/tun
+          livenessProbe:
+            httpGet:
+              path: /
+              port: 9999
+            initialDelaySeconds: 60
+            periodSeconds: 30
+            failureThreshold: 5
+          readinessProbe:
+            httpGet:
+              path: /
+              port: 9999
+            initialDelaySeconds: 30
+            periodSeconds: 15
+            failureThreshold: 3
+          resources:
+            requests:
+              cpu: 50m
+              memory: 128Mi
+            limits:
+              cpu: 200m
+              memory: 256Mi
+        # Shares the pod's network namespace with gluetun, so its outbound
+        # HTTPS and websocket traffic to api.sense.com traverses the tun0
+        # device created by gluetun.
         - name: sense-exporter
           image: ghcr.io/ejsuncy/sense_energy_prometheus_exporter:1.0.0
           ports:
@@ -54,3 +136,7 @@ spec:
         - name: config
           configMap:
             name: sense-exporter-config
+        - name: tun-device
+          hostPath:
+            path: /dev/net/tun
+            type: CharDevice
