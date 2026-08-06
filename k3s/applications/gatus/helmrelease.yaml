@@ -24,7 +24,11 @@ spec:
       interval: 12h
   values:
     # Use pre-created ConfigMap (key MUST be config.yaml)
-    externalConfigMap: gatus-config
+    # Chart's _pod.tpl has TWO ConfigMap references: the volume mount uses
+    # .Values.externalConfigMap, but envFrom hardcodes the release name
+    # (`names.fullname`). So the ConfigMap must be named `gatus` — the
+    # release name — to satisfy both.
+    externalConfigMap: gatus
 
     # PVC for history persistence (sqlite at /data/data.db)
     persistence:
