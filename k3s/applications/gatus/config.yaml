@@ -1,0 +1,75 @@
+---
+# Gatus
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: gatus-config
+  namespace: gatus
+data:
+  config.yaml: |
+    metrics: false
+    storage:
+      type: sqlite
+      path: /data/data.db
+    ui:
+      title: "Homelab Health Dashboard"
+      header: "Homelab Status"
+      dashboard-heading: "Homelab Services"
+      dashboard-subheading: "Live health status of homelab services"
+      dark-mode: true
+    endpoints:
+      # auth group
+      - name: authentik
+        group: auth
+        url: https://auth.homelab.properties/-/health/ready/
+        interval: 60s
+        conditions:
+          - "[STATUS] == 200"
+          - "[BODY].status == running"
+
+      # dashboards group
+      - name: headlamp
+        group: dashboards
+        url: https://headlamp.homelab.properties/health
+        interval: 60s
+        conditions:
+          - "[STATUS] == 200"
+
+      - name: portainer
+        group: dashboards
+        url: https://portainer.homelab.properties/api/system/status
+        interval: 60s
+        conditions:
+          - "[STATUS] == 200"
+
+      # media group
+      - name: tdarr
+        group: media
+        url: http://tdarr.homelab.properties:8265/api/v1/health
+        interval: 60s
+        conditions:
+          - "[STATUS] == 200"
+
+      # monitoring group
+      - name: grafana
+        group: monitoring
+        url: https://grafana.homelab.properties/api/health
+        interval: 60s
+        conditions:
+          - "[STATUS] == 200"
+          - "[BODY].database == ok"
+
+      - name: prometheus
+        group: monitoring
+        url: https://prometheus.homelab.properties/-/healthy
+        interval: 60s
+        conditions:
+          - "[STATUS] == 200"
+
+      # dns group
+      - name: pihole
+        group: dns
+        url: http://pihole.homelab.properties/admin/
+        interval: 60s
+        conditions:
+          - "[STATUS] == 200"
