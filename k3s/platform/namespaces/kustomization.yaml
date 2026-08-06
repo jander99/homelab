@@ -16,3 +16,4 @@ resources:
   - sense-exporter.yaml
   - unpoller.yaml
   - telemetry.yaml
+  - gatus.yaml
