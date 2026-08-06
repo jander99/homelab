@@ -8,11 +8,11 @@
   },
   "dependencies": {
     "cdk8s": "2.70.59",
-    "constructs": "10.6.0"
+    "constructs": "10.7.2"
   },
   "devDependencies": {
     "@types/node": "24.13.3",
-    "cdk8s-cli": "2.207.41",
+    "cdk8s-cli": "2.207.43",
     "ts-node": "10.9.2",
     "typescript": "6.0.3"
   }
