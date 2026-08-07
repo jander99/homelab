@@ -39,7 +39,13 @@ spec:
     # Inject OIDC credentials from the SOPS-encrypted secret. The values
     # are then referenced in config.yaml as ${OIDC_CLIENT_ID} and
     # ${OIDC_CLIENT_SECRET} — Gatus's env-var substitution in the config.
-    extraEnvFrom:
+    # The chart's _pod.tpl appends `.Values.envFrom` to its own
+    # built-in envFrom (which references the configMap and (when
+    # .Values.secrets is set) the release-name secret). Field name is
+    # `envFrom`, not `extraEnvFrom` — the chart silently ignores
+    # unknown keys, so #243 left the OIDC env vars unset and the pods
+    # panicked with "invalid security configuration" on every start.
+    envFrom:
       - secretRef:
           name: gatus-oidc-secret
 
