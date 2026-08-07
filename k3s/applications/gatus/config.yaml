@@ -33,9 +33,12 @@ data:
         group: auth
         url: https://auth.homelab.properties/-/health/ready/
         interval: 60s
+        # The body of /-/health/ready/ is HTML (the login page redirect,
+        # not a JSON health status), so the [BODY].status check fails —
+        # the body isn't a JSON document. The existing blackbox probe
+        # uses the same URL and just checks 2xx/3xx. Drop the body check.
         conditions:
           - "[STATUS] == 200"
-          - "[BODY].status == running"
 
       # dashboards group
       - name: headlamp
@@ -55,10 +58,15 @@ data:
       # media group
       - name: tdarr
         group: media
-        url: http://tdarr.homelab.properties:8265/api/v1/health
+        # The actual API server is on port 8266 — port 8265 is the webui
+        # and doesn't expose /api/v1/health (returns 404). The existing
+        # blackbox probe uses 8266 too. Tdarr redirects unauthenticated
+        # requests to login, so accepting sub-400 status codes is the
+        # right check (matches the blackbox probe's http_2xx module).
+        url: http://tdarr.homelab.properties:8266/api/v1/health
         interval: 60s
         conditions:
-          - "[STATUS] == 200"
+          - "[STATUS] < 400"
 
       # monitoring group
       - name: grafana
@@ -79,7 +87,10 @@ data:
       # dns group
       - name: pihole
         group: dns
-        url: http://pihole.homelab.properties/admin/
+        # /admin/ alone returns 404 on the pihole web service — the
+        # actual admin interface is at /admin/login.php. The unauthenticated
+        # login page returns 200, which is what we want for "is pihole up".
+        url: http://pihole.homelab.properties/admin/login.php
         interval: 60s
         conditions:
           - "[STATUS] == 200"
