@@ -30,6 +30,19 @@ spec:
     # release name — to satisfy both.
     externalConfigMap: gatus
 
+    # Pin image tag explicitly. Chart appVersion is v5.34.0, but v5.34+
+    # has native OIDC support; v5.36.0 is the latest Gatus at chart time.
+    # Per AGENTS.md: chart version != image tag, pin explicitly.
+    image:
+      tag: v5.36.0
+
+    # Inject OIDC credentials from the SOPS-encrypted secret. The values
+    # are then referenced in config.yaml as ${OIDC_CLIENT_ID} and
+    # ${OIDC_CLIENT_SECRET} — Gatus's env-var substitution in the config.
+    extraEnvFrom:
+      - secretRef:
+          name: gatus-oidc-secret
+
     # PVC for history persistence (sqlite at /data/data.db)
     persistence:
       enabled: true
@@ -39,7 +52,9 @@ spec:
         - ReadWriteOnce
       storageClassName: local-path
 
-    # Ingress with Traefik + cert-manager + cross-namespace Authentik forwardAuth
+    # Ingress with Traefik + cert-manager. Auth is now Gatus-native OIDC
+    # (via the security.oidc block in config.yaml), so no Traefik
+    # forwardAuth middleware is needed.
     ingress:
       enabled: true
       ingressClassName: traefik
@@ -48,9 +63,6 @@ spec:
       annotations:
         cert-manager.io/cluster-issuer: letsencrypt-prod
         traefik.ingress.kubernetes.io/router.entrypoints: websecure
-        # Reference the Authentik forwardAuth middleware in the monitoring namespace
-        # Traefik cross-namespace middleware reference: <namespace>-<name>@kubernetescrd
-        traefik.ingress.kubernetes.io/router.middlewares: monitoring-authentik-forwardauth@kubernetescrd
       hosts:
         - gatus.homelab.properties
       tls:
