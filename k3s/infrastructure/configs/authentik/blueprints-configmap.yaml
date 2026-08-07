@@ -169,6 +169,23 @@ data:
             - !Find [authentik_providers_oauth2.scopemapping, [scope_name, openid]]
             - !Find [authentik_providers_oauth2.scopemapping, [scope_name, email]]
             - !Find [authentik_providers_oauth2.scopemapping, [scope_name, profile]]
+          # grant_types must include authorization_code for the OIDC
+          # code flow that gatus uses. The model default is an empty list,
+          # so without this the /authorize endpoint returns
+          # "Invalid grant_type for provider" and the redirect lands
+          # at the callback with ?error=invalid_request.
+          # The set below matches the other providers in this configmap
+          # (grafana, headlamp, portainer) which were created via the
+          # Authentik UI before the blueprints existed and so have the
+          # full Authentik default set.
+          grant_types:
+            - authorization_code
+            - hybrid
+            - implicit
+            - client_credentials
+            - password
+            - urn:ietf:params:oauth:grant-type:device_code
+            - refresh_token
       - model: authentik_core.application
         state: present
         identifiers:
