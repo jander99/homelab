@@ -65,6 +65,9 @@ data:
         # right check (matches the blackbox probe's http_2xx module).
         url: http://tdarr.homelab.properties:8266/api/v1/health
         interval: 60s
+        client:
+          follow-redirects: false
+          timeout: 10s
         conditions:
           - "[STATUS] < 400"
 
