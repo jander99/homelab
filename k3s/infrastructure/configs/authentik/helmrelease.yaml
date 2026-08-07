@@ -127,6 +127,18 @@ spec:
               - auth.homelab.properties
 
     worker:
+      # Tell the worker where to discover custom blueprints. The
+      # ConfigMap is already mounted at /blueprints/custom (see volumes
+      # below); without this env var, the worker doesn't scan the
+      # directory and the blueprints sit inert. The existing providers
+      # (grafana / headlamp / portainer) were applied via the Authentik
+      # UI/API before this discovery loop existed; their blueprint files
+      # in the ConfigMap are the git-tracked export of that state.
+      # The gatus-provider.yaml added in #243 needs this scanning to
+      # actually land as live providers + applications.
+      env:
+        - name: AUTHENTIK_BLUEPRINTS_DIR
+          value: /blueprints/custom
       resources:
         requests:
           cpu: 100m
