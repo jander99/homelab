@@ -87,10 +87,7 @@ data:
       # dns group
       - name: pihole
         group: dns
-        # /admin/ alone returns 404 on the pihole web service — the
-        # actual admin interface is at /admin/login.php. The unauthenticated
-        # login page returns 200, which is what we want for "is pihole up".
-        url: http://pihole.homelab.properties/admin/login.php
+        url: https://pihole.homelab.properties/admin/login
         interval: 60s
         conditions:
           - "[STATUS] == 200"
