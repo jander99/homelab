@@ -62,6 +62,10 @@ spec:
       targetPath: authentik.env.PORTAINER_OIDC_CLIENT_SECRET
     - kind: Secret
       name: authentik-secret
+      valuesKey: gatus-oidc-client-secret
+      targetPath: authentik.env.GATUS_OIDC_CLIENT_SECRET
+    - kind: Secret
+      name: authentik-secret
       valuesKey: postgresql-password
       targetPath: authentik.postgresql.password
     - kind: Secret
