@@ -41,7 +41,12 @@ spec:
         retention_period: 168h  # 7 days, matches Tempo
       compactor:
         retention_enabled: true
-        working_directory: /data/loki/compactor
+        # working_directory must be on the Loki storage PVC. The chart mounts
+        # the PVC at /var/loki (chunks go to /var/loki/chunks, rules to
+        # /var/loki/rules). The default path /data/loki/compactor is not
+        # mounted — Loki's mkdir fails with "read-only file system" on the
+        # standard distroless container.
+        working_directory: /var/loki/compactor
         # delete_request_store is required whenever retention_enabled is true
         # (Loki's Validate() refuses to start otherwise). Filesystem storage
         # reuses the same PVC as the chunks — no extra wiring needed.
