@@ -23,6 +23,10 @@ spec:
     deploymentMode: Monolithic
 
     loki:
+      # Multi-tenancy enabled explicitly so the intended auth model is
+      # declared (X-Scope-OrgID header required on every write/query) rather
+      # than relying on the chart's implicit default.
+      auth_enabled: true
       commonConfig:
         replication_factor: 1
       schemaConfig:
@@ -97,8 +101,14 @@ spec:
     serviceMonitor:
       enabled: true
 
-    # Memcached caches are optional for a single-node testbed; skip them.
+    # All three caches disabled: single-node filesystem deployment has no
+    # scale pressure worth caching. memcached (chart subchart), chunksCache,
+    # and resultsCache are all explicitly off.
     memcached:
+      enabled: false
+    chunksCache:
+      enabled: false
+    resultsCache:
       enabled: false
 
     # Canary is required by the chart's validate.yaml hook. Keep it minimal.

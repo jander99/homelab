@@ -26,3 +26,6 @@ data:
         jsonData:
           maxLines: 1000
           httpMethod: GET
+          httpHeaderName1: X-Scope-OrgID
+        secureJsonData:
+          httpHeaderValue1: homelab
