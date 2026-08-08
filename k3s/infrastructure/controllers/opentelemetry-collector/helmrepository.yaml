@@ -5,5 +5,11 @@ metadata:
   name: open-telemetry
   namespace: flux-system
 spec:
-  interval: 24h
+  # OTel helm chart cuts 1-2 releases/week; a 24h interval was too long and
+  # caused Renovate bumps to land before the index caught up to a freshly
+  # published chart version (HelmChart reconcile failed with "no chart
+  # version matching 'X.Y.Z' found" until the next interval tick). 1h keeps
+  # the cache aligned with Renovate's Monday-morning schedule without much
+  # extra load — the index is small (~1.3 MB).
+  interval: 1h
   url: https://open-telemetry.github.io/opentelemetry-helm-charts
