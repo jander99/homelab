@@ -1,0 +1,113 @@
+---
+apiVersion: helm.toolkit.fluxcd.io/v2
+kind: HelmRelease
+metadata:
+  name: alloy
+  namespace: telemetry
+spec:
+  interval: 1h
+  timeout: 5m
+  chart:
+    spec:
+      chart: alloy
+      version: "1.11.1"
+      sourceRef:
+        kind: HelmRepository
+        name: alloy
+        namespace: flux-system
+      interval: 12h
+  values:
+    # DaemonSet: one pod per node. On the single-node testbed that's 1.
+    controller:
+      type: daemonset
+
+    # In-cluster configMap — the chart renders the contents into a ConfigMap
+    # and mounts it. The config below is the entire pipeline: discover pods,
+    # relabel into Loki labels, tail via the kube API, write to Loki.
+    alloy:
+      # public-preview: required to enable loki.source.kubernetes, which is
+      # not yet at generally-available stability per the upstream docs.
+      # We accept this because the kube-API model is the only path that
+      # doesn't require host mounts / privileged mode.
+      stabilityLevel: public-preview
+
+      # Pin the image explicitly so chart version vs binary version drift
+      # can't bite us on chart bumps (matches Chart.appVersion 1.11.1 -> v1.18.1).
+      image:
+        tag: v1.18.1
+
+      # The config body is the entire Alloy pipeline.
+      configMap:
+        create: true
+        content: |
+          discovery.kubernetes "pods" {
+            role = "pod"
+          }
+
+          discovery.relabel "pod_logs" {
+            targets = discovery.kubernetes.pods.targets
+            rule {
+              source_labels = ["__meta_kubernetes_namespace"]
+              action = "replace"
+              target_label = "namespace"
+            }
+            rule {
+              source_labels = ["__meta_kubernetes_pod_name"]
+              action = "replace"
+              target_label = "pod"
+            }
+            rule {
+              source_labels = ["__meta_kubernetes_pod_container_name"]
+              action = "replace"
+              target_label = "container"
+            }
+            rule {
+              source_labels = ["__meta_kubernetes_namespace", "__meta_kubernetes_pod_container_name"]
+              action = "replace"
+              target_label = "job"
+              separator = "/"
+              replacement = "$1"
+            }
+          }
+
+          loki.source.kubernetes "pod_logs" {
+            targets    = discovery.relabel.pod_logs.output
+            forward_to = [loki.process.pod_logs.receiver]
+          }
+
+          loki.process "pod_logs" {
+            stage.static_labels {
+              values = {
+                cluster = "homelab",
+              }
+            }
+            forward_to = [loki.write.loki.receiver]
+          }
+
+          loki.write "loki" {
+            endpoint {
+              url = "http://loki-gateway.telemetry.svc.cluster.local:80/loki/api/v1/push"
+            }
+          }
+
+      # CPU limits unset (Go runtime). Memory is bounded.
+      resources:
+        requests:
+          cpu: 50m
+          memory: 128Mi
+        limits:
+          memory: 256Mi
+
+      # Mount paths are off — kube-API mode doesn't need /var/log or /var/lib.
+      mounts:
+        varlog: false
+        dockercontainers: false
+
+    # Chart-managed ClusterRole for k8s API access (pods, pods/log, etc.).
+    # This is the cluster-wide permissions alloy needs to discover pods and
+    # tail their logs via the API. No host mounts, no privileged mode.
+    rbac:
+      create: true
+
+    serviceAccount:
+      create: true

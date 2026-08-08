@@ -21,3 +21,4 @@ resources:
   - prometheusrule-cert-manager.yaml
   - podmonitor-cert-manager.yaml
   - grafanadatasource-tempo.yaml
+  - grafanadatasource-loki.yaml

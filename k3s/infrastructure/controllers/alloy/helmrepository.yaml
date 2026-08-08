@@ -1,0 +1,13 @@
+---
+# Grafana Helm repository that serves the Alloy chart.
+# (Different chart publisher than Tempo/Loki — separate HelmRepository.)
+apiVersion: source.toolkit.fluxcd.io/v1
+kind: HelmRepository
+metadata:
+  name: alloy
+  namespace: flux-system
+spec:
+  # Same 1h cadence as the other HelmRepositories — keeps the index warm
+  # against Renovate's weekly schedule.
+  interval: 1h
+  url: https://grafana.github.io/helm-charts
