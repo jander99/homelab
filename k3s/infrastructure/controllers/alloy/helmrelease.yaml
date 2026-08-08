@@ -87,6 +87,7 @@ spec:
           loki.write "loki" {
             endpoint {
               url = "http://loki-gateway.telemetry.svc.cluster.local:80/loki/api/v1/push"
+              tenant_id = "homelab"
             }
           }
 
