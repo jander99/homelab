@@ -148,24 +148,30 @@ spec:
     extraEnvVars:
       FTLCONF_dns_listeningMode: "all"
 
-  # Add a startupProbe via JSON patch. The chart template doesn't expose
-  # startupProbe as a value (only liveness/readiness), so this patches the
-  # rendered Deployment. 60s ceiling covers first-boot gravity DB upgrades
-  # while letting DNS become reachable in ~5-10s on a warm boot (down from
-  # 120s + 6s with the old initialDelaySeconds).
-  patches:
-    - patch: |
-        - op: add
-          path: /spec/template/spec/containers/0/startupProbe
-          value:
-            exec:
-              command:
-                - /bin/sh
-                - -c
-                - "curl --silent http://localhost/api/info/login | jq 'if (.dns | not) then halt_error(1) end'"
-            periodSeconds: 5
-            failureThreshold: 12
-            timeoutSeconds: 5
-      target:
-        kind: Deployment
-        name: pihole
+  # Add a startupProbe via Kustomize post-render. The chart template doesn't
+  # expose startupProbe as a value (only liveness/readiness), so this
+  # patches the rendered Deployment after Helm renders. 60s ceiling covers
+  # first-boot gravity DB upgrades while letting DNS become reachable in
+  # ~5-10s on a warm boot (down from 120s + 6s with the old initialDelaySeconds).
+  # Note: this uses spec.postRenderers (not spec.patches) — the latter is a
+  # Kustomization-only field; HelmRelease v2 uses postRenderers for chart output
+  # patching. PR #256 mistakenly used spec.patches and broke the cluster; this
+  # is the corrected form. See https://fluxcd.io/flux/components/helm/helmreleases/
+  postRenderers:
+    - kustomize:
+        patches:
+          - target:
+              kind: Deployment
+              name: pihole
+            patch: |
+              - op: add
+                path: /spec/template/spec/containers/0/startupProbe
+                value:
+                  exec:
+                    command:
+                      - /bin/sh
+                      - -c
+                      - "curl --silent http://localhost/api/info/login | jq 'if (.dns | not) then halt_error(1) end'"
+                  periodSeconds: 5
+                  failureThreshold: 12
+                  timeoutSeconds: 5
