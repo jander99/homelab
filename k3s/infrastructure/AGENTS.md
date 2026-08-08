@@ -66,6 +66,27 @@ Flux Kustomization `infra-configs` has `dependsOn: [infra-controllers]`. This gu
 - **No ingress** — Grafana dials `http://tempo.telemetry.svc.cluster.local:3200` in-cluster
 - **Datasource**: `grafanadatasource-tempo.yaml` in `configs/monitoring/` (sidecar-discovered via `grafana_datasource: "1"` label); uid `tempo`, serviceMap back-linked to `prometheus`
 
+### loki
+- **Chart**: `grafana-community/loki` v18.7.5 (appVersion 3.7.6) | namespace: `telemetry`
+- **Mode**: `Monolithic` (`SingleBinary` was renamed as of chart 12.0.0; legacy key still accepted but deprecated). 1 replica only.
+- **Storage**: filesystem on `local-path` PVC, 20Gi. `minio.enabled: false` — the built-in MinIO subchart is deprecated/removed 2026-10-31.
+- **Schema**: TSDB v13 / `from: 2024-04-01` / `object_store: filesystem` (required by chart v6.x+).
+- **Retention**: 168h (7 days), `compactor.retention_enabled: true`, `working_directory: /data/loki/compactor`. Matches Tempo.
+- **Gateway**: NGINX fronting the single binary on port 80. Cluster-internal entry point: `http://loki-gateway.telemetry.svc.cluster.local:80`. This is the only service Alloy + Grafana should dial.
+- **Canary**: enabled (chart's validate.yaml requires it). 1 replica, no extra storage.
+- **No memcached** caches — single-node scale doesn't need them.
+- **ServiceMonitor**: enabled so kube-prometheus-stack Prometheus scrapes `loki` metrics.
+- **HelmRepository**: `loki` (Flux-scoped `flux-system` namespace). URL `https://grafana-community.github.io/helm-charts` — same index as Tempo.
+- **Datasource**: `grafanadatasource-loki.yaml` in `configs/monitoring/` (uid `loki`).
+
+### alloy
+- **Chart**: `grafana/alloy` v1.11.1 (appVersion v1.18.1) | namespace: `telemetry`
+- **Mode**: DaemonSet. One pod per node, scans only pods scheduled on its own node via the kube API.
+- **Log source**: `loki.source.kubernetes` (kube-API, no host mounts, no privileged mode). `loki.source.kubernetes` is `public-preview` stability in the upstream — `stabilityLevel: public-preview` is set explicitly.
+- **Pipeline**: `discovery.kubernetes` → `discovery.relabel` (low-cardinality labels: `cluster`, `namespace`, `pod`, `container`, `job`) → `loki.source.kubernetes` → `loki.process` (adds `cluster=homelab`) → `loki.write` → `http://loki-gateway.telemetry.svc.cluster.local:80`.
+- **RBAC**: chart-managed ClusterRole (`rbac.create: true`). Cluster-wide `get/list/watch` on `pods`, `pods/log`, `namespaces`, plus discovery endpoints.
+- **HelmRepository**: `alloy` (separate from `loki`/`tempo`). URL `https://grafana.github.io/helm-charts`.
+
 ### Headlamp (reference — lives in `k3s/applications/headlamp/`)
 - Uses `cert-manager.io/cluster-issuer: letsencrypt-prod` in Traefik ingress
 - URL: `headlamp.homelab.properties`

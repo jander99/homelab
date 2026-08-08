@@ -1,0 +1,28 @@
+---
+# Grafana datasource for Loki (logs). Picked up by the kube-prometheus-stack
+# Grafana sidecar via the `grafana_datasource: "1"` label.
+# Cluster-internal URL only — Grafana dials Loki via the gateway service.
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: grafana-datasource-loki
+  namespace: monitoring
+  labels:
+    grafana_datasource: "1"
+data:
+  datasources.yaml: |
+    apiVersion: 1
+    deleteDatasources:
+      - name: Loki
+        orgId: 1
+    datasources:
+      - name: Loki
+        uid: loki
+        type: loki
+        access: proxy
+        url: http://loki-gateway.telemetry.svc.cluster.local:80
+        isDefault: false
+        editable: true
+        jsonData:
+          maxLines: 1000
+          httpMethod: GET

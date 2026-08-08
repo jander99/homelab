@@ -1,0 +1,14 @@
+---
+# Grafana Community Helm repository that serves the Loki chart.
+# (Same URL as the tempo HelmRepository — namespacing per controller keeps
+# the existing tempo release untouched while isolating this one.)
+apiVersion: source.toolkit.fluxcd.io/v1
+kind: HelmRepository
+metadata:
+  name: loki
+  namespace: flux-system
+spec:
+  # Loki chart cuts 1-2 releases/week; 1h keeps the cache aligned with Renovate
+  # bumps without much extra load (the index is small).
+  interval: 1h
+  url: https://grafana-community.github.io/helm-charts

@@ -1,0 +1,108 @@
+---
+apiVersion: helm.toolkit.fluxcd.io/v2
+kind: HelmRelease
+metadata:
+  name: loki
+  namespace: telemetry
+spec:
+  interval: 1h
+  timeout: 10m
+  chart:
+    spec:
+      chart: loki
+      version: "18.7.5"
+      sourceRef:
+        kind: HelmRepository
+        name: loki
+        namespace: flux-system
+      interval: 12h
+  values:
+    # Single binary (Monolithic) mode. `SingleBinary` is deprecated as of
+    # community chart 12.0.0 — use `Monolithic` explicitly. 1 replica on a
+    # single-node testbed is correct; multi-replica requires object storage.
+    deploymentMode: Monolithic
+
+    loki:
+      commonConfig:
+        replication_factor: 1
+      schemaConfig:
+        configs:
+          - from: "2024-04-01"
+            store: tsdb
+            object_store: filesystem
+            schema: v13
+            index:
+              prefix: loki_index_
+              period: 24h
+      storage:
+        type: filesystem
+      limits_config:
+        allow_structured_metadata: true
+        retention_period: 168h  # 7 days, matches Tempo
+      compactor:
+        retention_enabled: true
+        working_directory: /data/loki/compactor
+
+    singleBinary:
+      replicas: 1
+      persistence:
+        size: 20Gi
+        storageClassName: local-path
+        accessModes:
+          - ReadWriteOnce
+
+    # Zero out the other deployment modes — Monolithic runs everything in
+    # singleBinary; the mode-specific components are unusable on this chart.
+    backend:
+      replicas: 0
+    read:
+      replicas: 0
+    write:
+      replicas: 0
+    ingester:
+      replicas: 0
+    querier:
+      replicas: 0
+    queryFrontend:
+      replicas: 0
+    queryScheduler:
+      replicas: 0
+    distributor:
+      replicas: 0
+    indexGateway:
+      replicas: 0
+
+    # Built-in MinIO subchart is deprecated and removed 2026-10-31. Disable
+    # entirely; filesystem storage doesn't need it.
+    minio:
+      enabled: false
+
+    # Gateway is the cluster-internal entry point: Alloy + Grafana both dial
+    # http://loki-gateway.telemetry.svc.cluster.local:80. One nginx pod is
+    # plenty for this scale.
+    gateway:
+      enabled: true
+      replicas: 1
+
+    # Allow kube-prometheus-stack Prometheus to scrape Loki's metrics.
+    serviceMonitor:
+      enabled: true
+
+    # Memcached caches are optional for a single-node testbed; skip them.
+    memcached:
+      enabled: false
+
+    # Canary is required by the chart's validate.yaml hook. Keep it minimal.
+    lokiCanary:
+      enabled: true
+      replicas: 1
+
+    # CPU limits intentionally unset (Go GC throttling is a footgun on this
+    # workload class). Memory is bounded, CPU is left to the kernel.
+    defaults:
+      resources:
+        requests:
+          cpu: 50m
+          memory: 256Mi
+        limits:
+          memory: 1Gi
