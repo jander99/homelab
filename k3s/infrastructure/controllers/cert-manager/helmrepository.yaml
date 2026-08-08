@@ -5,5 +5,8 @@ metadata:
   name: jetstack
   namespace: flux-system
 spec:
-  interval: 24h
+  # Renovate bumps chart versions; 24h was too long and caused HelmChart
+  # reconcile to stall when the index.yaml was republished between fetches
+  # (see PRs #250, #251). 1h aligns with Renovate's weekly schedule.
+  interval: 1h
   url: https://charts.jetstack.io

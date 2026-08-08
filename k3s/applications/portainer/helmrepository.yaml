@@ -5,5 +5,8 @@ metadata:
   name: portainer
   namespace: flux-system
 spec:
-  interval: 12h
+  # Renovate bumps chart versions; 24h was too long and caused HelmChart
+  # reconcile to stall when the index.yaml was republished between fetches
+  # (see PRs #250, #251). 1h aligns with Renovate's weekly schedule.
+  interval: 1h
   url: https://portainer.github.io/k8s/
