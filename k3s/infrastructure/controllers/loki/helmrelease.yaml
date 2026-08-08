@@ -42,6 +42,10 @@ spec:
       compactor:
         retention_enabled: true
         working_directory: /data/loki/compactor
+        # delete_request_store is required whenever retention_enabled is true
+        # (Loki's Validate() refuses to start otherwise). Filesystem storage
+        # reuses the same PVC as the chunks — no extra wiring needed.
+        delete_request_store: filesystem
 
     singleBinary:
       replicas: 1
