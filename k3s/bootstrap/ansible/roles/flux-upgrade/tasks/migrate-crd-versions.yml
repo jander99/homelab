@@ -53,7 +53,7 @@
   ansible.builtin.set_fact:
     flux_crds_stale: >-
       {%- set ns = namespace(result=[]) -%}
-      {%- for crd in (all_crds_raw.stdout | from_json).items
+      {%- for crd in (all_crds_raw.stdout | from_json)["items"]
           if crd.metadata.name is search('\.toolkit\.fluxcd\.io$') -%}
         {%- set target_versions = flux_target_crd_versions.get(
               crd.metadata.name,
@@ -118,7 +118,7 @@
   when:
     - flux_crds_stale | length > 0
     - item.stdout is defined
-    - (item.stdout | from_json).items | length > 0
+    - (item.stdout | from_json)["items"] | length > 0
   changed_when: true
   delegate_to: localhost
   become: false
