@@ -13,8 +13,8 @@ data:
         quality_definition:
           type: series
         quality_profiles:
-          - trash_id: d1498e7d189fbe6c7110ceaabb7473e6  # WEB-2160p
-            name: WEB-2160p
+          - trash_id: 72dae194fc92bf828f32cde7744e51a1  # WEB-1080p (full ladder; 2160p upgrade target via upgrade.until_quality)
+            name: WEB-1080p
             reset_unmatched_scores:
               enabled: true
             upgrade:
@@ -31,8 +31,8 @@ data:
         quality_definition:
           type: movie
         quality_profiles:
-          - trash_id: 64fb5f9858489bdac2af690e27c8f42f  # UHD Bluray + WEB
-            name: UHD Bluray + WEB
+          - trash_id: d1d67249d3890e49bc12e275d989a7e9  # HD Bluray + WEB (full ladder; 2160p upgrade target via upgrade.until_quality)
+            name: HD Bluray + WEB
             reset_unmatched_scores:
               enabled: true
             upgrade:
