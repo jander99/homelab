@@ -89,21 +89,16 @@ spec:
       size: "1Gi"
       storageClass: "local-path"
 
-    # -- Probes: low initial delay; startupProbe (on spec.patches below)
-    #    carries the startup ceiling so pihole is Ready as soon as FTL is up.
-    #    The chart's `probes` values don't include startupProbe; the patch
-    #    adds it. Real startup is ~5s; old 120s buffer made the Service endpoints
-    #    wait 126s before adding the pod (DNS was actually answering the whole
-    #    time, just not in the Service's endpoint list).
+    # -- Probes: generous initial delay for slow Pi-hole startup
     probes:
       liveness:
         enabled: true
-        initialDelaySeconds: 0
+        initialDelaySeconds: 120
         failureThreshold: 10
         timeoutSeconds: 5
       readiness:
         enabled: true
-        initialDelaySeconds: 0
+        initialDelaySeconds: 120
         failureThreshold: 10
         timeoutSeconds: 5
 
@@ -147,31 +142,3 @@ spec:
     # -- Required for Pi-hole to listen on all interfaces in K3s CNI
     extraEnvVars:
       FTLCONF_dns_listeningMode: "all"
-
-  # Add a startupProbe via Kustomize post-render. The chart template doesn't
-  # expose startupProbe as a value (only liveness/readiness), so this
-  # patches the rendered Deployment after Helm renders. 60s ceiling covers
-  # first-boot gravity DB upgrades while letting DNS become reachable in
-  # ~5-10s on a warm boot (down from 120s + 6s with the old initialDelaySeconds).
-  # Note: this uses spec.postRenderers (not spec.patches) — the latter is a
-  # Kustomization-only field; HelmRelease v2 uses postRenderers for chart output
-  # patching. PR #256 mistakenly used spec.patches and broke the cluster; this
-  # is the corrected form. See https://fluxcd.io/flux/components/helm/helmreleases/
-  postRenderers:
-    - kustomize:
-        patches:
-          - target:
-              kind: Deployment
-              name: pihole
-            patch: |
-              - op: add
-                path: /spec/template/spec/containers/0/startupProbe
-                value:
-                  exec:
-                    command:
-                      - /bin/sh
-                      - -c
-                      - "curl --silent http://localhost/api/info/login | jq 'if (.dns | not) then halt_error(1) end'"
-                  periodSeconds: 5
-                  failureThreshold: 12
-                  timeoutSeconds: 5
