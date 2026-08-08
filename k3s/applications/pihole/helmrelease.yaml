@@ -89,16 +89,22 @@ spec:
       size: "1Gi"
       storageClass: "local-path"
 
-    # -- Probes: generous initial delay for slow Pi-hole startup
+    # -- Probes: initialDelaySeconds: 30 — FTL is up in ~5s, the chart's
+    #    default is 60s. 30s leaves a small buffer for first-boot gravity DB
+    #    upgrades without making the Service endpoints wait the full
+    #    minute+ that the chart default or the previous 120s value imposed.
+    #    On warm boots the pod becomes Ready ~30s after container start.
+    #    Reduced from 120 after observing actual FTL startup time
+    #    (~5s) and the chart default (60s).
     probes:
       liveness:
         enabled: true
-        initialDelaySeconds: 120
+        initialDelaySeconds: 30
         failureThreshold: 10
         timeoutSeconds: 5
       readiness:
         enabled: true
-        initialDelaySeconds: 120
+        initialDelaySeconds: 30
         failureThreshold: 10
         timeoutSeconds: 5
 
