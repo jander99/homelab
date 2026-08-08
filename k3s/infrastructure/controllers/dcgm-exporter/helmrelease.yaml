@@ -28,3 +28,30 @@ spec:
     extraEnv:
       - name: DCGM_EXPORTER_COLLECTORS
         value: /etc/dcgm-exporter/default-counters.csv
+
+  # Add a startupProbe and drop the chart's defensive 45s initialDelaySeconds.
+  # The dcgm-exporter chart doesn't expose startupProbe as a value, so this
+  # patches the rendered DaemonSet. Real startup is ~1s (registry built by
+  # 01:20:58 in this boot); the chart's 45s buffer made pods appear NotReady
+  # for 45+ seconds even though `/health` answered immediately.
+  patches:
+    - patch: |
+        - op: replace
+          path: /spec/template/spec/containers/0/readinessProbe/initialDelaySeconds
+          value: 0
+        - op: replace
+          path: /spec/template/spec/containers/0/livenessProbe/initialDelaySeconds
+          value: 0
+        - op: add
+          path: /spec/template/spec/containers/0/startupProbe
+          value:
+            httpGet:
+              path: /health
+              port: 9400
+              scheme: HTTP
+            periodSeconds: 5
+            failureThreshold: 12
+            timeoutSeconds: 2
+      target:
+        kind: DaemonSet
+        name: dcgm-exporter

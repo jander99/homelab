@@ -69,6 +69,26 @@ spec:
               mountPath: /temp
             - name: config
               mountPath: /app/configs
+          # tdarr_node doesn't expose an HTTP port; use exec probes.
+          # `nodeName` from env signals to tdarr-server that this node is alive.
+          # pgrep -f checks the worker process is actually running (not just
+          # the supervisord parent). Mark Ready quickly via short-period startup;
+          # liveness catches a wedged worker.
+          startupProbe:
+            exec:
+              command: ["/bin/sh", "-c", "pgrep -f 'node.*Tdarr_Node' >/dev/null"]
+            periodSeconds: 5
+            failureThreshold: 24
+          livenessProbe:
+            exec:
+              command: ["/bin/sh", "-c", "pgrep -f 'node.*Tdarr_Node' >/dev/null"]
+            periodSeconds: 30
+            failureThreshold: 3
+          readinessProbe:
+            exec:
+              command: ["/bin/sh", "-c", "pgrep -f 'node.*Tdarr_Node' >/dev/null"]
+            periodSeconds: 10
+            failureThreshold: 3
       volumes:
         - name: config
           persistentVolumeClaim:
