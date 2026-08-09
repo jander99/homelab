@@ -1,0 +1,67 @@
+---
+apiVersion: kopiur.home-operations.com/v1alpha1
+kind: ClusterRepository
+metadata:
+  name: nas
+spec:
+  # Match Billimek's pattern: every namespace can use this repo. Tighten with
+  # a label selector later if needed.
+  allowedNamespaces:
+    all: true
+
+  backend:
+    filesystem:
+      # Pod mount path = the SMB share root (\\MemoryAlpha\data\), exposed
+      # via the per-namespace kopiur-repo PVCs. Kopia's filesystem backend
+      # initialises the repository at <share>/backups/k3s/ by passing this
+      # path to 'kopia repository create filesystem --path=...'. Kopia's
+      # MkdirAll creates the intermediate 'backups/' and 'k3s/' directories
+      # on first reconcile. Final on-NAS path:
+      #   \\MemoryAlpha\data\backups\k3s\kopia.repository
+      #   \\MemoryAlpha\data\backups\k3s\blobs\...
+      # SMB auth is handled by csi-driver-smb via kube-system/smbcreds on
+      # each PV; the SMB user must have write access to the share root so
+      # the intermediate directories can be created.
+      path: /repo/backups/k3s
+      volume:
+        pvc:
+          name: kopiur-repo
+
+  encryption:
+    passwordSecretRef:
+      name: kopiur-nas-secret
+      namespace: kopiur-system
+      key: KOPIA_PASSWORD
+
+  # Greenfield repo — let kopiur initialize the Kopia repository on first
+  # reconcile via `kopia repository create filesystem --path=/repo`.
+  create:
+    enabled: true
+
+  # Consumers (SnapshotPolicy / Restore / Maintenance) MUST set
+  # credentialProjection.enabled: true to project this Secret into their
+  # own namespace at runtime. Without this, the per-consumer gate fails
+  # closed.
+  credentialProjection:
+    allowed: true
+
+  # Match HelmRelease TZ so schedules and reports use local time, not UTC.
+  scheduleDefaults:
+    timezone: America/New_York
+
+  # Kopia's default 24h epoch can't close fast enough on a busy repo
+  # ("too many index blobs" warning, climbing every run). Lowering to 6h
+  # matches kopiur's default quick-maintenance cadence so an epoch
+  # actually closes and compacts each cycle. (From billimek PR #5861.)
+  parameters:
+    epoch:
+      minDuration: 6h
+
+  moverDefaults:
+    podSecurityContext:
+      runAsNonRoot: true
+      fsGroupChangePolicy: OnRootMismatch
+    cache:
+      capacity: 1Gi
+      mode: Ephemeral
+      storageClassName: local-path

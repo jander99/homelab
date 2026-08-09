@@ -1,0 +1,50 @@
+---
+apiVersion: kopiur.home-operations.com/v1alpha1
+kind: SnapshotPolicy
+metadata:
+  name: headlamp
+  namespace: headlamp
+spec:
+  repository:
+    kind: ClusterRepository
+    name: nas
+  sources:
+    - pvc:
+        name: headlamp
+      # /data is the convention from the volsync-perfectra1n fork's recorded
+      # source path; harmless to keep here for forward compatibility if we
+      # later adopt an existing repo into this one.
+      sourcePathOverride: /data
+  copyMethod: Snapshot
+  compression:
+    compressor: zstd
+  retention:
+    keepHourly: 24
+    keepDaily: 14
+    keepWeekly: 8
+    keepMonthly: 6
+  # Daily quick verification proves backups are actually restorable, not just
+  # that maintenance ran. Jenkins-style H substitution hashes a stable per-app
+  # minute within hour 3.
+  verification:
+    quick:
+      schedule:
+        cron: "H 3 * * *"
+  # Repository password Secret lives in kopiur-system; the mover runs in the
+  # app namespace, so the credential has to be projected at runtime.
+  credentialProjection:
+    enabled: true
+  mover:
+    # headlamp chart's initContainer chowns the PVC to UID 100 / GID 101
+    # ("mkdir -p /build/plugins && ... && chown -R 100:101 /build"). The
+    # mover must run as that user to read the data.
+    securityContext:
+      runAsUser: 100
+      runAsGroup: 101
+    podSecurityContext:
+      fsGroup: 101
+      fsGroupChangePolicy: OnRootMismatch
+    cache:
+      capacity: 1Gi
+      storageClassName: local-path
+      mode: Ephemeral

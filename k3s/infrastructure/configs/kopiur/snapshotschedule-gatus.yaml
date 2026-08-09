@@ -1,0 +1,12 @@
+---
+apiVersion: kopiur.home-operations.com/v1alpha1
+kind: SnapshotSchedule
+metadata:
+  name: gatus-scheduled
+  namespace: gatus
+spec:
+  policyRef:
+    name: gatus
+  schedule:
+    cron: "H * * * *"
+    runOnCreate: false
