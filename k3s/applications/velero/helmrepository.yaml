@@ -1,0 +1,12 @@
+---
+apiVersion: source.toolkit.fluxcd.io/v1
+kind: HelmRepository
+metadata:
+  name: velero
+  namespace: flux-system
+spec:
+  # Renovate bumps chart versions; 24h was too long and caused HelmChart
+  # reconcile to stall when the index.yaml was republished between fetches
+  # (see PRs #250, #251). 1h aligns with Renovate's weekly schedule.
+  interval: 1h
+  url: https://vmware-tanzu.github.io/helm-charts

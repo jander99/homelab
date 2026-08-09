@@ -1,0 +1,83 @@
+---
+apiVersion: helm.toolkit.fluxcd.io/v2
+kind: HelmRelease
+metadata:
+  name: velero
+  namespace: velero
+spec:
+  interval: 1h
+  timeout: 10m
+  install:
+    createNamespace: true
+    remediation:
+      retries: 3
+  upgrade:
+    remediation:
+      retries: 3
+  chart:
+    spec:
+      chart: velero
+      version: "9.0.0"
+      sourceRef:
+        kind: HelmRepository
+        name: velero
+        namespace: flux-system
+      interval: 12h
+  values:
+    # -- Backup target: filesystem provider writing to a CIFS-backed PVC
+    # mounted at /backups. Velero's filesystem plugin ignores the `bucket`
+    # field and reads `config.path` instead. No credentials needed.
+    configuration:
+      backupStorageLocation:
+        - name: default
+          provider: filesystem
+          default: true
+          accessMode: ReadWrite
+          config:
+            path: /backups
+
+    # -- Filesystem provider doesn't need cloud credentials
+    credentials:
+      useSecret: false
+
+    # -- No schedule. Backups are run manually with `velero backup create`
+    # so each one can be reviewed before kicking off. Add a Schedule resource
+    # in this directory when ready to automate.
+    schedules: {}
+
+    # -- Node-agent (kopia DaemonSet) for PV data backups. Replaces the
+    # deprecated restic path. Renders one pod per node; mounts pod volumes
+    # to dump their contents to the BSL.
+    deployNodeAgent: true
+
+    # -- Mount the CIFS-backed PVC into the Velero deployment at /backups.
+    # The BSL config.path above targets this mount.
+    extraVolumes:
+      - name: backups
+        persistentVolumeClaim:
+          claimName: velero-backups
+    extraVolumeMounts:
+      - name: backups
+        mountPath: /backups
+
+    # -- node-agent needs root to mount pod volumes for FS backup.
+    # runAsUser: 0 is the chart default; made explicit for clarity.
+    nodeAgent:
+      podSecurityContext:
+        runAsUser: 0
+
+    # -- Light resource footprint; Velero server is a small Go process
+    resources:
+      requests:
+        cpu: 100m
+        memory: 256Mi
+      limits:
+        memory: 512Mi
+
+    # -- Scrape Velero + node-agent metrics via the kube-prometheus-stack
+    # ServiceMonitor/PodMonitor selectors (see monitoring chart config).
+    metrics:
+      serviceMonitor:
+        enabled: true
+      nodeAgentPodMonitor:
+        enabled: true
