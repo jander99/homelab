@@ -1,0 +1,14 @@
+---
+apiVersion: kopiur.home-operations.com/v1alpha1
+kind: SnapshotSchedule
+metadata:
+  name: headlamp-scheduled
+  namespace: headlamp
+spec:
+  policyRef:
+    name: headlamp
+  schedule:
+    # Jenkins-style H substitution hashes a stable per-policy minute; load
+    # self-distributes without manual offset bookkeeping.
+    cron: "H * * * *"
+    runOnCreate: false

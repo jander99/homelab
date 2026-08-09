@@ -1,0 +1,66 @@
+---
+apiVersion: helm.toolkit.fluxcd.io/v2
+kind: HelmRelease
+metadata:
+  name: kopiur
+  namespace: kopiur-system
+spec:
+  interval: 1h
+  timeout: 5m
+  chartRef:
+    kind: OCIRepository
+    name: kopiur
+    # OCIRepository lives in flux-system (Flux convention for source objects);
+    # without explicit namespace, chartRef defaults to the HelmRelease's own
+    # namespace (kopiur-system) and the cross-namespace lookup fails with
+    # 'OCIRepository "kopiur" not found'.
+    namespace: flux-system
+  install:
+    crds: CreateReplace
+    createNamespace: false
+    remediation:
+      retries: 3
+  upgrade:
+    crds: CreateReplace
+    remediation:
+      retries: 3
+  values:
+    # Cluster-scope so the ClusterRepository CRD can be cluster-wide;
+    # SnapshotPolicy / SnapshotSchedule / Restore remain namespaced and live
+    # in each app's own namespace.
+    installScope: cluster
+
+    streamingLists: true
+
+    # Credential projection lets us keep the repository password Secret in
+    # kopiur-system and project it into each consumer namespace at runtime.
+    features:
+      credentialProjection:
+        enabled: true
+
+    webhook:
+      tls:
+        mode: self
+      serviceMonitor:
+        enabled: true
+
+    monitoring:
+      # kube-prometheus-stack (not grafana-operator) is what we run, so
+      # only the Prometheus-Operator-native bits apply here. Skip the
+      # grafanaOperator dashboards block — it would silently no-op for us.
+      serviceMonitor:
+        enabled: true
+      prometheusRule:
+        enabled: true
+
+    podSecurityContext:
+      runAsNonRoot: true
+      runAsUser: 65534
+      runAsGroup: 65534
+      fsGroup: 65534
+      fsGroupChangePolicy: OnRootMismatch
+
+    resources:
+      requests:
+        cpu: 100m
+        memory: 128Mi
