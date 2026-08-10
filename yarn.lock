@@ -567,20 +567,20 @@ __metadata:
   languageName: node
   linkType: hard
 
-"cdk8s-cli@npm:2.207.43":
-  version: 2.207.43
-  resolution: "cdk8s-cli@npm:2.207.43"
+"cdk8s-cli@npm:2.207.45":
+  version: 2.207.45
+  resolution: "cdk8s-cli@npm:2.207.45"
   dependencies:
     "@types/node": "npm:^16"
     ajv: "npm:^8.20.0"
-    cdk8s: "npm:^2.70.87"
-    cdk8s-plus-33: "npm:^2.5.43"
+    cdk8s: "npm:^2.70.88"
+    cdk8s-plus-33: "npm:^2.5.45"
     codemaker: "npm:^1.139.0"
     colors: "npm:1.4.0"
-    constructs: "npm:^10.7.2"
+    constructs: "npm:^10.8.0"
     fs-extra: "npm:^8"
     jsii-pacmak: "npm:^1.139.0"
-    jsii-rosetta: "npm:^5.9.58"
+    jsii-rosetta: "npm:^5.9.59"
     jsii-srcmak: "npm:0.1.1319"
     json2jsii: "npm:0.5.19"
     semver: "npm:^7.8.5"
@@ -590,11 +590,11 @@ __metadata:
     yargs: "npm:^15"
   bin:
     cdk8s: bin/cdk8s
-  checksum: 10c0/230d69d66b73d26b7485d6621aea6a9b1c31eb823fd4d6432b9b2f3358655c9ede55458c49b1fbc251b0baae54cd0c3ae67faeebe99f45179c8cbd7f4dfc30fa
+  checksum: 10c0/90e33db8548214dfb0e59b7a84897bd3a446ac3bf6dfcd8cd3e32c038dcfe56c9152d8c1f2ce320861731ab927f00d4197e9610f56f8e2b7bf893d802f6e00cd
   languageName: node
   linkType: hard
 
-"cdk8s-plus-33@npm:^2.5.43":
+"cdk8s-plus-33@npm:^2.5.45":
   version: 2.5.47
   resolution: "cdk8s-plus-33@npm:2.5.47"
   dependencies:
@@ -619,7 +619,7 @@ __metadata:
   languageName: node
   linkType: hard
 
-"cdk8s@npm:^2.70.87":
+"cdk8s@npm:^2.70.88":
   version: 2.70.90
   resolution: "cdk8s@npm:2.70.90"
   dependencies:
@@ -638,8 +638,8 @@ __metadata:
   dependencies:
     "@types/node": "npm:24.13.3"
     cdk8s: "npm:2.70.59"
-    cdk8s-cli: "npm:2.207.43"
-    constructs: "npm:10.7.2"
+    cdk8s-cli: "npm:2.207.45"
+    constructs: "npm:10.8.1"
     ts-node: "npm:10.9.2"
     typescript: "npm:6.0.3"
   languageName: unknown
@@ -781,14 +781,7 @@ __metadata:
   languageName: node
   linkType: hard
 
-"constructs@npm:10.7.2":
-  version: 10.7.2
-  resolution: "constructs@npm:10.7.2"
-  checksum: 10c0/b96b0d9926cbf86198e12cf5a6ab44eb971654bec77d6ab46068d47ea1481759b88f177b4199dba241679f6d311784b077e1734398e8f83ee1ccf71665adc5a1
-  languageName: node
-  linkType: hard
-
-"constructs@npm:^10.7.2":
+"constructs@npm:10.8.1, constructs@npm:^10.8.0":
   version: 10.8.1
   resolution: "constructs@npm:10.8.1"
   checksum: 10c0/7069893e7e63d2b2ae8901ff797e58903cdabd6dfe7df7dde1e19ed6d9d793eed9a8b4ff027652250d959aa23a5201ccca2040660ee8be58e3329d8ce7db2765
@@ -1511,7 +1504,7 @@ __metadata:
   languageName: node
   linkType: hard
 
-"jsii-rosetta@npm:^5.9.58":
+"jsii-rosetta@npm:^5.9.59":
   version: 5.9.60
   resolution: "jsii-rosetta@npm:5.9.60"
   dependencies:
