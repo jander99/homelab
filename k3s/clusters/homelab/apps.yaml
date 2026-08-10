@@ -25,7 +25,9 @@ spec:
     name: flux-system
   dependsOn:
     - name: platform
+      namespace: flux-system
     - name: infra-configs
+      namespace: flux-system
   decryption:
     provider: sops
     secretRef:
