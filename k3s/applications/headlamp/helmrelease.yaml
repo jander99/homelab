@@ -96,6 +96,7 @@ spec:
         - ReadWriteOnce
       enabled: true
       size: 1Gi
+      storageClassName: csi-hostpath-sc
     volumeMounts:
       - mountPath: /build/plugins
         name: headlamp-plugins

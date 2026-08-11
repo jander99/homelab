@@ -1,0 +1,44 @@
+---
+apiVersion: helm.toolkit.fluxcd.io/v2
+kind: HelmRelease
+metadata:
+  name: snapshot-controller
+  namespace: flux-system
+spec:
+  interval: 30m
+  chart:
+    spec:
+      chart: snapshot-controller
+      version: "5.2.0"
+      sourceRef:
+        kind: HelmRepository
+        name: piraeus-charts
+        namespace: flux-system
+      interval: 12h
+  targetNamespace: kube-system
+  install:
+    createNamespace: false
+    # CRDs are part of the chart and need re-application on chart bumps so any
+    # new fields (e.g. VolumeGroupSnapshot) reach the cluster.
+    crds: CreateReplace
+    remediation:
+      retries: 3
+  upgrade:
+    crds: CreateReplace
+    remediation:
+      retries: 3
+  values:
+    # CRDs are regular resources managed by the chart; must be true on fresh
+    # install. The chart ships the v1 VolumeSnapshot, VolumeSnapshotContent,
+    # VolumeSnapshotClass, plus VolumeGroupSnapshot CRDs.
+    installCRDs: true
+    controller:
+      enabled: true
+      # Safe on single-node K3s testbed; leader-election is on by default upstream
+      # but a single replica is fine.
+      replicaCount: 1
+    # Disable the validation webhook to skip the cert-manager dependency.
+    # Single-node homelab; v1beta1/v1beta2 VolumeGroupSnapshot objects aren't
+    # in play, so we don't need webhook-side validation.
+    webhook:
+      enabled: false

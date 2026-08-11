@@ -12,7 +12,8 @@ spec:
     - pvc:
         name: gatus
       sourcePathOverride: /data
-  copyMethod: Direct
+  copyMethod: Snapshot
+  volumeSnapshotClassName: csi-hostpath-snapclass
   compression:
     compressor: zstd
   retention:

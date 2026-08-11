@@ -1,0 +1,9 @@
+---
+apiVersion: source.toolkit.fluxcd.io/v1
+kind: HelmRepository
+metadata:
+  name: alvistack
+  namespace: flux-system
+spec:
+  interval: 1h
+  url: https://alvistack.github.io/kubernetes-csi-csi-driver-host-path/
