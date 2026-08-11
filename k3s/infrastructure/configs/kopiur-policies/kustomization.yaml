@@ -1,0 +1,21 @@
+---
+# SnapshotPolicies + Schedules are kept in their own sub-Kustomization
+# and Flux Kustomization (k3s/clusters/homelab/kopiur-policies.yaml)
+# because the kopiur admission webhook validates that any SnapshotPolicy
+# references an existing ClusterRepository at admission time. Flux's
+# per-resource SSA sends each resource through the admission webhook
+# before committing it; if SnapshotPolicy and ClusterRepository are in
+# the same Kustomization, the SnapshotPolicy's dry-run sees a cluster
+# state where ClusterRepository "nas" doesn't exist yet (it's still
+# pending commit in the same batch), and the webhook rejects with
+#   "cannot resolve ClusterRepository 'nas' ... NotFound"
+# Splitting into a downstream Kustomization that depends on infra-configs
+# (which carries the ClusterRepository) commits the ClusterRepository
+# first, so the SnapshotPolicy's admission sees it.
+apiVersion: kustomize.config.k8s.io/v1beta1
+kind: Kustomization
+resources:
+  - snapshotpolicy-headlamp.yaml
+  - snapshotschedule-headlamp.yaml
+  - snapshotpolicy-gatus.yaml
+  - snapshotschedule-gatus.yaml
