@@ -17,3 +17,4 @@ resources:
   - unpoller.yaml
   - telemetry.yaml
   - gatus.yaml
+  - kopiur-system.yaml

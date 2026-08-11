@@ -1,0 +1,24 @@
+---
+# Resource ordering matters here:
+#   1. kopiur-secret               — independent
+#   2. pv-kopiur-system + pv-headlamp + pv-gatus — PVs cluster-scoped, PVCs
+#                                                namespaced; the snapshot
+#                                                Jobs in headlamp/gatus need
+#                                                their PVCs to bind before
+#                                                kopiur starts scheduling
+#   3. clusterrepository           — references the Secret; kopiur inits
+#                                    the Kopia repo on first reconcile
+#   4. snapshotpolicies            — reference clusterrepository by name
+#   5. snapshotschedules           — reference snapshotpolicies by name
+apiVersion: kustomize.config.k8s.io/v1beta1
+kind: Kustomization
+resources:
+  - kopiur-secret.sops.yaml
+  - pv-kopiur-system.yaml
+  - pv-headlamp.yaml
+  - pv-gatus.yaml
+  - clusterrepository.yaml
+  - snapshotpolicy-headlamp.yaml
+  - snapshotschedule-headlamp.yaml
+  - snapshotpolicy-gatus.yaml
+  - snapshotschedule-gatus.yaml
