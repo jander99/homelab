@@ -10,6 +10,11 @@ spec:
   chartRef:
     kind: OCIRepository
     name: kopiur
+    # OCIRepository lives in flux-system (Flux convention for source objects);
+    # without explicit namespace, chartRef defaults to the HelmRelease's own
+    # namespace (kopiur-system) and the cross-namespace lookup fails with
+    # 'OCIRepository "kopiur" not found'.
+    namespace: flux-system
   install:
     crds: CreateReplace
     createNamespace: false
