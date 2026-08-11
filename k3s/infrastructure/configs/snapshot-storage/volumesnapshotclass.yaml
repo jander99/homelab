@@ -1,0 +1,17 @@
+---
+# VolumeSnapshotClass for the csi-driver-host-path CSI driver installed by
+# k3s/infrastructure/controllers/csi-hostpath/. The CSI driver creates the
+# matching StorageClass 'csi-hostpath-sc' on its own; we manage the
+# VolumeSnapshotClass here so it sits alongside the kopiur configs in the
+# infra-configs layer (kopiur SnapshotPolicy references this class by name
+# in spec.volumeSnapshotClassName).
+#
+# Deliberately NOT setting snapshot.storage.kubernetes.io/is-default-class —
+# the kopiur SnapshotPolicy picks by name, and marking this default would
+# cause confusion if other VolumeSnapshotClasses ever show up.
+apiVersion: snapshot.storage.k8s.io/v1
+kind: VolumeSnapshotClass
+metadata:
+  name: csi-hostpath-snapclass
+deletionPolicy: Delete
+driver: hostpath.csi.k8s.io

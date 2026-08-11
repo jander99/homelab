@@ -15,7 +15,8 @@ spec:
       # source path; harmless to keep here for forward compatibility if we
       # later adopt an existing repo into this one.
       sourcePathOverride: /data
-  copyMethod: Direct
+  copyMethod: Snapshot
+  volumeSnapshotClassName: csi-hostpath-snapclass
   compression:
     compressor: zstd
   retention:

@@ -56,7 +56,7 @@ spec:
       mountPath: /data
       accessModes:
         - ReadWriteOnce
-      storageClassName: local-path
+      storageClassName: csi-hostpath-sc
 
     # Ingress with Traefik + cert-manager. Auth is now Gatus-native OIDC
     # (via the security.oidc block in config.yaml), so no Traefik

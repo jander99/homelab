@@ -14,3 +14,5 @@ resources:
   - loki
   - alloy
   - kopiur
+  - snapshot-controller
+  - csi-hostpath

@@ -9,3 +9,4 @@ resources:
   - smb-storage
   - coredns
   - kopiur
+  - snapshot-storage
