@@ -12,7 +12,7 @@ spec:
     - pvc:
         name: gatus
       sourcePathOverride: /data
-  copyMethod: Snapshot
+  copyMethod: Direct
   compression:
     compressor: zstd
   retention:

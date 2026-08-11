@@ -15,7 +15,7 @@ spec:
       # source path; harmless to keep here for forward compatibility if we
       # later adopt an existing repo into this one.
       sourcePathOverride: /data
-  copyMethod: Snapshot
+  copyMethod: Direct
   compression:
     compressor: zstd
   retention:
