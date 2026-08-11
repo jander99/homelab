@@ -8,8 +8,11 @@
 #                                                kopiur starts scheduling
 #   3. clusterrepository           — references the Secret; kopiur inits
 #                                    the Kopia repo on first reconcile
-#   4. snapshotpolicies            — reference clusterrepository by name
-#   5. snapshotschedules           — reference snapshotpolicies by name
+#
+# SnapshotPolicy / SnapshotSchedule live in their own Kustomization
+# (k3s/infrastructure/configs/kopiur-policies/) applied by the separate
+# Flux Kustomization k3s/clusters/homelab/kopiur-policies.yaml — see
+# that file's header for why this split is required.
 apiVersion: kustomize.config.k8s.io/v1beta1
 kind: Kustomization
 resources:
@@ -18,7 +21,3 @@ resources:
   - pv-headlamp.yaml
   - pv-gatus.yaml
   - clusterrepository.yaml
-  - snapshotpolicy-headlamp.yaml
-  - snapshotschedule-headlamp.yaml
-  - snapshotpolicy-gatus.yaml
-  - snapshotschedule-gatus.yaml

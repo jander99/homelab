@@ -15,4 +15,5 @@ resources:
   - platform.yaml
   - infra-controllers.yaml
   - infra-configs.yaml
+  - kopiur-policies.yaml
   - apps.yaml
