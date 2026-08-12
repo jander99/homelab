@@ -31,7 +31,11 @@ spec:
       source: //192.168.1.20/data
       # Bind SMB subdirectory so the pod's mount path maps to
       # \\MemoryAlpha\data\backups\k3s\ instead of the share root.
-      subPath: backups/k3s
+      # NOTE: csi-driver-smb uses the key `subDir`, NOT `subPath`
+      # (CephFS-style). The driver silently ignores unknown keys,
+      # so PR #275's `subPath: backups/k3s` left every mover Pod
+      # mounted at the share root and Kopia wrote \\MemoryAlpha\data\.
+      subDir: backups/k3s
     nodeStageSecretRef:
       name: smbcreds
       namespace: kube-system
