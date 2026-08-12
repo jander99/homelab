@@ -11,18 +11,27 @@ spec:
 
   backend:
     filesystem:
-      # Pod mount path = the SMB share root (\\MemoryAlpha\data\), exposed
-      # via the per-namespace kopiur-repo PVCs. Kopia's filesystem backend
-      # initialises the repository at <share>/backups/k3s/ by passing this
-      # path to 'kopia repository create filesystem --path=...'. Kopia's
-      # MkdirAll creates the intermediate 'backups/' and 'k3s/' directories
-      # on first reconcile. Final on-NAS path:
-      #   \\MemoryAlpha\data\backups\k3s\kopia.repository
-      #   \\MemoryAlpha\data\backups\k3s\blobs\...
+      # Pod mount path for the kopiur-repo PVC. The csi-driver-smb PVs use
+      # `volumeAttributes.subPath: backups/k3s`, which binds that SMB-share
+      # subdirectory to the pod, so `/repo` inside the mover Pod maps to
+      # `\\MemoryAlpha\data\backups\k3s\` on the NAS. Kopia's filesystem
+      # backend initialises the repository here via
+      # `kopia repository create filesystem --path=/repo`, creating
+      # kopia.repository, blobs/, index/, logs/ on first reconcile.
+      #
+      # Why this two-piece construction: kopiur 0.9.1 uses
+      # `spec.backend.filesystem.path` verbatim as BOTH the Kubernetes
+      # `mount_path` AND the kopia `--path` argument (no normalization,
+      # no path-relative-to-mount). See PR #270 — the original path
+      # `/repo/backups/k3s` mounted the SMB share root at that exact path,
+      # so the `/backups/k3s` tail had no meaning and Kopia wrote to
+      # `\\MemoryAlpha\data\` (share root) instead of the intended
+      # subdirectory.
+      #
       # SMB auth is handled by csi-driver-smb via kube-system/smbcreds on
-      # each PV; the SMB user must have write access to the share root so
-      # the intermediate directories can be created.
-      path: /repo/backups/k3s
+      # each PV; the SMB user must have write access to `backups/` and
+      # `backups/k3s/` on the share.
+      path: /repo
       volume:
         pvc:
           name: kopiur-repo
@@ -33,8 +42,13 @@ spec:
       namespace: kopiur-system
       key: KOPIA_PASSWORD
 
-  # Greenfield repo — let kopiur initialize the Kopia repository on first
-  # reconcile via `kopia repository create filesystem --path=/repo`.
+  # Greenfield repo at the new path — let kopiur initialize the Kopia
+  # repository on first reconcile via
+  # `kopia repository create filesystem --path=/repo`. Any pre-existing
+  # files at the SMB share root (\\MemoryAlpha\data\kopia.repository, blobs/,
+  # index/, logs/) are orphaned by this change; operator deletes them
+  # manually after verifying fresh snapshots land in
+  # \\MemoryAlpha\data\backups\k3s\.
   create:
     enabled: true
 
