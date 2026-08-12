@@ -1,8 +1,11 @@
 ---
 # Repository storage for kopiur snapshot Jobs in headlamp. Static PV + PVC
-# pair bound to the existing smb-media CSI provisioner. Shares the SMB
-# source path with pv-kopiur-system.yaml and pv-gatus.yaml — each namespace
-# has its own mount = its own SMB session to //192.168.1.20/data. Kopia's
+# pair bound to the smb-media CSI provisioner. Mounts the dedicated backup
+# SMB sub-share \\MemoryAlpha\backups\ (separate from \\MemoryAlpha\data\
+# used by the media stack — radarr, sonarr, qbittorrent, sabnzbd, tdarr —
+# which all write their own app-level subdirs into the share root). Shares
+# the SMB source with pv-kopiur-system.yaml and pv-gatus.yaml — each
+# namespace has its own mount = its own SMB session. Kopia's
 # content-addressable storage makes concurrent multi-mount writes safe
 # (different jobs write to different blob files).
 apiVersion: v1
@@ -30,14 +33,7 @@ spec:
     readOnly: false
     volumeHandle: kopiur-repo-headlamp-vol
     volumeAttributes:
-      source: //192.168.1.20/data
-      # Bind SMB subdirectory so the pod's mount path maps to
-      # \\MemoryAlpha\data\backups\k3s\ instead of the share root.
-      # NOTE: csi-driver-smb uses the key `subDir`, NOT `subPath`
-      # (CephFS-style). The driver silently ignores unknown keys,
-      # so PR #275's `subPath: backups/k3s` left every mover Pod
-      # mounted at the share root and Kopia wrote \\MemoryAlpha\data\.
-      subDir: backups/k3s
+      source: //192.168.1.20/backups
     nodeStageSecretRef:
       name: smbcreds
       namespace: kube-system
