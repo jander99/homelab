@@ -31,6 +31,9 @@ spec:
     volumeHandle: kopiur-repo-headlamp-vol
     volumeAttributes:
       source: //192.168.1.20/data
+      # Bind SMB subdirectory so the pod's mount path maps to
+      # \\MemoryAlpha\data\backups\k3s\ instead of the share root.
+      subPath: backups/k3s
     nodeStageSecretRef:
       name: smbcreds
       namespace: kube-system
