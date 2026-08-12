@@ -11,26 +11,27 @@ spec:
 
   backend:
     filesystem:
-      # Pod mount path for the kopiur-repo PVC. The csi-driver-smb PVs use
-      # `volumeAttributes.subPath: backups/k3s`, which binds that SMB-share
-      # subdirectory to the pod, so `/repo` inside the mover Pod maps to
-      # `\\MemoryAlpha\data\backups\k3s\` on the NAS. Kopia's filesystem
+      # Pod mount path for the kopiur-repo PVC. The PVs in pv-*.yaml mount
+      # the dedicated backup SMB sub-share \\MemoryAlpha\backups\ (separate
+      # from \\MemoryAlpha\data\ used by the media stack), so `/repo` inside
+      # the mover Pod maps to the root of that sub-share. Kopia's filesystem
       # backend initialises the repository here via
       # `kopia repository create filesystem --path=/repo`, creating
       # kopia.repository, blobs/, index/, logs/ on first reconcile.
       #
-      # Why this two-piece construction: kopiur 0.9.1 uses
-      # `spec.backend.filesystem.path` verbatim as BOTH the Kubernetes
-      # `mount_path` AND the kopia `--path` argument (no normalization,
-      # no path-relative-to-mount). See PR #270 — the original path
-      # `/repo/backups/k3s` mounted the SMB share root at that exact path,
-      # so the `/backups/k3s` tail had no meaning and Kopia wrote to
-      # `\\MemoryAlpha\data\` (share root) instead of the intended
-      # subdirectory.
+      # Why a dedicated sub-share rather than a subdir on \\MemoryAlpha\data\:
+      # kopiur 0.9.1 uses `spec.backend.filesystem.path` verbatim as BOTH
+      # the Kubernetes `mount_path` AND the kopia `--path` argument (no
+      # normalization, no path-relative-to-mount). PRs #275/#276 tried
+      # putting the repo at `\\MemoryAlpha\data\backups\k3s\` via the csi
+      # driver's `subDir` key — but the Linux CIFS client on this kernel
+      # silently ignores path components in the mount source, falling back
+      # to the share root regardless. The CIFS kernel limitation makes
+      # share-level isolation via subDir unreliable. A dedicated SMB
+      # sub-share is the only clean fix on this kernel.
       #
       # SMB auth is handled by csi-driver-smb via kube-system/smbcreds on
-      # each PV; the SMB user must have write access to `backups/` and
-      # `backups/k3s/` on the share.
+      # each PV; the SMB user must have write access to the share root.
       path: /repo
       volume:
         pvc:
