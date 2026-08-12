@@ -31,9 +31,12 @@ spec:
             fsGroupChangePolicy: OnRootMismatch
           containers:
             - name: cleanup
-              # bitnami/kubectl ships bash + curl + kubectl — everything
-              # needed without pulling jq. Digest-pinned for reproducibility.
-              image: docker.io/bitnami/kubectl:1.32.4-debian-12-r1
+              # bitnami/kubectl on Docker Hub is now Bitnami Secure Images
+              # (commercial subscription). The free legacy Debian-based image
+              # lives at bitnamilegacy/kubectl. This tag is last published
+              # 2025-08-22 and includes bash + curl + kubectl + jq.
+              # Digest-pinned for reproducibility.
+              image: docker.io/bitnamilegacy/kubectl:1.33.4-debian-12-r0@sha256:681609aff6bf316acf464d9c9e369d84c49d50be6379247291b01ac311a7f5f5
               imagePullPolicy: IfNotPresent
               command:
                 - /bin/bash
