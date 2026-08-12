@@ -1,0 +1,72 @@
+---
+apiVersion: batch/v1
+kind: CronJob
+metadata:
+  name: kopiur-completed-job-cleanup
+  namespace: kopiur-system
+  labels:
+    app.kubernetes.io/name: kopiur
+    app.kubernetes.io/component: cleanup
+spec:
+  # Hourly. Pruning window is 1h, so this is well below the threshold and
+  # gives plenty of room for ad-hoc kubectl log inspection between sweeps.
+  schedule: "0 * * * *"
+  concurrencyPolicy: Forbid
+  successfulJobsHistoryLimit: 1
+  failedJobsHistoryLimit: 1
+  startingDeadlineSeconds: 60
+  jobTemplate:
+    spec:
+      backoffLimit: 2
+      template:
+        metadata: {}
+        spec:
+          serviceAccountName: kopiur-completed-job-cleanup
+          restartPolicy: OnFailure
+          securityContext:
+            runAsNonRoot: true
+            runAsUser: 65534
+            runAsGroup: 65534
+            fsGroup: 65534
+            fsGroupChangePolicy: OnRootMismatch
+          containers:
+            - name: cleanup
+              # bitnami/kubectl ships bash + curl + kubectl — everything
+              # needed without pulling jq. Digest-pinned for reproducibility.
+              image: docker.io/bitnami/kubectl:1.32.4-debian-12-r1
+              imagePullPolicy: IfNotPresent
+              command:
+                - /bin/bash
+                - -ec
+                - |
+                  set -euo pipefail
+                  NAMESPACE="kopiur-system"
+                  CUTOFF_TS="$(date -u -d '1 hour ago' +%s)"
+                  # Use a single jsonpath that emits one line per Job with
+                  # name|completionTime|complete|failed. Empty fields mean
+                  # the Job hasn't finished yet — skip it.
+                  while IFS='|' read -r name completion complete failed; do
+                    [ -n "$name" ] || continue
+                    if [ "$complete" != "True" ] && [ "$failed" != "True" ]; then
+                      continue
+                    fi
+                    [ -n "$completion" ] || continue
+                    completion_ts="$(date -u -d "$completion" +%s)"
+                    if [ "$completion_ts" -lt "$CUTOFF_TS" ]; then
+                      echo "deleting ${NAMESPACE}/${name} (completed at ${completion})"
+                      kubectl delete job -n "$NAMESPACE" "$name" --ignore-not-found
+                    fi
+                  done <<< "$(
+                    kubectl get jobs -n "$NAMESPACE" -o jsonpath='{range .items[*]}\
+                      {.metadata.name}|{.status.completionTime}|\
+                      {(.status.conditions[?(@.type==\"Complete\")].status)}{|\
+                      {(.status.conditions[?(@.type==\"Failed\")].status)}\
+                      {"\n"}{end}'
+                  )"
+              resources:
+                requests:
+                  cpu: 25m
+                  memory: 64Mi
+                limits:
+                  cpu: 200m
+                  memory: 128Mi

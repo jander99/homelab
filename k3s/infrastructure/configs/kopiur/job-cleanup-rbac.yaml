@@ -1,0 +1,30 @@
+---
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: kopiur-completed-job-cleanup
+  namespace: kopiur-system
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: Role
+metadata:
+  name: kopiur-completed-job-cleanup
+  namespace: kopiur-system
+rules:
+  - apiGroups: ["batch"]
+    resources: ["jobs"]
+    verbs: ["get", "list", "delete"]
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: RoleBinding
+metadata:
+  name: kopiur-completed-job-cleanup
+  namespace: kopiur-system
+subjects:
+  - kind: ServiceAccount
+    name: kopiur-completed-job-cleanup
+    namespace: kopiur-system
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: Role
+  name: kopiur-completed-job-cleanup
