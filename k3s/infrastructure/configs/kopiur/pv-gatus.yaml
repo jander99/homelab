@@ -35,6 +35,14 @@ spec:
       # (CephFS-style). The driver silently ignores unknown keys,
       # so PR #275's `subPath: backups/k3s` left every mover Pod
       # mounted at the share root and Kopia wrote \\MemoryAlpha\data\.
+      #
+      # PREREQUISITE: the SMB subdirectory must pre-exist on the share
+      # before any mover Pod runs. NodeStageVolume only mounts; it does
+      # NOT create the subdirectory (auto-create only happens in
+      # CreateVolume, which is the dynamic-provisioning path —
+      # irrelevant for static PVs). Without the dir, the CIFS client
+      # silently falls back to the share root on this kernel and Kopia
+      # writes to the existing repo at \\MemoryAlpha\data\.
       subDir: backups/k3s
     nodeStageSecretRef:
       name: smbcreds

@@ -48,6 +48,7 @@ k3s/
 - **Do not hardcode a speculative storage vendor into new planning docs unless the repo actually adopts one.**
 - **Do not run `ansible-playbook` commands from `BOOTSTRAP.md`** without verifying nodes are provisioned.
 - **Do not add namespaces inside `k3s/infrastructure/configs/`** — namespaces belong in `k3s/platform/namespaces/` (established pattern; all existing namespaces follow this).
+- **Do not set `volumeAttributes.subPath: ...` on csi-driver-smb static PVs** — the driver honors `subDir` (camelCase). Unknown keys are silently ignored, so the pod ends up mounted at the share root and writes go to the wrong place. PRs #275 and #276 document this. Even with the right key, the subdirectory must pre-exist on the SMB share before any Pod mounts — NodeStageVolume only mounts, never creates; the CIFS client silently falls back to the share root on this kernel if the path doesn't resolve. See `k3s/infrastructure/configs/kopiur/pv-*.yaml` for the full comment block.
 ## NOTES
 - `BOOTSTRAP.md` is the authoritative guide for standing up the cluster when ready.
 - `k3s.md` contains the concrete repo blueprint, Flux kustomization graph, and Nx/CDK8s workflow.
