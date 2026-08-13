@@ -1,0 +1,36 @@
+---
+# OCIRepository for the community-maintained flux2 Helm chart.
+#
+# apiVersion v1 (not v1beta2): the ocirepositories CRD shipped by our
+# bootstrap gotk-components.yaml serves only v1, so v1beta2 would be
+# rejected by the API server. Matches the kopiur OCIRepository.
+#
+# layerSelector: OCI Helm charts are stored as a single tar+gzip layer;
+# `operation: copy` hands the layer to helm-controller untouched.
+apiVersion: source.toolkit.fluxcd.io/v1
+kind: OCIRepository
+metadata:
+  name: flux2
+  namespace: flux-system
+spec:
+  interval: 1h
+  layerSelector:
+    mediaType: application/vnd.cncf.helm.chart.content.v1.tar+gzip
+    operation: copy
+  ref:
+    # tag + digest coexist deliberately. The OCIRepository v1 schema puts
+    # no mutual-exclusion rule on ref (no x-kubernetes-validations); the
+    # documented precedence is digest > semver > tag. So the tag stays for
+    # human readability / Renovate matching, and the digest is what
+    # actually gets pulled — a mutable retag of 2.19.0 cannot slip in.
+    #
+    # Digest verified 2026-08-13 against the live registry with both
+    #   helm show chart oci://ghcr.io/fluxcd-community/charts/flux2 --version 2.19.0
+    #   helm pull      oci://ghcr.io/fluxcd-community/charts/flux2 --version 2.19.0
+    # both reporting the same value. Chart 2.19.0 -> appVersion 2.9.1.
+    #
+    # Bump BOTH lines together; a tag bump alone is a no-op because the
+    # digest wins.
+    tag: 2.19.0
+    digest: sha256:172529ede50c8bfbd1c30238d8daf4132fdfeb5e43fbdfb7dd84993be88b9723
+  url: oci://ghcr.io/fluxcd-community/charts/flux2

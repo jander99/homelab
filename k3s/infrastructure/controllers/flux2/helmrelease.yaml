@@ -1,0 +1,179 @@
+---
+# HelmRelease for the community-maintained fluxcd-community/flux2 chart.
+#
+# Phase 1 of the bootstrap -> Helm chart migration. This adds the chart
+# through the standard infra-controllers layer so resource requests/limits
+# and controller inclusion live in a values block instead of the three
+# Kustomize patches under k3s/clusters/homelab/flux-system-components/.
+#
+# Chart 2.19.0 ships appVersion 2.9.1 (Flux 2.9.1) against a cluster
+# currently running Flux 2.7-era controllers (helm-controller v1.5.4).
+# That is a multi-minor jump, so the Phase 2 runbook gates on
+# `flux migrate --dry-run` to surface any CRD storage-version migrations
+# before the takeover. Flux self-upgrading its own controllers is the
+# standard supported path.
+#
+# NOTE ON dependsOn: this HelmRelease cannot declare a dependency on the
+# `flux-system-components` Kustomization being suspended. HelmRelease
+# `spec.dependsOn` is a DependencyReference list that references *other
+# HelmReleases only* (name/namespace/readyExpr — no kind/apiVersion), so
+# a cross-kind dependency is not expressible in the API. The ordering
+# requirement is enforced by the manual Phase 2 runbook instead, which
+# suspends `flux-system-components` before the takeover so the two
+# reconcilers never fight over the same 6 Deployments.
+apiVersion: helm.toolkit.fluxcd.io/v2
+kind: HelmRelease
+metadata:
+  name: flux2
+  namespace: flux-system
+spec:
+  # Suspended on merge — purely a scheduling gate, not a workaround.
+  #
+  # Helm *will* adopt the 6 existing controller Deployments cleanly:
+  # `install.disableTakeOwnership` defaults to false, so helm-controller
+  # (v1.5.4 here, field present in our CRD) takes ownership of existing
+  # resources during install and relabels them for the release. There is
+  # no ownership-conflict failure to work around.
+  #
+  # The suspend exists so that merging this PR does not immediately race
+  # the still-active `flux-system-components` Kustomization for those same
+  # Deployments. Phase 2 suspends that Kustomization first, performs the
+  # takeover, then unsuspends this HelmRelease.
+  suspend: true
+  interval: 1h
+  timeout: 10m
+  chartRef:
+    kind: OCIRepository
+    name: flux2
+    # Explicit namespace: chartRef otherwise defaults to the HelmRelease's
+    # own namespace. Same namespace here, but explicit matches the kopiur
+    # convention and survives a future namespace move.
+    namespace: flux-system
+  install:
+    crds: CreateReplace
+    # No `remediation:` block on purpose. Per the helm-controller v2 API,
+    # install remediation "defaults to not perform any action", and the
+    # only install remediation that exists is an UNINSTALL performed
+    # between retries ("Retries is the number of retries ... Remediation,
+    # using an uninstall, is performed between each attempt"). A failed
+    # render or a transient API error would therefore have torn the new
+    # controllers back out. Omitting the block leaves a failed install in
+    # place, red but recoverable, which is what we want when the chart is
+    # managing Flux itself.
+    #
+    # There is no `install.remediation.strategy` field — `strategy` exists
+    # only on `upgrade.remediation` (enum: rollback | uninstall). Verified
+    # against the helmreleases CRD in flux-system/gotk-components.yaml.
+  upgrade:
+    crds: CreateReplace
+    remediation:
+      retries: 3
+      # Explicit, though it is the documented default: roll back to the
+      # previous release on a failed upgrade. Never `uninstall` — that
+      # would delete the running Flux controllers.
+      strategy: rollback
+  # The chart always renders a `crd-controller` ClusterRoleBinding subject
+  # for ServiceAccount/source-watcher-controller, even with
+  # `sourceWatcher.create: false` — the values flag gates the Deployment,
+  # ServiceAccount and Service, not the RBAC subject. Strip it post-render
+  # so we do not bind a ClusterRole to a ServiceAccount that never exists.
+  #
+  # This mirrors the inline JSON 6902 patch in
+  # k3s/clusters/homelab/flux-system-components/kustomization.yaml, which
+  # removes the same /subjects/6 from the bootstrap manifest.
+  #
+  # The `op: test` guard is deliberate: subject order is chart-render
+  # order, so if a future chart version reorders or removes the entry the
+  # build FAILS loudly instead of silently deleting a real controller's
+  # subject. Re-verify with:
+  #   helm template oci://ghcr.io/fluxcd-community/charts/flux2 \
+  #     --version <ver> -n flux-system
+  #
+  # PHASE 2 PARITY: postRenderers is a helm-controller feature — the Helm
+  # CLI does not run it. The manual `helm upgrade --install --take-ownership`
+  # in the Phase 2 runbook will therefore re-add this subject; the runbook
+  # closes the gap with an equivalent `kubectl patch --type=json` (Helm v4
+  # took away support for script-based --post-renderer). See the PR body.
+  postRenderers:
+    - kustomize:
+        patches:
+          - target:
+              group: rbac.authorization.k8s.io
+              version: v1
+              kind: ClusterRoleBinding
+              name: crd-controller
+            patch: |
+              - op: test
+                path: /subjects/6/name
+                value: source-watcher-controller
+              - op: remove
+                path: /subjects/6
+  values:
+    # P95 values from krr v1.28.0 (2026-08-12), carried over from
+    # flux-system-components/patches/resource-patch.yaml. Single-node
+    # testbed: CPU limits dropped per krr WARNING — throttling would hurt
+    # reconciliation latency more than it would help. The chart's default
+    # `resources.limits: {}` means omitting cpu here leaves it unset, so
+    # no JSON 6902 `op: remove` equivalent is needed.
+    helmController:
+      resources:
+        requests:
+          cpu: 15m
+          memory: 162Mi
+        limits:
+          memory: 162Mi
+    imageAutomationController:
+      resources:
+        requests:
+          cpu: 10m
+          memory: 100Mi
+        limits:
+          memory: 100Mi
+    imageReflectionController:
+      resources:
+        requests:
+          cpu: 16m
+          memory: 100Mi
+        limits:
+          memory: 100Mi
+    kustomizeController:
+      resources:
+        requests:
+          cpu: 21m
+          memory: 178Mi
+        limits:
+          memory: 178Mi
+    notificationController:
+      resources:
+        requests:
+          cpu: 10m
+          memory: 100Mi
+        limits:
+          memory: 100Mi
+    sourceController:
+      resources:
+        requests:
+          cpu: 44m
+          memory: 195Mi
+        limits:
+          memory: 195Mi
+    # source-watcher was removed from upstream Flux v2.6 but the chart
+    # still ships it for backward compatibility. Keep it disabled (already
+    # the chart default). This suppresses the Deployment, ServiceAccount
+    # and Service — but NOT the crd-controller RBAC subject, which is
+    # handled by the postRenderer above.
+    sourceWatcher:
+      create: false
+    # CRDs are managed by the chart.
+    #
+    # CRD INVENTORY MISMATCH — chart 2.19.0 ships 14 Flux CRDs; the
+    # bootstrap gotk-components.yaml has 15. The chart does NOT ship:
+    #
+    #   artifactgenerators.source.extensions.fluxcd.io
+    #
+    # Helm will not delete a CRD it does not manage, so that CRD is
+    # orphaned (left in place, unmanaged) rather than removed. The Phase 2
+    # runbook must therefore verify `kubectl get artifactgenerators -A`
+    # returns zero instances BEFORE the takeover, and the orphan CRD is
+    # purged by hand afterwards.
+    installCRDs: true
