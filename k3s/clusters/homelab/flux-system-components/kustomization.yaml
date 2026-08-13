@@ -14,6 +14,51 @@ resources:
 patches:
   - path: patches/remove-unused.yaml
   - path: patches/resource-patch.yaml
+  # Drop the CPU limit on each of the 6 Flux controllers (followup to
+  # PR #283). resource-patch.yaml's `cpu: null` is a no-op in SMP, so
+  # we apply a JSON 6902 op: remove. The same ops file is referenced
+  # 6 times with a different Deployment target per entry — kustomize's
+  # JSON 6902 transformer requires target at the kustomization entry
+  # level, not per-op in the file. P95 values from krr v1.28.0
+  # (2026-08-12) — see patches/resource-patch.yaml for the request
+  # side. Single-node testbed: CPU throttling hurts reconciliation
+  # latency more than it helps.
+  - path: patches/drop-cpu-limit.json
+    target:
+      group: apps
+      version: v1
+      kind: Deployment
+      name: helm-controller
+  - path: patches/drop-cpu-limit.json
+    target:
+      group: apps
+      version: v1
+      kind: Deployment
+      name: image-automation-controller
+  - path: patches/drop-cpu-limit.json
+    target:
+      group: apps
+      version: v1
+      kind: Deployment
+      name: image-reflector-controller
+  - path: patches/drop-cpu-limit.json
+    target:
+      group: apps
+      version: v1
+      kind: Deployment
+      name: kustomize-controller
+  - path: patches/drop-cpu-limit.json
+    target:
+      group: apps
+      version: v1
+      kind: Deployment
+      name: notification-controller
+  - path: patches/drop-cpu-limit.json
+    target:
+      group: apps
+      version: v1
+      kind: Deployment
+      name: source-controller
   # source-watcher subject removal from crd-controller. kustomize's
   # strategic-merge $patch: delete does not honor the multi-key merge
   # identifier for subjects (kind+name+namespace), so this uses an
