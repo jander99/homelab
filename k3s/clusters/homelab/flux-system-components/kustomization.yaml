@@ -1,0 +1,39 @@
+# k3s/clusters/homelab/flux-system-components/kustomization.yaml
+#
+# Build order: load chart output as resources → apply strategic-merge
+# patches (delete unused controllers, then patch resource fields) →
+# apply the inline JSON 6902 patch that drops the source-watcher
+# subject from crd-controller.
+# The kustomize-controller reconciles this kustomization and applies
+# the resulting manifests to the cluster, taking over resource fields
+# set by flux bootstrap (and currently at chart defaults).
+apiVersion: kustomize.config.k8s.io/v1beta1
+kind: Kustomization
+resources:
+  - gotk-components.yaml
+patches:
+  - path: patches/remove-unused.yaml
+  - path: patches/resource-patch.yaml
+  # source-watcher subject removal from crd-controller. kustomize's
+  # strategic-merge $patch: delete does not honor the multi-key merge
+  # identifier for subjects (kind+name+namespace), so this uses an
+  # inline JSON 6902 patch. source-watcher is the 7th subject (index 6)
+  # in the upstream crd-controller subjects list:
+  #   0: kustomize-controller
+  #   1: helm-controller
+  #   2: source-controller
+  #   3: notification-controller
+  #   4: image-reflector-controller
+  #   5: image-automation-controller
+  #   6: source-watcher   <-- this entry
+  # Re-verify the index after any flux bootstrap that re-renders
+  # gotk-components.yaml; the order can change. If so, update the
+  # `path: /subjects/N` below.
+  - target:
+      group: rbac.authorization.k8s.io
+      version: v1
+      kind: ClusterRoleBinding
+      name: crd-controller
+    patch: |
+      - op: remove
+        path: /subjects/6

@@ -1,0 +1,43 @@
+---
+# k3s/clusters/homelab/flux-system-components.yaml
+# Flux Kustomization — Flux controller resource fields.
+#
+# Reconciles k3s/clusters/homelab/flux-system-components/, a sibling
+# kustomization that owns the resource requests/limits for the 6 Flux
+# controllers running in flux-system. The path under flux-system/ is
+# owned by flux bootstrap and excluded from the parent kustomization
+# (flux convention), so this lives at the cluster root and the
+# kustomize-controller DOES reconcile it.
+#
+# force: SSA-takeover of the 6 controller Deployments currently managed
+# by flux bootstrap (and currently at chart defaults after the kubectl
+# patches from PR #170 were overwritten by Renovate flux-infra-controllers
+# updates #232/#221/#211/#205/#201). One-time cost: the kustomize-controller
+# restarts once when applying to itself, then steady state.
+#
+# dependsOn: flux-system — wait for ClusterRoleBindings and ServiceAccounts
+# to exist before the controllers start.
+#
+# prune: if a controller is later removed from gotk-components.yaml
+# (chart cleanup, controller consolidation), the Kustomization will delete
+# the corresponding Deployment. Safe because each controller has its own
+# Deployment and there are no cross-cutting finalizers.
+apiVersion: kustomize.toolkit.fluxcd.io/v1
+kind: Kustomization
+metadata:
+  name: flux-system-components
+  namespace: flux-system
+spec:
+  force: true
+  dependsOn:
+    - name: flux-system
+      namespace: flux-system
+  interval: 1h
+  retryInterval: 2m
+  wait: true
+  timeout: 5m
+  prune: true
+  sourceRef:
+    kind: GitRepository
+    name: flux-system
+  path: ./k3s/clusters/homelab/flux-system-components
