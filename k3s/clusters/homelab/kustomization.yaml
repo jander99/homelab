@@ -14,7 +14,6 @@ kind: Kustomization
 resources:
   - platform.yaml
   - infra-controllers.yaml
-  - flux-system-components.yaml
   - infra-configs.yaml
   - kopiur-policies.yaml
   - apps.yaml
