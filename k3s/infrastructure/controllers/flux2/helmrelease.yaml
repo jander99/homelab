@@ -88,6 +88,12 @@ spec:
   # subject. Re-verify with:
   #   helm template oci://ghcr.io/fluxcd-community/charts/flux2 \
   #     --version <ver> -n flux-system
+  #
+  # PHASE 2 PARITY: postRenderers is a helm-controller feature — the Helm
+  # CLI does not run it. The manual `helm upgrade --install --take-ownership`
+  # in the Phase 2 runbook will therefore re-add this subject; the runbook
+  # closes the gap with an equivalent `kubectl patch --type=json` (Helm v4
+  # took away support for script-based --post-renderer). See the PR body.
   postRenderers:
     - kustomize:
         patches:
