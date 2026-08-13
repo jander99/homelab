@@ -24,7 +24,7 @@ spec:
               cpu: 15m
               memory: 162Mi
             limits:
-              cpu: null
+              # CPU limit removed via drop-cpu-limit.yaml (JSON 6902 patch — SMP null is a no-op)
               memory: 162Mi
 ---
 apiVersion: apps/v1
@@ -42,7 +42,7 @@ spec:
               cpu: 10m
               memory: 100Mi
             limits:
-              cpu: null
+              # CPU limit removed via drop-cpu-limit.yaml (JSON 6902 patch — SMP null is a no-op)
               memory: 100Mi
 ---
 apiVersion: apps/v1
@@ -60,7 +60,7 @@ spec:
               cpu: 16m
               memory: 100Mi
             limits:
-              cpu: null
+              # CPU limit removed via drop-cpu-limit.yaml (JSON 6902 patch — SMP null is a no-op)
               memory: 100Mi
 ---
 apiVersion: apps/v1
@@ -78,7 +78,7 @@ spec:
               cpu: 21m
               memory: 178Mi
             limits:
-              cpu: null
+              # CPU limit removed via drop-cpu-limit.yaml (JSON 6902 patch — SMP null is a no-op)
               memory: 178Mi
 ---
 apiVersion: apps/v1
@@ -96,7 +96,7 @@ spec:
               cpu: 10m
               memory: 100Mi
             limits:
-              cpu: null
+              # CPU limit removed via drop-cpu-limit.yaml (JSON 6902 patch — SMP null is a no-op)
               memory: 100Mi
 ---
 apiVersion: apps/v1
@@ -114,5 +114,5 @@ spec:
               cpu: 44m
               memory: 195Mi
             limits:
-              cpu: null
+              # CPU limit removed via drop-cpu-limit.yaml (JSON 6902 patch — SMP null is a no-op)
               memory: 195Mi
