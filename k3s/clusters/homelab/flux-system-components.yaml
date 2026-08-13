@@ -28,6 +28,26 @@ metadata:
   name: flux-system-components
   namespace: flux-system
 spec:
+  # PHASE 2A — quiesced ahead of the manual Helm takeover.
+  #
+  # suspend: stops new reconciliations so this Kustomization cannot fight
+  # the flux2 HelmRelease over the same 6 controller Deployments during
+  # (or after) the manual `helm upgrade --install --take-ownership`.
+  #
+  # deletionPolicy: Orphan — prevents the eventual Phase 3 deletion of this
+  # Kustomization from taking the controllers with it. By then those objects
+  # are Helm-owned, but they are still in THIS Kustomization's inventory.
+  # The default is MirrorPrune, which "mirrors the Prune field (orphan if
+  # false, delete if true)" — and prune is true below, so the default would
+  # garbage-collect every inventory entry at Phase 3, including the
+  # Helm-owned Deployments, the CRDs and the RBAC. Orphan leaves the whole
+  # inventory in place and simply drops the bookkeeping.
+  #
+  # force and prune are deliberately unchanged: while suspended neither has
+  # any effect, and leaving them lets Phase 3 be a pure deletion with no
+  # further edits to this file.
+  suspend: true
+  deletionPolicy: Orphan
   force: true
   dependsOn:
     - name: flux-system

@@ -1,0 +1,66 @@
+---
+# k3s/platform/namespaces/flux-system.yaml
+#
+# Durable home for Namespace/flux-system and its critical-pods
+# ResourceQuota. Both objects originate from `flux bootstrap` output and
+# today live in the flux-system-components Kustomization's inventory. That
+# Kustomization is suspended (Phase 2A) and deleted in Phase 3, so the two
+# objects need an owner that outlives it — otherwise Phase 3 would leave
+# them unmanaged, and a future `flux bootstrap` would be the only thing
+# recreating them.
+#
+# The flux2 Helm chart does NOT ship either object: `helm upgrade --install
+# --namespace flux-system` expects the namespace to already exist, and the
+# chart has no ResourceQuota template. Hence the platform layer, which is
+# the first Kustomization in the reconciliation graph.
+#
+# Labels and spec are copied verbatim from
+# k3s/clusters/homelab/flux-system-components/gotk-components.yaml so that
+# adopting these objects into the platform Kustomization is a no-op against
+# the running cluster.
+#
+# NOTE — duplication is intentional and temporary. Until Phase 3 removes
+# the legacy Kustomization, both this file and gotk-components.yaml declare
+# these objects. There is no conflict: flux-system-components is suspended,
+# so only the platform Kustomization is actively reconciling them.
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: flux-system
+  labels:
+    app.kubernetes.io/instance: flux-system
+    app.kubernetes.io/part-of: flux
+    pod-security.kubernetes.io/warn: restricted
+    pod-security.kubernetes.io/warn-version: latest
+  annotations:
+    # Excluded from garbage collection on purpose.
+    #
+    # The platform Kustomization runs with `prune: true`. Without this
+    # annotation, dropping flux-system.yaml from namespaces/kustomization.yaml
+    # — a one-line mistake — would make Flux delete its own namespace and
+    # cascade-delete every controller, Secret and CRD instance inside it.
+    # That is unrecoverable without a re-bootstrap.
+    #
+    # `kustomize.toolkit.fluxcd.io/prune: disabled` tells kustomize-controller
+    # to keep applying this object but never garbage-collect it. No effect on
+    # the Namespace itself.
+    kustomize.toolkit.fluxcd.io/prune: disabled
+---
+apiVersion: v1
+kind: ResourceQuota
+metadata:
+  name: critical-pods
+  namespace: flux-system
+  labels:
+    app.kubernetes.io/instance: flux-system
+    app.kubernetes.io/part-of: flux
+spec:
+  hard:
+    pods: '1000'
+  scopeSelector:
+    matchExpressions:
+      - operator: In
+        scopeName: PriorityClass
+        values:
+          - system-node-critical
+          - system-cluster-critical
