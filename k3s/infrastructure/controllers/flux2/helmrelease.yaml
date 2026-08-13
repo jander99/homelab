@@ -27,19 +27,6 @@ metadata:
   name: flux2
   namespace: flux-system
 spec:
-  # Suspended on merge — purely a scheduling gate, not a workaround.
-  #
-  # Helm *will* adopt the 6 existing controller Deployments cleanly:
-  # `install.disableTakeOwnership` defaults to false, so helm-controller
-  # (v1.5.4 here, field present in our CRD) takes ownership of existing
-  # resources during install and relabels them for the release. There is
-  # no ownership-conflict failure to work around.
-  #
-  # The suspend exists so that merging this PR does not immediately race
-  # the still-active `flux-system-components` Kustomization for those same
-  # Deployments. Phase 2 suspends that Kustomization first, performs the
-  # takeover, then unsuspends this HelmRelease.
-  suspend: true
   interval: 1h
   timeout: 10m
   chartRef:
