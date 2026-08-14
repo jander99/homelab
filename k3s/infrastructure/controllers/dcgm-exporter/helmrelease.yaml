@@ -28,12 +28,35 @@ spec:
     extraEnv:
       - name: DCGM_EXPORTER_COLLECTORS
         value: /etc/dcgm-exporter/default-counters.csv
+    # Chart default (100m/128Mi request, 200m/512Mi limit) predates the
+    # krr sweeps in #150/#170. Fresh krr (2026-08-13, post-#284) shows real
+    # P95 memory usage at ~539Mi — above the chart's default 128Mi request,
+    # meaning the pod has been scheduled without enough headroom for its
+    # actual usage. Bumped memory request/limit to the krr recommendation
+    # (539Mi, rounded to 540Mi); CPU request lowered to krr's 14m (rounded
+    # to 15m; the chart's 100m default was over-provisioned).
+    resources:
+      requests:
+        cpu: 15m
+        memory: 540Mi
+      limits:
+        memory: 540Mi
 
   # Add a startupProbe and drop the chart's defensive 45s initialDelaySeconds
   # via Kustomize post-render. The dcgm-exporter chart doesn't expose
   # startupProbe as a value. Real startup is ~1s; the chart's 45s buffer made
   # pods appear NotReady for 45+ seconds even though `/health` answered
   # immediately.
+  #
+  # The trailing `remove` op drops the chart's hardcoded 200m CPU limit —
+  # krr recommends no CPU limit here, matching this repo's general policy
+  # (see #284). Verified empirically (helm template + kustomize build) that
+  # a values-only override CANNOT remove this: the chart sets
+  # `resources.limits.cpu: 200m` as a literal default, and Helm's values
+  # merge keeps unspecified nested keys from the chart default rather than
+  # dropping them — the same class of bug #284 hit with Kustomize SMP, just
+  # on the Helm side instead. A JSON 6902 remove op on the rendered manifest
+  # is the only way to actually clear it.
   postRenderers:
     - kustomize:
         patches:
@@ -57,3 +80,5 @@ spec:
                   periodSeconds: 5
                   failureThreshold: 12
                   timeoutSeconds: 2
+              - op: remove
+                path: /spec/template/spec/containers/0/resources/limits/cpu

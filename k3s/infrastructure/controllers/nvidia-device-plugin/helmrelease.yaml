@@ -40,3 +40,16 @@ spec:
               resources:
                 - name: nvidia.com/gpu
                   replicas: 2
+    # Chart default is `resources: {}` (unbounded) — krr (2026-08-13, post-#284)
+    # flagged this as WARNING with no request/limit data at all. Pinned to the
+    # krr floor recommendation (10m/100Mi); no CPU limit. Only bounds the
+    # `nvidia-device-plugin-ctr` container — the chart's `-sidecar` init-style
+    # container (config copy step) has no resources templating at all and stays
+    # unbounded regardless of this value; that's a chart limitation, not
+    # something fixable from values.
+    resources:
+      requests:
+        cpu: 10m
+        memory: 100Mi
+      limits:
+        memory: 100Mi

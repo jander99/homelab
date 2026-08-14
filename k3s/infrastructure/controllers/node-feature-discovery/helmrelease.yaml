@@ -35,6 +35,17 @@ spec:
             # uses for its default node affinity.
             deviceLabelFields:
               - vendor
+      # #170 right-sized master/gc but missed worker — it was still running on
+      # the chart's own default (5m/64Mi request, 512Mi memory limit, no CPU
+      # limit). Fresh krr (2026-08-13, post-#284) shows real usage close to
+      # the 10m/100Mi floor; the 512Mi limit was ~5x oversized. Pinned to the
+      # krr recommendation, same pattern as master/gc below.
+      resources:
+        requests:
+          cpu: 10m
+          memory: 100Mi
+        limits:
+          memory: 100Mi
     # Resource tuning (2026-06-02 krr recommendations): drop memory limits,
     # set requests to observed P95 usage. The chart default has no CPU limit
     # and unbounded memory; this pins memory to the krr recommendation.
