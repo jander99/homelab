@@ -37,6 +37,16 @@ spec:
       # Safe on single-node K3s testbed; leader-election is on by default upstream
       # but a single replica is fine.
       replicaCount: 1
+      # Chart default is `resources: {}` (unbounded) — krr (2026-08-13, post-#284)
+      # flagged this as WARNING with no request/limit data at all. Pinned to the
+      # krr floor recommendation (10m/100Mi); no CPU limit, matching this repo's
+      # general policy of not throttling controller CPU.
+      resources:
+        requests:
+          cpu: 10m
+          memory: 100Mi
+        limits:
+          memory: 100Mi
     # Disable the validation webhook to skip the cert-manager dependency.
     # Single-node homelab; v1beta1/v1beta2 VolumeGroupSnapshot objects aren't
     # in play, so we don't need webhook-side validation.
