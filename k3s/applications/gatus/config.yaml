@@ -71,6 +71,47 @@ data:
         conditions:
           - "[STATUS] < 400"
 
+      - name: prowlarr
+        group: media
+        # /ping is the *arr-stack health endpoint; returns "OK" with no auth.
+        url: https://prowlarr.homelab.properties/ping
+        interval: 60s
+        conditions:
+          - "[STATUS] == 200"
+
+      - name: radarr
+        group: media
+        url: https://radarr.homelab.properties/ping
+        interval: 60s
+        conditions:
+          - "[STATUS] == 200"
+
+      - name: sonarr
+        group: media
+        url: https://sonarr.homelab.properties/ping
+        interval: 60s
+        conditions:
+          - "[STATUS] == 200"
+
+      - name: sabnzbd
+        group: media
+        # The root path returns 200 with a redirect to /sabnzbd/. The API
+        # at /api?mode=version returns JSON but requires the API key, so
+        # the unauthenticated root check matches what we have for tdarr.
+        url: https://sabnzbd.homelab.properties/
+        interval: 60s
+        conditions:
+          - "[STATUS] == 200"
+
+      - name: qbittorrent
+        group: media
+        # qBittorrent's root returns the login page (302 -> /login.html).
+        # Accept anything sub-400, matching the tdarr pattern.
+        url: https://qbittorrent.homelab.properties/
+        interval: 60s
+        conditions:
+          - "[STATUS] < 400"
+
       # monitoring group
       - name: grafana
         group: monitoring
@@ -83,6 +124,16 @@ data:
       - name: prometheus
         group: monitoring
         url: https://prometheus.homelab.properties/-/healthy
+        interval: 60s
+        conditions:
+          - "[STATUS] == 200"
+
+      - name: alertmanager
+        group: monitoring
+        # /-/healthy is the unauthenticated liveness endpoint. If this
+        # fails, the alerting pipeline is down — which is exactly when
+        # you most need to know.
+        url: https://alertmanager.homelab.properties/-/healthy
         interval: 60s
         conditions:
           - "[STATUS] == 200"
