@@ -1,0 +1,85 @@
+---
+# Stage-1 copy Job for tdarr: rsync from the existing local-path PVCs to
+# the `*-hostpath` intermediates on csi-hostpath-sc.
+#
+# Both PVCs are copied in parallel within a single pod by mounting
+# source and destination of both source-volumes on the same copy
+# container. This keeps the cutover atomic from tdarr's perspective
+# (server-data and node-config have to land together — the server
+# reads/writes node-config on startup).
+#
+# tdarr's official image runs as user `abc` (UID varies by image but
+# typically 1000–1001). The rsync runs as root and chowns back to the
+# matching uid so the tdarr container can read what it wrote.
+apiVersion: batch/v1
+kind: Job
+metadata:
+  name: tdarr-pvc-copy-stage1
+  namespace: tdarr
+spec:
+  backoffLimit: 2
+  ttlSecondsAfterFinished: 86400
+  template:
+    metadata:
+      labels:
+        app: tdarr-pvc-copy
+    spec:
+      restartPolicy: Never
+      containers:
+        - name: rsync
+          image: alpine:3.20
+          command:
+            - sh
+            - -c
+            - |
+              set -eu
+              apk add --no-cache rsync >/dev/null
+              echo "=== server-data source ==="
+              ls -la /src-server
+              echo "=== node-config source ==="
+              ls -la /src-node
+              echo "=== running rsync server-data ==="
+              rsync -aHAX --numeric-ids /src-server/ /dst-server/
+              echo "=== running rsync node-config ==="
+              rsync -aHAX --numeric-ids /src-node/ /dst-node/
+              echo "=== ownership correction (preserve abc user) ==="
+              # tdarr image runs as user `abc`; match the uid/gid we copied
+              SRC_UID=$(stat -c '%u' /src-server/Tdarr 2>/dev/null || echo 1000)
+              SRC_GID=$(stat -c '%g' /src-server/Tdarr 2>/dev/null || echo 1000)
+              echo "preserving UID:GID = $SRC_UID:$SRC_GID"
+              chown -R "$SRC_UID:$SRC_GID" /dst-server 2>/dev/null || true
+              chown -R "$SRC_UID:$SRC_GID" /dst-node 2>/dev/null || true
+              echo "=== verify ==="
+              echo "server-data: src=$(du -sb /src-server | cut -f1) dst=$(du -sb /dst-server | cut -f1)"
+              echo "node-config: src=$(du -sb /src-node | cut -f1) dst=$(du -sb /dst-node | cut -f1)"
+              echo "DONE"
+          volumeMounts:
+            - name: src-server
+              mountPath: /src-server
+              readOnly: true
+            - name: src-node
+              mountPath: /src-node
+              readOnly: true
+            - name: dst-server
+              mountPath: /dst-server
+            - name: dst-node
+              mountPath: /dst-node
+          resources:
+            requests:
+              cpu: 100m
+              memory: 512Mi
+            limits:
+              memory: 1Gi
+      volumes:
+        - name: src-server
+          persistentVolumeClaim:
+            claimName: tdarr-server-data
+        - name: src-node
+          persistentVolumeClaim:
+            claimName: tdarr-node-config
+        - name: dst-server
+          persistentVolumeClaim:
+            claimName: tdarr-server-data-hostpath
+        - name: dst-node
+          persistentVolumeClaim:
+            claimName: tdarr-node-config-hostpath
