@@ -1,0 +1,13 @@
+---
+# k3s/infrastructure/configs/kopiur-policies/snapshotschedule-sonarr.yaml
+apiVersion: kopiur.home-operations.com/v1alpha1
+kind: SnapshotSchedule
+metadata:
+  name: sonarr-scheduled
+  namespace: media
+spec:
+  policyRef:
+    name: sonarr
+  schedule:
+    cron: "H * * * *"
+    runOnCreate: false

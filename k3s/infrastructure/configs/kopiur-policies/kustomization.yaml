@@ -21,3 +21,7 @@ resources:
   - snapshotschedule-gatus.yaml
   - snapshotpolicy-prowlarr.yaml
   - snapshotschedule-prowlarr.yaml
+  - snapshotpolicy-radarr.yaml
+  - snapshotschedule-radarr.yaml
+  - snapshotpolicy-sonarr.yaml
+  - snapshotschedule-sonarr.yaml
