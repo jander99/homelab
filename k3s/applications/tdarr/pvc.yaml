@@ -1,8 +1,12 @@
 ---
 # Local PVC for tdarr server data — persists server DB, samples, plugins, and queues.
-# Uses K3s local-path provisioner; directory auto-created on first bind,
-# pinned to whichever node the pod schedules to (homelab testbed).
-# Populate via migration-job.yaml before starting the tdarr deployment.
+# csi-hostpath-sc is the only SC in this cluster that supports VolumeSnapshots,
+# which is required for kopiur backup coverage. Migration from local-path was
+# performed imperatively (the chart value change alone wouldn't move the
+# existing PVC); the imperative flow uses an intermediate
+# `tdarr-server-data-hostpath` PVC on csi-hostpath-sc, an rsync stage-1, then
+# this PVC recreated on csi-hostpath-sc and an rsync stage-2 into it.
+# Manifests in `migration/`.
 apiVersion: v1
 kind: PersistentVolumeClaim
 metadata:
@@ -11,7 +15,7 @@ metadata:
 spec:
   accessModes:
     - ReadWriteOnce
-  storageClassName: local-path
+  storageClassName: csi-hostpath-sc
   resources:
     requests:
       storage: 10Gi
@@ -19,7 +23,8 @@ spec:
 # Local PVC for tdarr node/server shared configs — persists node identity (nodeName, worker config)
 # and server config (Tdarr_Server_Config.json). Both tdarr-server and tdarr-node containers
 # mount this at /app/configs, matching the official docker-compose shared-configs pattern.
-# Uses K3s local-path provisioner; pinned to whichever node the pod schedules to.
+# csi-hostpath-sc is the only SC that supports VolumeSnapshots. Migration mirrors
+# the server-data flow documented above; both PVCs land on the same SC.
 apiVersion: v1
 kind: PersistentVolumeClaim
 metadata:
@@ -28,7 +33,7 @@ metadata:
 spec:
   accessModes:
     - ReadWriteOnce
-  storageClassName: local-path
+  storageClassName: csi-hostpath-sc
   resources:
     requests:
       storage: 1Gi

@@ -1,0 +1,69 @@
+---
+# Stage-1 copy Job for authentik-postgresql: rsync from the
+# StatefulSet-managed `data-authentik-postgresql-0` PVC (local-path) to the
+# `authentik-postgresql-hostpath` intermediate PVC (csi-hostpath-sc).
+#
+# Postgres data lives at /bitnami/postgresql/data inside the pod, which
+# means /<pvc-root>/data on the PVC itself. The Bitnami chart also writes
+# a `conf/` directory to the same PVC root, which we copy too so the layout
+# is preserved across the cutover.
+#
+# Pre-flight: stop the postgres pod so writes are quiesced. A running
+# postgres writing to its data dir while rsync copies it is the surest
+# way to land with a torn database.
+apiVersion: batch/v1
+kind: Job
+metadata:
+  name: authentik-postgresql-pvc-copy-stage1
+  namespace: authentik
+spec:
+  backoffLimit: 2
+  ttlSecondsAfterFinished: 86400
+  template:
+    metadata:
+      labels:
+        app: authentik-postgresql-pvc-copy
+    spec:
+      restartPolicy: Never
+      containers:
+        - name: rsync
+          image: alpine:3.20
+          command:
+            - sh
+            - -c
+            - |
+              set -eu
+              apk add --no-cache rsync >/dev/null
+              echo "=== source layout ==="
+              ls -la /src
+              ls -la /src/data 2>&1 | head -8
+              echo "=== running rsync (preserve layout) ==="
+              rsync -aHAX --numeric-ids /src/ /dst/
+              echo "=== ownership correction (postgres UID 1001) ==="
+              chown -R 1001:1001 /dst/data 2>/dev/null || true
+              chown -R 1001:1001 /dst/conf 2>/dev/null || true
+              echo "=== verify ==="
+              echo "src files: $(find /src -type f | wc -l)"
+              echo "dst files: $(find /dst -type f | wc -l)"
+              echo "src bytes: $(du -sb /src | cut -f1)"
+              echo "dst bytes: $(du -sb /dst | cut -f1)"
+              echo "DONE"
+          volumeMounts:
+            - name: source
+              mountPath: /src
+              readOnly: true
+            - name: dest
+              mountPath: /dst
+          resources:
+            requests:
+              cpu: 50m
+              memory: 256Mi
+            limits:
+              memory: 512Mi
+      volumes:
+        - name: source
+          persistentVolumeClaim:
+            claimName: data-authentik-postgresql-0
+        - name: dest
+          persistentVolumeClaim:
+            claimName: authentik-postgresql-hostpath

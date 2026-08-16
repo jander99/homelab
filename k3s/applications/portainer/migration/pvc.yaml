@@ -1,0 +1,20 @@
+---
+# Chart-managed PVC for portainer, recreated on csi-hostpath-sc after the
+# imperative migration. The portainer chart expects a PVC named `portainer`,
+# which is why the post-migration PVC has to land on this exact name.
+#
+# Pre-migration: bound to a local-path PV (90d old).
+# Post-migration: bound to a fresh csi-hostpath-sc PV populated from the
+# `portainer-hostpath` intermediate via the stage-2 copy Job.
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: portainer
+  namespace: portainer
+spec:
+  accessModes:
+    - ReadWriteOnce
+  storageClassName: csi-hostpath-sc
+  resources:
+    requests:
+      storage: 10Gi

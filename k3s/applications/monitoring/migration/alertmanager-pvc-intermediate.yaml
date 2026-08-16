@@ -1,0 +1,18 @@
+---
+# Intermediate PVC for alertmanager storage class migration (local-path → csi-hostpath-sc).
+# Populated via rsync from the existing StatefulSet-managed PVC, then data
+# is moved to a fresh `alertmanager-kube-prometheus-stack-alertmanager-db-…-0`
+# PVC on csi-hostpath-sc after the StatefulSet is recreated by Helm with the
+# updated chart value, and this intermediate is deleted.
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: alertmanager-intermediate
+  namespace: monitoring
+spec:
+  accessModes:
+    - ReadWriteOnce
+  storageClassName: csi-hostpath-sc
+  resources:
+    requests:
+      storage: 1Gi

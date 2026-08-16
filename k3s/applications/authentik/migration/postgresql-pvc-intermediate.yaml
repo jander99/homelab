@@ -1,0 +1,21 @@
+---
+# Intermediate PVC for authentik-postgresql storage class migration
+# (local-path → csi-hostpath-sc).
+#
+# Populated via rsync from the existing StatefulSet-managed PVC
+# `data-authentik-postgresql-0` (local-path), then data is moved to a fresh
+# PVC with the same name on csi-hostpath-sc after the StatefulSet is
+# recreated by Helm with the updated chart value, and this intermediate
+# is deleted.
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: authentik-postgresql-hostpath
+  namespace: authentik
+spec:
+  accessModes:
+    - ReadWriteOnce
+  storageClassName: csi-hostpath-sc
+  resources:
+    requests:
+      storage: 2Gi

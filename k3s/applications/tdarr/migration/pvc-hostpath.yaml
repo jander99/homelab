@@ -1,0 +1,30 @@
+---
+# Intermediate PVCs for tdarr storage class migration (local-path → csi-hostpath-sc).
+# Populated via rsync from the existing PVCs, then data is moved to fresh
+# PVCs with the same names on csi-hostpath-sc, and these intermediates are
+# deleted.
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: tdarr-server-data-hostpath
+  namespace: tdarr
+spec:
+  accessModes:
+    - ReadWriteOnce
+  storageClassName: csi-hostpath-sc
+  resources:
+    requests:
+      storage: 10Gi
+---
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: tdarr-node-config-hostpath
+  namespace: tdarr
+spec:
+  accessModes:
+    - ReadWriteOnce
+  storageClassName: csi-hostpath-sc
+  resources:
+    requests:
+      storage: 1Gi

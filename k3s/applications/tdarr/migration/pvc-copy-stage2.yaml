@@ -1,0 +1,81 @@
+---
+# Stage-2 copy Job for tdarr: rsync from the `*-hostpath` intermediate
+# PVCs (csi-hostpath-sc, populated by stage-1) to the chart-managed
+# `tdarr-server-data` and `tdarr-node-config` PVCs (csi-hostpath-sc,
+# freshly provisioned, empty).
+#
+# Stage-2 runs only after the chart-managed PVCs have been recreated on
+# csi-hostpath-sc (i.e. after pvc.yaml has been applied with the new
+# storageClassName). The tdarr-server and tdarr-node deployments must be
+# scaled to 0 for the duration of this copy because both source and
+# destination are RWO and the tdarr pods hold the destination mounts.
+#
+# Two PVC pairs are copied within a single pod to keep the cutover atomic
+# (server-data and node-config are read together by tdarr-server on
+# startup).
+apiVersion: batch/v1
+kind: Job
+metadata:
+  name: tdarr-pvc-copy-stage2
+  namespace: tdarr
+spec:
+  backoffLimit: 2
+  ttlSecondsAfterFinished: 86400
+  template:
+    metadata:
+      labels:
+        app: tdarr-pvc-copy
+    spec:
+      restartPolicy: Never
+      containers:
+        - name: rsync
+          image: alpine:3.20
+          command:
+            - sh
+            - -c
+            - |
+              set -eu
+              apk add --no-cache rsync >/dev/null
+              echo "=== running rsync server-data ==="
+              rsync -aHAX --numeric-ids /src-server/ /dst-server/
+              echo "=== running rsync node-config ==="
+              rsync -aHAX --numeric-ids /src-node/ /dst-node/
+              echo "=== ownership correction ==="
+              SRC_UID=$(stat -c '%u' /src-server/Tdarr 2>/dev/null || echo 1000)
+              SRC_GID=$(stat -c '%g' /src-server/Tdarr 2>/dev/null || echo 1000)
+              chown -R "$SRC_UID:$SRC_GID" /dst-server 2>/dev/null || true
+              chown -R "$SRC_UID:$SRC_GID" /dst-node 2>/dev/null || true
+              echo "=== verify ==="
+              echo "server-data: src=$(du -sb /src-server | cut -f1) dst=$(du -sb /dst-server | cut -f1)"
+              echo "node-config: src=$(du -sb /src-node | cut -f1) dst=$(du -sb /dst-node | cut -f1)"
+              echo "DONE"
+          volumeMounts:
+            - name: src-server
+              mountPath: /src-server
+              readOnly: true
+            - name: src-node
+              mountPath: /src-node
+              readOnly: true
+            - name: dst-server
+              mountPath: /dst-server
+            - name: dst-node
+              mountPath: /dst-node
+          resources:
+            requests:
+              cpu: 100m
+              memory: 512Mi
+            limits:
+              memory: 1Gi
+      volumes:
+        - name: src-server
+          persistentVolumeClaim:
+            claimName: tdarr-server-data-hostpath
+        - name: src-node
+          persistentVolumeClaim:
+            claimName: tdarr-node-config-hostpath
+        - name: dst-server
+          persistentVolumeClaim:
+            claimName: tdarr-server-data
+        - name: dst-node
+          persistentVolumeClaim:
+            claimName: tdarr-node-config

@@ -1,0 +1,64 @@
+---
+# Stage-2 copy Job for alertmanager: rsync from the `alertmanager-intermediate`
+# PVC (csi-hostpath-sc, populated by stage-1) to the chart-recreated
+# `alertmanager-kube-prometheus-stack-alertmanager-db-…-0` PVC
+# (csi-hostpath-sc, freshly provisioned, empty).
+#
+# Stage-2 runs only after the StatefulSet has been recreated with the
+# updated volumeClaimTemplate so the chart-managed PVC exists on
+# csi-hostpath-sc. The pod for the StatefulSet must be scaled to 0 for the
+# duration of this copy because both source and destination are RWO and the
+# alertmanager pod holds the destination mount.
+apiVersion: batch/v1
+kind: Job
+metadata:
+  name: alertmanager-pvc-copy-stage2
+  namespace: monitoring
+spec:
+  backoffLimit: 2
+  ttlSecondsAfterFinished: 86400
+  template:
+    metadata:
+      labels:
+        app: alertmanager-pvc-copy
+    spec:
+      restartPolicy: Never
+      containers:
+        - name: rsync
+          image: alpine:3.20
+          command:
+            - sh
+            - -c
+            - |
+              set -eu
+              apk add --no-cache rsync >/dev/null
+              echo "=== source ==="
+              ls -la /src
+              ls -la /src/alertmanager-db/ 2>/dev/null || true
+              echo "=== running rsync ==="
+              rsync -aHAX --numeric-ids /src/ /dst/
+              echo "=== verify ==="
+              echo "src files: $(find /src -type f | wc -l)"
+              echo "dst files: $(find /dst -type f | wc -l)"
+              echo "src bytes: $(du -sb /src | cut -f1)"
+              echo "dst bytes: $(du -sb /dst | cut -f1)"
+              echo "DONE"
+          volumeMounts:
+            - name: source
+              mountPath: /src
+              readOnly: true
+            - name: dest
+              mountPath: /dst
+          resources:
+            requests:
+              cpu: 50m
+              memory: 128Mi
+            limits:
+              memory: 256Mi
+      volumes:
+        - name: source
+          persistentVolumeClaim:
+            claimName: alertmanager-intermediate
+        - name: dest
+          persistentVolumeClaim:
+            claimName: alertmanager-kube-prometheus-stack-alertmanager-db-alertmanager-kube-prometheus-stack-alertmanager-0

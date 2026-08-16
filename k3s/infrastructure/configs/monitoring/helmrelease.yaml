@@ -125,7 +125,15 @@ spec:
         storage:
           volumeClaimTemplate:
             spec:
-              storageClassName: local-path
+              # -- csi-hostpath-sc is the only SC in this cluster that
+              # supports VolumeSnapshots, which is required for kopiur
+              # backup coverage. The StatefulSet's volumeClaimTemplate
+              # is immutable, so the local-path → csi-hostpath-sc
+              # migration requires deleting the StatefulSet and letting
+              # Helm recreate it from the updated chart value. Data is
+              # preserved across that cutover by the imperative flow in
+              # k3s/applications/monitoring/migration/.
+              storageClassName: csi-hostpath-sc
               accessModes: ["ReadWriteOnce"]
               resources:
                 requests:
@@ -188,7 +196,15 @@ spec:
         accessModes:
           - ReadWriteOnce
         size: 5Gi
-        storageClassName: local-path
+        # -- csi-hostpath-sc is the only SC in this cluster that supports
+        # VolumeSnapshots, which is required for kopiur backup coverage.
+        # Migration from local-path was performed imperatively (the chart
+        # value change alone wouldn't move the existing PVC); the imperative
+        # flow uses an intermediate `grafana-hostpath` PVC on csi-hostpath-sc,
+        # an rsync stage-1, then a chart-managed `kube-prometheus-stack-grafana`
+        # PVC recreated on csi-hostpath-sc and an rsync stage-2 into it.
+        # Manifests in `k3s/applications/monitoring/migration/`.
+        storageClassName: csi-hostpath-sc
       ingress:
         enabled: true
         ingressClassName: traefik

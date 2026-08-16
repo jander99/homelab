@@ -1,0 +1,18 @@
+---
+# Intermediate PVC for portainer storage class migration (local-path → csi-hostpath-sc).
+# Created on csi-hostpath-sc so it can later be snapshotted by kopiur.
+# Populated via rsync from the existing `portainer` PVC (local-path), then
+# data is moved to a fresh `portainer` PVC on csi-hostpath-sc (which the chart
+# will pick up as the managed volume), and this intermediate is deleted.
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: portainer-hostpath
+  namespace: portainer
+spec:
+  accessModes:
+    - ReadWriteOnce
+  storageClassName: csi-hostpath-sc
+  resources:
+    requests:
+      storage: 10Gi

@@ -1,0 +1,62 @@
+---
+# Stage-1 copy Job for alertmanager: rsync from the StatefulSet-managed
+# `alertmanager-kube-prometheus-stack-alertmanager-db-…-0` PVC (local-path)
+# to the `alertmanager-intermediate` PVC (csi-hostpath-sc).
+#
+# The alertmanager data lives at /alertmanager/alertmanager-db inside the
+# volume (subPath mount). The copy stage preserves that nested path so the
+# destination mirrors the source layout — the stage-2 copy in turn expects
+# the same layout on the recreated PVC.
+apiVersion: batch/v1
+kind: Job
+metadata:
+  name: alertmanager-pvc-copy-stage1
+  namespace: monitoring
+spec:
+  backoffLimit: 2
+  ttlSecondsAfterFinished: 86400
+  template:
+    metadata:
+      labels:
+        app: alertmanager-pvc-copy
+    spec:
+      restartPolicy: Never
+      containers:
+        - name: rsync
+          image: alpine:3.20
+          command:
+            - sh
+            - -c
+            - |
+              set -eu
+              apk add --no-cache rsync >/dev/null
+              echo "=== source ==="
+              ls -la /src
+              ls -la /src/alertmanager-db/ 2>/dev/null || true
+              echo "=== running rsync (preserve subpath layout) ==="
+              rsync -aHAX --numeric-ids /src/ /dst/
+              echo "=== verify ==="
+              echo "src files: $(find /src -type f | wc -l)"
+              echo "dst files: $(find /dst -type f | wc -l)"
+              echo "src bytes: $(du -sb /src | cut -f1)"
+              echo "dst bytes: $(du -sb /dst | cut -f1)"
+              echo "DONE"
+          volumeMounts:
+            - name: source
+              mountPath: /src
+              readOnly: true
+            - name: dest
+              mountPath: /dst
+          resources:
+            requests:
+              cpu: 50m
+              memory: 128Mi
+            limits:
+              memory: 256Mi
+      volumes:
+        - name: source
+          persistentVolumeClaim:
+            claimName: alertmanager-kube-prometheus-stack-alertmanager-db-alertmanager-kube-prometheus-stack-alertmanager-0
+        - name: dest
+          persistentVolumeClaim:
+            claimName: alertmanager-intermediate
