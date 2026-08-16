@@ -49,7 +49,15 @@ spec:
     persistence:
       enabled: true
       size: "10Gi"
-      storageClass: local-path
+      # -- csi-hostpath-sc is the only SC in this cluster that supports
+      # VolumeSnapshots, which is required for kopiur backup coverage.
+      # Migration from local-path was performed imperatively (Helm won't
+      # recreate an existing PVC just because the chart value changed);
+      # the imperative flow uses an intermediate `portainer-hostpath`
+      # PVC on csi-hostpath-sc, an rsync stage-1, then a chart-managed
+      # `portainer` PVC recreated on csi-hostpath-sc and an rsync
+      # stage-2 into it. Manifests in `migration/`.
+      storageClass: csi-hostpath-sc
       accessMode: ReadWriteOnce
 
     resources:

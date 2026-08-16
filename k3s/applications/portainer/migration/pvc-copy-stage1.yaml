@@ -1,0 +1,71 @@
+---
+# Stage-1 copy Job: rsync from the existing `portainer` PVC (local-path) to
+# the `portainer-hostpath` intermediate PVC (csi-hostpath-sc).
+#
+# The source PVC is mounted read-only; the destination is read-write. After
+# the rsync, ownership is forced to the portainer container's UID/GID
+# (0/0 by default; the portainer image runs as root) so the next start of
+# portainer can read everything cleanly.
+#
+# This Job is part of the imperative migration flow for moving portainer's
+# storage from local-path to csi-hostpath-sc. Once the chart-managed PVC is
+# recreated on csi-hostpath-sc and the intermediate is deleted, this Job is
+# safe to delete from the cluster.
+apiVersion: batch/v1
+kind: Job
+metadata:
+  name: portainer-pvc-copy-stage1
+  namespace: portainer
+spec:
+  backoffLimit: 2
+  ttlSecondsAfterFinished: 86400  # auto-delete after 24h
+  template:
+    metadata:
+      labels:
+        app: portainer-pvc-copy
+    spec:
+      restartPolicy: Never
+      containers:
+        - name: rsync
+          image: alpine:3.20
+          command:
+            - sh
+            - -c
+            - |
+              set -eu
+              apk add --no-cache rsync >/dev/null
+              echo "=== source tree (top-level) ==="
+              ls -la /src
+              echo "=== destination tree (top-level) ==="
+              ls -la /dst
+              echo "=== running rsync ==="
+              rsync -aHAX --numeric-ids --delete /src/ /dst/
+              echo "=== ownership correction (portainer runs as root) ==="
+              # portainer image runs as root by default; preserve root ownership
+              # but ensure directories are traversable
+              chmod -R u+rwX /dst
+              echo "=== post-rsync verify ==="
+              echo "src files: $(find /src -type f | wc -l)"
+              echo "dst files: $(find /dst -type f | wc -l)"
+              echo "src bytes: $(du -sb /src | cut -f1)"
+              echo "dst bytes: $(du -sb /dst | cut -f1)"
+              echo "DONE"
+          volumeMounts:
+            - name: source
+              mountPath: /src
+              readOnly: true
+            - name: dest
+              mountPath: /dst
+          resources:
+            requests:
+              cpu: 50m
+              memory: 128Mi
+            limits:
+              memory: 256Mi
+      volumes:
+        - name: source
+          persistentVolumeClaim:
+            claimName: portainer
+        - name: dest
+          persistentVolumeClaim:
+            claimName: portainer-hostpath

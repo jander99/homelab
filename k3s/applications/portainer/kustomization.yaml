@@ -4,3 +4,15 @@ kind: Kustomization
 resources:
   - helmrepository.yaml
   - helmrelease.yaml
+  # migration/ holds the imperative artifacts used to move portainer's PVC
+  # from local-path to csi-hostpath-sc. The intermediate PVC, copy Jobs, and
+  # recreate-on-cutover PVC live here. HelmRelease owns `portainer` (chart
+  # value `persistence.storageClass: csi-hostpath-sc`); once the migration
+  # is finished, the chart-managed PVC and the imperative ones in this
+  # directory must stay in sync — the intermediate and the stage copy Jobs
+  # are deleted at the end of the flow but the manifests are kept here as
+  # a record of the change.
+  - migration/pvc.yaml
+  - migration/pvc-hostpath.yaml
+  - migration/pvc-copy-stage1.yaml
+  - migration/pvc-copy-stage2.yaml
