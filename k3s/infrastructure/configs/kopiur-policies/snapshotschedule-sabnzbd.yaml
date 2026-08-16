@@ -1,0 +1,13 @@
+---
+# k3s/infrastructure/configs/kopiur-policies/snapshotschedule-sabnzbd.yaml
+apiVersion: kopiur.home-operations.com/v1alpha1
+kind: SnapshotSchedule
+metadata:
+  name: sabnzbd-scheduled
+  namespace: sabnzbd
+spec:
+  policyRef:
+    name: sabnzbd
+  schedule:
+    cron: "H * * * *"
+    runOnCreate: false

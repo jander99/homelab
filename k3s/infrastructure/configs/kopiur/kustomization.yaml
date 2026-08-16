@@ -22,6 +22,8 @@ resources:
   - pv-gatus.yaml
   - pv-media.yaml
   - pv-pihole.yaml
+  - pv-qbittorrent.yaml
+  - pv-sabnzbd.yaml
   - clusterrepository.yaml
   - job-cleanup-rbac.yaml
   - job-cleanup-cronjob.yaml
