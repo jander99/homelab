@@ -1,0 +1,54 @@
+---
+# Repository storage for kopiur snapshot Jobs in the portainer namespace.
+# Static PV + PVC pair bound to the smb-media CSI provisioner. Mounts the
+# dedicated backup SMB sub-share \\MemoryAlpha\backups\. Shares the SMB
+# source with all other kopiur-repo PVs — each namespace has its own mount
+# = its own SMB session. Kopia's content-addressable storage makes
+# concurrent multi-mount writes safe (different jobs write to different
+# blob files).
+#
+# uid/gid=0/0 matches the portainer container, which runs as root in the
+# official portainer/portainer-ce image, so the mover can read /data.
+apiVersion: v1
+kind: PersistentVolume
+metadata:
+  name: kopiur-repo-portainer
+spec:
+  capacity:
+    storage: 50Gi
+  accessModes:
+    - ReadWriteMany
+  persistentVolumeReclaimPolicy: Retain
+  storageClassName: smb-media
+  mountOptions:
+    - vers=3.0
+    - dir_mode=0777
+    - file_mode=0777
+    - uid=0
+    - gid=0
+    - noperm
+    - cache=strict
+    - noserverino
+  csi:
+    driver: smb.csi.k8s.io
+    readOnly: false
+    volumeHandle: kopiur-repo-portainer-vol
+    volumeAttributes:
+      source: //192.168.1.20/backups
+    nodeStageSecretRef:
+      name: smbcreds
+      namespace: kube-system
+---
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: kopiur-repo
+  namespace: portainer
+spec:
+  accessModes:
+    - ReadWriteMany
+  storageClassName: smb-media
+  volumeName: kopiur-repo-portainer
+  resources:
+    requests:
+      storage: 50Gi

@@ -1,0 +1,13 @@
+---
+# k3s/infrastructure/configs/kopiur-policies/snapshotschedule-alertmanager.yaml
+apiVersion: kopiur.home-operations.com/v1alpha1
+kind: SnapshotSchedule
+metadata:
+  name: alertmanager-scheduled
+  namespace: monitoring
+spec:
+  policyRef:
+    name: alertmanager
+  schedule:
+    cron: "H * * * *"
+    runOnCreate: false

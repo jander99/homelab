@@ -1,0 +1,47 @@
+---
+# k3s/infrastructure/configs/kopiur-policies/snapshotpolicy-alertmanager.yaml
+apiVersion: kopiur.home-operations.com/v1alpha1
+kind: SnapshotPolicy
+metadata:
+  name: alertmanager
+  namespace: monitoring
+spec:
+  repository:
+    kind: ClusterRepository
+    name: nas
+  sources:
+    - pvc:
+        name: alertmanager-kube-prometheus-stack-alertmanager-db-alertmanager-kube-prometheus-stack-alertmanager-0
+      sourcePathOverride: /alertmanager/alertmanager-db
+  copyMethod: Snapshot
+  volumeSnapshotClassName: csi-hostpath-snapclass
+  compression:
+    compressor: zstd
+  retention:
+    keepHourly: 24
+    keepDaily: 14
+    keepWeekly: 8
+    keepMonthly: 6
+  verification:
+    quick:
+      schedule:
+        cron: "H 3 * * *"
+  credentialProjection:
+    enabled: true
+  mover:
+    # kube-prometheus-stack's alertmanager container runs as UID 1000,
+    # GID 2000. The Prometheus Operator (which manages the StatefulSet)
+    # may create files with different ownership during init — the
+    # namespace carries `kopiur.home-operations.com/privileged-movers:
+    # "true"` to opt into privileged mover mode so the snapshot can read
+    # any files regardless of ownership.
+    securityContext:
+      runAsUser: 1000
+      runAsGroup: 2000
+    podSecurityContext:
+      fsGroup: 2000
+      fsGroupChangePolicy: OnRootMismatch
+    cache:
+      capacity: 1Gi
+      storageClassName: local-path
+      mode: Ephemeral

@@ -1,5 +1,14 @@
 ---
+# kopiur.home-operations.com/privileged-movers=true opts the namespace in
+# to kopiur's privileged-mover mode (gate enforced in the kopiur admission
+# webhook). Required for tdarr because the LinuxServer tdarr-server
+# entrypoint runs as root before the user drop, leaving root-owned files
+# in /app/server and /app/configs (notably the `perm/` directory that
+# survives the drop). Without this annotation, the kopiur snapshot wedges
+# with `PermissionDenied: open /<path>: permission denied`.
 apiVersion: v1
 kind: Namespace
 metadata:
   name: tdarr
+  annotations:
+    kopiur.home-operations.com/privileged-movers: "true"

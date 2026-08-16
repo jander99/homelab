@@ -1,5 +1,14 @@
 ---
+# kopiur.home-operations.com/privileged-movers=true opts the namespace in
+# to kopiur's privileged-mover mode (gate enforced in the kopiur admission
+# webhook). Required for authentik because the Bitnami postgres chart
+# runs init scripts as root during install, leaving root-owned files in
+# /bitnami/postgresql before the user drops to `postgres` (UID 1001).
+# Without this annotation, the kopiur snapshot wedges with
+# `PermissionDenied: open /<path>: permission denied`.
 apiVersion: v1
 kind: Namespace
 metadata:
   name: authentik
+  annotations:
+    kopiur.home-operations.com/privileged-movers: "true"

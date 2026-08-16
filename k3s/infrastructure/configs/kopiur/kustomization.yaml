@@ -24,6 +24,10 @@ resources:
   - pv-pihole.yaml
   - pv-qbittorrent.yaml
   - pv-sabnzbd.yaml
+  - pv-portainer.yaml
+  - pv-monitoring.yaml
+  - pv-authentik.yaml
+  - pv-tdarr.yaml
   - clusterrepository.yaml
   - job-cleanup-rbac.yaml
   - job-cleanup-cronjob.yaml

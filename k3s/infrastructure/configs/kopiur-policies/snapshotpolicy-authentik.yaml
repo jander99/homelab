@@ -1,0 +1,47 @@
+---
+# k3s/infrastructure/configs/kopiur-policies/snapshotpolicy-authentik.yaml
+apiVersion: kopiur.home-operations.com/v1alpha1
+kind: SnapshotPolicy
+metadata:
+  name: authentik
+  namespace: authentik
+spec:
+  repository:
+    kind: ClusterRepository
+    name: nas
+  sources:
+    - pvc:
+        name: data-authentik-postgresql-0
+      sourcePathOverride: /bitnami/postgresql/data
+  copyMethod: Snapshot
+  volumeSnapshotClassName: csi-hostpath-snapclass
+  compression:
+    compressor: zstd
+  retention:
+    keepHourly: 24
+    keepDaily: 14
+    keepWeekly: 8
+    keepMonthly: 6
+  verification:
+    quick:
+      schedule:
+        cron: "H 3 * * *"
+  credentialProjection:
+    enabled: true
+  mover:
+    # Bitnami postgres image runs as UID 1001, GID 1001. The Bitnami
+    # chart-init runs as root before the user drops to `postgres`, leaving
+    # a few root-owned files in /bitnami/postgresql. The namespace
+    # carries `kopiur.home-operations.com/privileged-movers: "true"`
+    # so the snapshot can read those files regardless of ownership
+    # (same pattern as pihole).
+    securityContext:
+      runAsUser: 1001
+      runAsGroup: 1001
+    podSecurityContext:
+      fsGroup: 1001
+      fsGroupChangePolicy: OnRootMismatch
+    cache:
+      capacity: 1Gi
+      storageClassName: local-path
+      mode: Ephemeral

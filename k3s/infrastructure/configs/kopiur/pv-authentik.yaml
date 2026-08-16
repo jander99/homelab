@@ -1,0 +1,53 @@
+---
+# Repository storage for kopiur snapshot Jobs in the authentik namespace.
+# Static PV + PVC pair bound to the smb-media CSI provisioner. Mounts the
+# dedicated backup SMB sub-share \\MemoryAlpha\backups\. Shares the SMB
+# source with all other kopiur-repo PVs — each namespace has its own mount
+# = its own SMB session.
+#
+# uid/gid=1001/1001 matches the postgres container user (UID 1001) in
+# the Bitnami postgres image, and the GID 1001 that the chart-init
+# creates for the postgres group.
+apiVersion: v1
+kind: PersistentVolume
+metadata:
+  name: kopiur-repo-authentik
+spec:
+  capacity:
+    storage: 50Gi
+  accessModes:
+    - ReadWriteMany
+  persistentVolumeReclaimPolicy: Retain
+  storageClassName: smb-media
+  mountOptions:
+    - vers=3.0
+    - dir_mode=0777
+    - file_mode=0777
+    - uid=1001
+    - gid=1001
+    - noperm
+    - cache=strict
+    - noserverino
+  csi:
+    driver: smb.csi.k8s.io
+    readOnly: false
+    volumeHandle: kopiur-repo-authentik-vol
+    volumeAttributes:
+      source: //192.168.1.20/backups
+    nodeStageSecretRef:
+      name: smbcreds
+      namespace: kube-system
+---
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: kopiur-repo
+  namespace: authentik
+spec:
+  accessModes:
+    - ReadWriteMany
+  storageClassName: smb-media
+  volumeName: kopiur-repo-authentik
+  resources:
+    requests:
+      storage: 50Gi

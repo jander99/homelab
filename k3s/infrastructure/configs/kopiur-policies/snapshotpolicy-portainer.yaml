@@ -1,0 +1,43 @@
+---
+# k3s/infrastructure/configs/kopiur-policies/snapshotpolicy-portainer.yaml
+apiVersion: kopiur.home-operations.com/v1alpha1
+kind: SnapshotPolicy
+metadata:
+  name: portainer
+  namespace: portainer
+spec:
+  repository:
+    kind: ClusterRepository
+    name: nas
+  sources:
+    - pvc:
+        name: portainer
+      sourcePathOverride: /data
+  copyMethod: Snapshot
+  volumeSnapshotClassName: csi-hostpath-snapclass
+  compression:
+    compressor: zstd
+  retention:
+    keepHourly: 24
+    keepDaily: 14
+    keepWeekly: 8
+    keepMonthly: 6
+  verification:
+    quick:
+      schedule:
+        cron: "H 3 * * *"
+  credentialProjection:
+    enabled: true
+  mover:
+    # portainer/portainer-ce runs as root (UID 0, GID 0); same recipe
+    # convention as the qbittorrent/sabnzbd snapshot policies.
+    securityContext:
+      runAsUser: 0
+      runAsGroup: 0
+    podSecurityContext:
+      fsGroup: 0
+      fsGroupChangePolicy: OnRootMismatch
+    cache:
+      capacity: 1Gi
+      storageClassName: local-path
+      mode: Ephemeral

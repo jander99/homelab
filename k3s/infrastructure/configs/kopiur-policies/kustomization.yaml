@@ -31,3 +31,15 @@ resources:
   - snapshotschedule-qbittorrent.yaml
   - snapshotpolicy-sabnzbd.yaml
   - snapshotschedule-sabnzbd.yaml
+  - snapshotpolicy-portainer.yaml
+  - snapshotschedule-portainer.yaml
+  - snapshotpolicy-alertmanager.yaml
+  - snapshotschedule-alertmanager.yaml
+  - snapshotpolicy-grafana.yaml
+  - snapshotschedule-grafana.yaml
+  - snapshotpolicy-authentik.yaml
+  - snapshotschedule-authentik.yaml
+  - snapshotpolicy-tdarr-server-data.yaml
+  - snapshotschedule-tdarr-server-data.yaml
+  - snapshotpolicy-tdarr-node-config.yaml
+  - snapshotschedule-tdarr-node-config.yaml
