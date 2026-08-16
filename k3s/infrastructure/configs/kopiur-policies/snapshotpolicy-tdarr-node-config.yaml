@@ -1,0 +1,42 @@
+---
+# k3s/infrastructure/configs/kopiur-policies/snapshotpolicy-tdarr-node-config.yaml
+apiVersion: kopiur.home-operations.com/v1alpha1
+kind: SnapshotPolicy
+metadata:
+  name: tdarr-node-config
+  namespace: tdarr
+spec:
+  repository:
+    kind: ClusterRepository
+    name: nas
+  sources:
+    - pvc:
+        name: tdarr-node-config
+      sourcePathOverride: /app/configs
+  copyMethod: Snapshot
+  volumeSnapshotClassName: csi-hostpath-snapclass
+  compression:
+    compressor: zstd
+  retention:
+    keepHourly: 24
+    keepDaily: 14
+    keepWeekly: 8
+    keepMonthly: 6
+  verification:
+    quick:
+      schedule:
+        cron: "H 3 * * *"
+  credentialProjection:
+    enabled: true
+  mover:
+    # Same recipe as tdarr-server-data: PUID=1027, PGID=100.
+    securityContext:
+      runAsUser: 1027
+      runAsGroup: 100
+    podSecurityContext:
+      fsGroup: 100
+      fsGroupChangePolicy: OnRootMismatch
+    cache:
+      capacity: 1Gi
+      storageClassName: local-path
+      mode: Ephemeral

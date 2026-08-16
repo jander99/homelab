@@ -1,0 +1,53 @@
+---
+# Repository storage for kopiur snapshot Jobs in the tdarr namespace.
+# Static PV + PVC pair bound to the smb-media CSI provisioner. Mounts the
+# dedicated backup SMB sub-share \\MemoryAlpha\backups\. Shares the SMB
+# source with all other kopiur-repo PVs — each namespace has its own mount
+# = its own SMB session.
+#
+# uid/gid=1027/100 matches the LinuxServer tdarr image (PUID=1027,
+# PGID=100, default user `abc`) so the mover can read /app/server and
+# /app/configs on the source PVCs.
+apiVersion: v1
+kind: PersistentVolume
+metadata:
+  name: kopiur-repo-tdarr
+spec:
+  capacity:
+    storage: 50Gi
+  accessModes:
+    - ReadWriteMany
+  persistentVolumeReclaimPolicy: Retain
+  storageClassName: smb-media
+  mountOptions:
+    - vers=3.0
+    - dir_mode=0777
+    - file_mode=0777
+    - uid=1027
+    - gid=100
+    - noperm
+    - cache=strict
+    - noserverino
+  csi:
+    driver: smb.csi.k8s.io
+    readOnly: false
+    volumeHandle: kopiur-repo-tdarr-vol
+    volumeAttributes:
+      source: //192.168.1.20/backups
+    nodeStageSecretRef:
+      name: smbcreds
+      namespace: kube-system
+---
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: kopiur-repo
+  namespace: tdarr
+spec:
+  accessModes:
+    - ReadWriteMany
+  storageClassName: smb-media
+  volumeName: kopiur-repo-tdarr
+  resources:
+    requests:
+      storage: 50Gi

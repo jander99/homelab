@@ -1,0 +1,46 @@
+---
+# k3s/infrastructure/configs/kopiur-policies/snapshotpolicy-grafana.yaml
+apiVersion: kopiur.home-operations.com/v1alpha1
+kind: SnapshotPolicy
+metadata:
+  name: grafana
+  namespace: monitoring
+spec:
+  repository:
+    kind: ClusterRepository
+    name: nas
+  sources:
+    - pvc:
+        name: kube-prometheus-stack-grafana
+      sourcePathOverride: /var/lib/grafana
+  copyMethod: Snapshot
+  volumeSnapshotClassName: csi-hostpath-snapclass
+  compression:
+    compressor: zstd
+  retention:
+    keepHourly: 24
+    keepDaily: 14
+    keepWeekly: 8
+    keepMonthly: 6
+  verification:
+    quick:
+      schedule:
+        cron: "H 3 * * *"
+  credentialProjection:
+    enabled: true
+  mover:
+    # official grafana/grafana image runs as UID 472 (the `grafana` user),
+    # GID 472. The namespace carries
+    # `kopiur.home-operations.com/privileged-movers: "true"` so the
+    # snapshot can also read any root-owned files left behind by
+    # chart-init.
+    securityContext:
+      runAsUser: 472
+      runAsGroup: 472
+    podSecurityContext:
+      fsGroup: 472
+      fsGroupChangePolicy: OnRootMismatch
+    cache:
+      capacity: 1Gi
+      storageClassName: local-path
+      mode: Ephemeral

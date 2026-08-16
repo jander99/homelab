@@ -1,0 +1,13 @@
+---
+# k3s/infrastructure/configs/kopiur-policies/snapshotschedule-portainer.yaml
+apiVersion: kopiur.home-operations.com/v1alpha1
+kind: SnapshotSchedule
+metadata:
+  name: portainer-scheduled
+  namespace: portainer
+spec:
+  policyRef:
+    name: portainer
+  schedule:
+    cron: "H * * * *"
+    runOnCreate: false

@@ -1,0 +1,13 @@
+---
+# k3s/infrastructure/configs/kopiur-policies/snapshotschedule-tdarr-node-config.yaml
+apiVersion: kopiur.home-operations.com/v1alpha1
+kind: SnapshotSchedule
+metadata:
+  name: tdarr-node-config-scheduled
+  namespace: tdarr
+spec:
+  policyRef:
+    name: tdarr-node-config
+  schedule:
+    cron: "H * * * *"
+    runOnCreate: false
