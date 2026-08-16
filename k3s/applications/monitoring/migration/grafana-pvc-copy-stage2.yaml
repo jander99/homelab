@@ -1,0 +1,64 @@
+---
+# Stage-2 copy Job for grafana: rsync from the `grafana-hostpath`
+# intermediate PVC (csi-hostpath-sc, populated by stage-1) to the chart-managed
+# `kube-prometheus-stack-grafana` PVC (csi-hostpath-sc, freshly provisioned,
+# empty).
+#
+# Stage-2 runs only after the chart-managed PVC has been recreated on
+# csi-hostpath-sc. The grafana pod must be scaled to 0 for the duration of
+# this copy because both source and destination are RWO and the grafana
+# pod holds the destination mount.
+apiVersion: batch/v1
+kind: Job
+metadata:
+  name: grafana-pvc-copy-stage2
+  namespace: monitoring
+spec:
+  backoffLimit: 2
+  ttlSecondsAfterFinished: 86400
+  template:
+    metadata:
+      labels:
+        app: grafana-pvc-copy
+    spec:
+      restartPolicy: Never
+      containers:
+        - name: rsync
+          image: alpine:3.20
+          command:
+            - sh
+            - -c
+            - |
+              set -eu
+              apk add --no-cache rsync >/dev/null
+              echo "=== source ==="
+              ls -la /src | head -10
+              echo "=== running rsync ==="
+              rsync -aHAX --numeric-ids /src/ /dst/
+              echo "=== ownership correction (grafana UID 472) ==="
+              chown -R 472:472 /dst || true
+              echo "=== verify ==="
+              echo "src files: $(find /src -type f | wc -l)"
+              echo "dst files: $(find /dst -type f | wc -l)"
+              echo "src bytes: $(du -sb /src | cut -f1)"
+              echo "dst bytes: $(du -sb /dst | cut -f1)"
+              echo "DONE"
+          volumeMounts:
+            - name: source
+              mountPath: /src
+              readOnly: true
+            - name: dest
+              mountPath: /dst
+          resources:
+            requests:
+              cpu: 50m
+              memory: 128Mi
+            limits:
+              memory: 256Mi
+      volumes:
+        - name: source
+          persistentVolumeClaim:
+            claimName: grafana-hostpath
+        - name: dest
+          persistentVolumeClaim:
+            claimName: kube-prometheus-stack-grafana

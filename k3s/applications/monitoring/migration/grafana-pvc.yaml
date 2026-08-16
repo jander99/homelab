@@ -1,0 +1,21 @@
+---
+# Chart-managed PVC for grafana, recreated on csi-hostpath-sc after the
+# imperative migration. The grafana chart expects a PVC named
+# `kube-prometheus-stack-grafana`, which is why the post-migration PVC has
+# to land on this exact name.
+#
+# Pre-migration: bound to a local-path PV (101d old).
+# Post-migration: bound to a fresh csi-hostpath-sc PV populated from the
+# `grafana-hostpath` intermediate via the stage-2 copy Job.
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: kube-prometheus-stack-grafana
+  namespace: monitoring
+spec:
+  accessModes:
+    - ReadWriteOnce
+  storageClassName: csi-hostpath-sc
+  resources:
+    requests:
+      storage: 5Gi

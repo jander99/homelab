@@ -1,0 +1,61 @@
+---
+# Stage-1 copy Job for grafana: rsync from the existing
+# `kube-prometheus-stack-grafana` PVC (local-path) to the `grafana-hostpath`
+# intermediate PVC (csi-hostpath-sc).
+#
+# Grafana runs as UID 472 (grafana user). Ownership on the destination is
+# corrected after rsync to match.
+apiVersion: batch/v1
+kind: Job
+metadata:
+  name: grafana-pvc-copy-stage1
+  namespace: monitoring
+spec:
+  backoffLimit: 2
+  ttlSecondsAfterFinished: 86400
+  template:
+    metadata:
+      labels:
+        app: grafana-pvc-copy
+    spec:
+      restartPolicy: Never
+      containers:
+        - name: rsync
+          image: alpine:3.20
+          command:
+            - sh
+            - -c
+            - |
+              set -eu
+              apk add --no-cache rsync >/dev/null
+              echo "=== source tree (top-level) ==="
+              ls -la /src
+              echo "=== running rsync ==="
+              rsync -aHAX --numeric-ids /src/ /dst/
+              echo "=== ownership correction (grafana UID 472) ==="
+              chown -R 472:472 /dst || true
+              echo "=== post-rsync verify ==="
+              echo "src files: $(find /src -type f | wc -l)"
+              echo "dst files: $(find /dst -type f | wc -l)"
+              echo "src bytes: $(du -sb /src | cut -f1)"
+              echo "dst bytes: $(du -sb /dst | cut -f1)"
+              echo "DONE"
+          volumeMounts:
+            - name: source
+              mountPath: /src
+              readOnly: true
+            - name: dest
+              mountPath: /dst
+          resources:
+            requests:
+              cpu: 50m
+              memory: 128Mi
+            limits:
+              memory: 256Mi
+      volumes:
+        - name: source
+          persistentVolumeClaim:
+            claimName: kube-prometheus-stack-grafana
+        - name: dest
+          persistentVolumeClaim:
+            claimName: grafana-hostpath
