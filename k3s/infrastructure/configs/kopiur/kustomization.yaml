@@ -21,6 +21,7 @@ resources:
   - pv-headlamp.yaml
   - pv-gatus.yaml
   - pv-media.yaml
+  - pv-pihole.yaml
   - clusterrepository.yaml
   - job-cleanup-rbac.yaml
   - job-cleanup-cronjob.yaml

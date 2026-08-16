@@ -1,0 +1,44 @@
+---
+# k3s/infrastructure/configs/kopiur-policies/snapshotpolicy-pihole.yaml
+apiVersion: kopiur.home-operations.com/v1alpha1
+kind: SnapshotPolicy
+metadata:
+  name: pihole
+  namespace: pihole
+spec:
+  repository:
+    kind: ClusterRepository
+    name: nas
+  sources:
+    - pvc:
+        name: pihole
+      sourcePathOverride: /etc/pihole
+  copyMethod: Snapshot
+  volumeSnapshotClassName: csi-hostpath-snapclass
+  compression:
+    compressor: zstd
+  retention:
+    keepHourly: 24
+    keepDaily: 14
+    keepWeekly: 8
+    keepMonthly: 6
+  verification:
+    quick:
+      schedule:
+        cron: "H 3 * * *"
+  credentialProjection:
+    enabled: true
+  mover:
+    # Official pihole/pihole image runs as `pihole` user (UID 1000 GID 1000).
+    # The pod drops to that user for FTL operations; the data on disk is
+    # owned by pihole:pihole.
+    securityContext:
+      runAsUser: 1000
+      runAsGroup: 1000
+    podSecurityContext:
+      fsGroup: 1000
+      fsGroupChangePolicy: OnRootMismatch
+    cache:
+      capacity: 1Gi
+      storageClassName: local-path
+      mode: Ephemeral
