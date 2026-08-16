@@ -1,5 +1,14 @@
 ---
+# kopiur.home-operations.com/privileged-movers=true opts the namespace in
+# to kopiur's privileged-mover mode (gate enforced in the kopiur admission
+# webhook). Required for pihole because /etc/pihole/logrotate is owned
+# root:root mode 0640 — the chart-init creates it during startup before
+# the user drops to `pihole` (UID 1000), and the pihole user can't read
+# it back. Without this annotation, the kopiur snapshot wedges with
+# `PermissionDenied: open /etc/pihole/logrotate: permission denied`.
 apiVersion: v1
 kind: Namespace
 metadata:
   name: pihole
+  annotations:
+    kopiur.home-operations.com/privileged-movers: "true"

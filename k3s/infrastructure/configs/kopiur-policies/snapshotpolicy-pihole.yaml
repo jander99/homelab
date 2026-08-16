@@ -29,15 +29,25 @@ spec:
   credentialProjection:
     enabled: true
   mover:
-    # Official pihole/pihole image runs as `pihole` user (UID 1000 GID 1000).
-    # The pod drops to that user for FTL operations; the data on disk is
-    # owned by pihole:pihole.
+    # Pihole's official image starts as root and drops to the `pihole` user
+    # (UID 1000 GID 1000), but the chart-init creates `/etc/pihole/logrotate`
+    # as `root:root` mode 0640 during startup, BEFORE the user drop. The
+    # pihole user cannot read it back. Snapshotting as UID 1000 fails with
+    # PermissionDenied on that single file, killing the whole backup.
+    #
+    # Run the mover as root for pihole specifically. Opt-in via:
+    #   kubectl annotate namespace pihole kopiur.home-operations.com/privileged-movers=true
+    # (see k3s/platform/namespaces/pihole.yaml).
+    # privilegedMode also preserves UID/GID on restore, which matters for
+    # the pihole-FTL.db / gravity.db files that pihole opens as pihole:pihole.
     securityContext:
-      runAsUser: 1000
-      runAsGroup: 1000
+      runAsUser: 0
+      runAsGroup: 0
+      runAsNonRoot: false
     podSecurityContext:
       fsGroup: 1000
       fsGroupChangePolicy: OnRootMismatch
+    privilegedMode: true
     cache:
       capacity: 1Gi
       storageClassName: local-path
