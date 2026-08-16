@@ -19,3 +19,5 @@ resources:
   - snapshotschedule-headlamp.yaml
   - snapshotpolicy-gatus.yaml
   - snapshotschedule-gatus.yaml
+  - snapshotpolicy-prowlarr.yaml
+  - snapshotschedule-prowlarr.yaml

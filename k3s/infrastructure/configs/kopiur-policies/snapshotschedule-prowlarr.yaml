@@ -1,0 +1,13 @@
+---
+# k3s/infrastructure/configs/kopiur-policies/snapshotschedule-prowlarr.yaml
+apiVersion: kopiur.home-operations.com/v1alpha1
+kind: SnapshotSchedule
+metadata:
+  name: prowlarr-scheduled
+  namespace: media
+spec:
+  policyRef:
+    name: prowlarr
+  schedule:
+    cron: "H * * * *"
+    runOnCreate: false

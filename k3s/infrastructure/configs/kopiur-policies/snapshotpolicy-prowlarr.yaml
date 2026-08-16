@@ -1,0 +1,44 @@
+---
+# k3s/infrastructure/configs/kopiur-policies/snapshotpolicy-prowlarr.yaml
+apiVersion: kopiur.home-operations.com/v1alpha1
+kind: SnapshotPolicy
+metadata:
+  name: prowlarr
+  namespace: media
+spec:
+  repository:
+    kind: ClusterRepository
+    name: nas
+  sources:
+    - pvc:
+        name: prowlarr-config
+      sourcePathOverride: /config
+  copyMethod: Snapshot
+  volumeSnapshotClassName: csi-hostpath-snapclass
+  compression:
+    compressor: zstd
+  retention:
+    keepHourly: 24
+    keepDaily: 14
+    keepWeekly: 8
+    keepMonthly: 6
+  # Daily quick verification proves backups are actually restorable.
+  verification:
+    quick:
+      schedule:
+        cron: "H 3 * * *"
+  credentialProjection:
+    enabled: true
+  mover:
+    # LinuxServer prowlarr image runs as abc (PUID=1027, PGID=100); fsGroup
+    # on the pod is 100. Mover must match to read the data.
+    securityContext:
+      runAsUser: 1027
+      runAsGroup: 100
+    podSecurityContext:
+      fsGroup: 100
+      fsGroupChangePolicy: OnRootMismatch
+    cache:
+      capacity: 1Gi
+      storageClassName: local-path
+      mode: Ephemeral
