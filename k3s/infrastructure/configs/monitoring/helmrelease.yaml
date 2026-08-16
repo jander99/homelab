@@ -125,7 +125,15 @@ spec:
         storage:
           volumeClaimTemplate:
             spec:
-              storageClassName: local-path
+              # -- csi-hostpath-sc is the only SC in this cluster that
+              # supports VolumeSnapshots, which is required for kopiur
+              # backup coverage. The StatefulSet's volumeClaimTemplate
+              # is immutable, so the local-path → csi-hostpath-sc
+              # migration requires deleting the StatefulSet and letting
+              # Helm recreate it from the updated chart value. Data is
+              # preserved across that cutover by the imperative flow in
+              # k3s/applications/monitoring/migration/.
+              storageClassName: csi-hostpath-sc
               accessModes: ["ReadWriteOnce"]
               resources:
                 requests:
