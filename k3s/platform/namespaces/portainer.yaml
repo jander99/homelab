@@ -1,5 +1,14 @@
 ---
+# kopiur.home-operations.com/privileged-movers=true opts the namespace in
+# to kopiur's privileged-mover mode (gate enforced in the kopiur admission
+# webhook). Required for portainer because the SnapshotPolicy `portainer`
+# declares mover `runAsUser: 0` (portainer/portainer-ce runs as root),
+# and kopiur's admission treats runAsUser: 0 as "privileged" — without
+# the opt-in annotation the SnapshotPolicy is blocked with
+# `PrivilegedMoverNotPermitted`.
 apiVersion: v1
 kind: Namespace
 metadata:
   name: portainer
+  annotations:
+    kopiur.home-operations.com/privileged-movers: "true"

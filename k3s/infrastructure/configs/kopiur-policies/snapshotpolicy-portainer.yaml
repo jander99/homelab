@@ -29,8 +29,11 @@ spec:
   credentialProjection:
     enabled: true
   mover:
-    # portainer/portainer-ce runs as root (UID 0, GID 0); same recipe
-    # convention as the qbittorrent/sabnzbd snapshot policies.
+    # portainer/portainer-ce runs as root (UID 0, GID 0). The namespace
+    # carries `kopiur.home-operations.com/privileged-movers: "true"`
+    # because kopiur's admission treats runAsUser: 0 as "privileged" —
+    # without the opt-in annotation the SnapshotPolicy is blocked with
+    # `PrivilegedMoverNotPermitted` (caught at first scheduled run).
     securityContext:
       runAsUser: 0
       runAsGroup: 0
