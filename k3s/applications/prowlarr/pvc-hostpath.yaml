@@ -1,0 +1,20 @@
+---
+# k3s/applications/prowlarr/pvc-hostpath.yaml
+#
+# Companion PVC for the prowlarr → csi-hostpath-sc migration.
+# Provisioned alongside the existing prowlarr-config (local-path) so a
+# one-shot copy pod can rsync data into it before the deployment is
+# repointed. After cutover this file is removed and pvc.yaml is updated
+# in place — single source of truth restored.
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: prowlarr-config-hostpath
+  namespace: media
+spec:
+  accessModes:
+    - ReadWriteOnce
+  storageClassName: csi-hostpath-sc
+  resources:
+    requests:
+      storage: 2Gi
