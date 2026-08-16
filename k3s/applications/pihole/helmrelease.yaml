@@ -81,13 +81,17 @@ spec:
       existingSecret: "pihole-admin-password"
       passwordKey: "password"
 
-    # -- PVC persistence: local-path, 1Gi, for /etc/pihole
+    # -- PVC persistence: csi-hostpath-sc, 1Gi, for /etc/pihole
+    # Changed from local-path → csi-hostpath-sc when pihole was onboarded
+    # to kopiur backups. Only csi-hostpath-sc PVCs can be snapshotted
+    # (csi-hostpath-snapclass is bound 1:1 to this storage class).
+    # Helm won't migrate the existing PVC; that's an imperative job.
     persistentVolumeClaim:
       enabled: true
       accessModes:
         - ReadWriteOnce
       size: "1Gi"
-      storageClass: "local-path"
+      storageClass: "csi-hostpath-sc"
 
     # -- Probes: initialDelaySeconds: 30 — FTL is up in ~5s, the chart's
     #    default is 60s. 30s leaves a small buffer for first-boot gravity DB

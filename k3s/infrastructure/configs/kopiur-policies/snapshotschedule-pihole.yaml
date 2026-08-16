@@ -1,0 +1,13 @@
+---
+# k3s/infrastructure/configs/kopiur-policies/snapshotschedule-pihole.yaml
+apiVersion: kopiur.home-operations.com/v1alpha1
+kind: SnapshotSchedule
+metadata:
+  name: pihole-scheduled
+  namespace: pihole
+spec:
+  policyRef:
+    name: pihole
+  schedule:
+    cron: "H * * * *"
+    runOnCreate: false

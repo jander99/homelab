@@ -25,3 +25,5 @@ resources:
   - snapshotschedule-radarr.yaml
   - snapshotpolicy-sonarr.yaml
   - snapshotschedule-sonarr.yaml
+  - snapshotpolicy-pihole.yaml
+  - snapshotschedule-pihole.yaml
