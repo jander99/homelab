@@ -27,3 +27,7 @@ resources:
   - snapshotschedule-sonarr.yaml
   - snapshotpolicy-pihole.yaml
   - snapshotschedule-pihole.yaml
+  - snapshotpolicy-qbittorrent.yaml
+  - snapshotschedule-qbittorrent.yaml
+  - snapshotpolicy-sabnzbd.yaml
+  - snapshotschedule-sabnzbd.yaml
