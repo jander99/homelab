@@ -28,10 +28,13 @@ spec:
               containerPort: 9098
               protocol: TCP
           env:
+            # Defaults to the exporter's public demo appkey (see
+            # configmap.yaml) so this deploys with no secret setup. Swap to
+            # ecobee-credentials once a dedicated app is registered.
             - name: ECOBEE_APPKEY
               valueFrom:
-                secretKeyRef:
-                  name: ecobee-credentials
+                configMapKeyRef:
+                  name: ecobee-exporter-config
                   key: appkey
             - name: ECOBEE_CACHEFILE
               value: /db/auth.cache
