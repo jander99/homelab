@@ -1,0 +1,39 @@
+---
+apiVersion: helm.toolkit.fluxcd.io/v2
+kind: HelmRelease
+metadata:
+  name: longhorn
+  namespace: flux-system
+spec:
+  interval: 30m
+  chart:
+    spec:
+      chart: longhorn
+      version: "1.12.1"
+      sourceRef:
+        kind: HelmRepository
+        name: longhorn
+        namespace: flux-system
+      interval: 12h
+  targetNamespace: longhorn-system
+  install:
+    createNamespace: true
+    remediation:
+      retries: 3
+  upgrade:
+    remediation:
+      retries: 3
+  values:
+    persistence:
+      createStorageClass: true
+      # NOT the cluster default — local-path remains the implicit default,
+      # same policy as csi-hostpath-sc. Apps opt in explicitly.
+      defaultClass: false
+      # Single testbed node today: only one node is available to hold a
+      # replica, so anything higher leaves volumes permanently degraded.
+      # Raise to 2 or 3 once the 3-node cluster is up.
+      defaultClassReplicaCount: 1
+    defaultSettings:
+      # Same disk csi-hostpath-sc already writes into — no dedicated block
+      # device required, Longhorn stores replicas as files on this path.
+      defaultDataPath: /var/lib/longhorn

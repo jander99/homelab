@@ -1,6 +1,6 @@
 ---
 # roles/k3s-prereqs/tasks/main.yml
-# Kubernetes prerequisites: swap, kernel modules, sysctl, container runtime deps
+# Kubernetes prerequisites: swap, kernel modules, sysctl, container runtime deps, iSCSI
 
 - name: Check whether swap is currently enabled
   ansible.builtin.command: cat /proc/swaps
@@ -43,3 +43,14 @@
     reload: true
     state: present
   loop: "{{ k3s_sysctl_params | dict2items }}"
+
+- name: Install open-iscsi (required by the Longhorn CSI driver's engine pods)
+  ansible.builtin.apt:
+    name: open-iscsi
+    state: present
+
+- name: Ensure iscsid is running and enabled
+  ansible.builtin.systemd:
+    name: iscsid
+    state: started
+    enabled: true

@@ -16,4 +16,5 @@ resources:
   - kopiur
   - snapshot-controller
   - csi-hostpath
+  - longhorn
   - flux2
