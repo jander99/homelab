@@ -27,14 +27,21 @@ spec:
             - name: metrics
               containerPort: 9098
               protocol: TCP
+          # stdin/tty: the exporter's auth flow (go-ecobee firstAuth()) prints
+          # the pairing PIN to stdout, then blocks on a stdin read (fmt.Scanln)
+          # until you press <enter> after registering the PIN at
+          # https://www.ecobee.com/consumerportal ("My Apps"). Without a TTY
+          # attached that read blocks forever with no way to unblock it.
+          # Complete pairing with:
+          #   kubectl -n ecobee-exporter logs deploy/ecobee-exporter -f   # get the PIN
+          #   kubectl -n ecobee-exporter attach -it deploy/ecobee-exporter  # press <enter> after registering it
+          stdin: true
+          tty: true
           env:
-            # Defaults to the exporter's public demo appkey (see
-            # configmap.yaml) so this deploys with no secret setup. Swap to
-            # ecobee-credentials once a dedicated app is registered.
             - name: ECOBEE_APPKEY
               valueFrom:
-                configMapKeyRef:
-                  name: ecobee-exporter-config
+                secretKeyRef:
+                  name: ecobee-credentials
                   key: appkey
             - name: ECOBEE_CACHEFILE
               value: /db/auth.cache
