@@ -1,0 +1,22 @@
+---
+# VolumeSnapshotClass for the Longhorn CSI driver installed by
+# k3s/infrastructure/controllers/longhorn/. Unlike csi-hostpath, Longhorn
+# does not create this automatically — it's managed here so it sits
+# alongside the kopiur configs in the infra-configs layer, same as
+# csi-hostpath-snapclass.
+#
+# type: longhorn-snapshot takes an in-cluster, copy-on-write Longhorn
+# snapshot (fast, node-local) rather than pushing to a configured Longhorn
+# backup target — kopiur's mover Pods handle moving data off-cluster, so
+# there's no need for Longhorn's own backup-target push here.
+#
+# Deliberately NOT setting snapshot.storage.kubernetes.io/is-default-class,
+# same reasoning as csi-hostpath-snapclass.
+apiVersion: snapshot.storage.k8s.io/v1
+kind: VolumeSnapshotClass
+metadata:
+  name: longhorn-snapclass
+driver: driver.longhorn.io
+deletionPolicy: Delete
+parameters:
+  type: longhorn-snapshot

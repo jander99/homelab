@@ -18,7 +18,7 @@ ansible/
 │   └── site.yml                       # Full entrypoint: runs all phases sequentially
 └── roles/
     ├── common/                        # apt upgrade, packages, timezone, UFW, passwordless sudo
-    ├── k3s-prereqs/                   # swap disable, kernel modules (br_netfilter, overlay), sysctl
+    ├── k3s-prereqs/                   # swap disable, kernel modules (br_netfilter, overlay), sysctl, open-iscsi (Longhorn)
     ├── k3s-server/                    # K3s install, config, kubeconfig fetch, token persistence
     ├── flux-bootstrap/                # Flux CLI, age key, sops-age Secret, GitHub bootstrap (first-time only)
     └── flux-upgrade/                  # Flux CLI install, CRD storedVersions migration, flux install
@@ -60,5 +60,5 @@ ansible all -i inventory/hosts.yml -m ping
 ## NOTES
 - **K3s config written**: `flannel-backend: vxlan`, `secrets-encryption: true`, `write-kubeconfig-mode: 0644`.
 - `common` role asserts that required vars (packages list, UFW rules) are non-empty before proceeding.
-- `k3s-prereqs` loads `br_netfilter` and `overlay` kernel modules + sets net.bridge sysctl.
+- `k3s-prereqs` loads `br_netfilter` and `overlay` kernel modules + sets net.bridge sysctl + installs/enables `open-iscsi` (required by the Longhorn CSI driver).
 - Testbed node (i7-4770k, 192.168.1.128) must be re-IP'd to 192.168.1.4x before joining the HA cluster.
