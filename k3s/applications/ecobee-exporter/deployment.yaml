@@ -1,0 +1,66 @@
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: ecobee-exporter
+  namespace: ecobee-exporter
+  labels:
+    app: ecobee-exporter
+spec:
+  replicas: 1
+  # Recreate, not RollingUpdate: the /db PVC is RWO and the auth cache file
+  # would otherwise be attach-conflicted between an old and new pod.
+  strategy:
+    type: Recreate
+  selector:
+    matchLabels:
+      app: ecobee-exporter
+  template:
+    metadata:
+      labels:
+        app: ecobee-exporter
+    spec:
+      containers:
+        - name: ecobee-exporter
+          image: billykwooten/ecobee-exporter:v0.0.2
+          ports:
+            - name: metrics
+              containerPort: 9098
+              protocol: TCP
+          env:
+            - name: ECOBEE_APPKEY
+              valueFrom:
+                secretKeyRef:
+                  name: ecobee-credentials
+                  key: appkey
+            - name: ECOBEE_CACHEFILE
+              value: /db/auth.cache
+          volumeMounts:
+            - name: cache
+              mountPath: /db
+          # No httpGet probes: on first boot (before PIN pairing is completed
+          # via the Ecobee consumer portal) the exporter may not yet be
+          # serving /metrics. tcpSocket only checks the process is alive.
+          startupProbe:
+            tcpSocket:
+              port: metrics
+            periodSeconds: 10
+            failureThreshold: 30
+          readinessProbe:
+            tcpSocket:
+              port: metrics
+            periodSeconds: 15
+          livenessProbe:
+            tcpSocket:
+              port: metrics
+            periodSeconds: 30
+          resources:
+            requests:
+              cpu: 10m
+              memory: 32Mi
+            limits:
+              memory: 128Mi
+      volumes:
+        - name: cache
+          persistentVolumeClaim:
+            claimName: ecobee-exporter-cache

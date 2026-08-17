@@ -1,0 +1,16 @@
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: ecobee-exporter
+  namespace: ecobee-exporter
+  labels:
+    app: ecobee-exporter
+spec:
+  selector:
+    app: ecobee-exporter
+  ports:
+    - name: metrics
+      port: 9098
+      targetPort: metrics
+      protocol: TCP

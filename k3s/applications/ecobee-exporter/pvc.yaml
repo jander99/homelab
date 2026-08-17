@@ -1,0 +1,17 @@
+---
+# Persists the PIN-pairing auth cache (/db/auth.cache) across pod restarts.
+# Without this, the exporter would need to be re-paired via the Ecobee
+# consumer portal every time the pod is rescheduled. csi-hostpath-sc is the
+# only StorageClass in this cluster that supports VolumeSnapshots.
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: ecobee-exporter-cache
+  namespace: ecobee-exporter
+spec:
+  accessModes:
+    - ReadWriteOnce
+  storageClassName: csi-hostpath-sc
+  resources:
+    requests:
+      storage: 1Gi

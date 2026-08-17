@@ -1,0 +1,14 @@
+---
+apiVersion: monitoring.coreos.com/v1
+kind: ServiceMonitor
+metadata:
+  name: ecobee-exporter
+  namespace: ecobee-exporter
+spec:
+  endpoints:
+    - port: metrics
+      path: /metrics
+      interval: 60s
+  selector:
+    matchLabels:
+      app: ecobee-exporter

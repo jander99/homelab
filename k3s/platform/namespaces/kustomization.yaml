@@ -15,6 +15,7 @@ resources:
   - qbittorrent.yaml
   - sense-exporter.yaml
   - unpoller.yaml
+  - ecobee-exporter.yaml
   - telemetry.yaml
   - gatus.yaml
   - kopiur-system.yaml
