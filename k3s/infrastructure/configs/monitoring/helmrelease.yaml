@@ -125,15 +125,14 @@ spec:
         storage:
           volumeClaimTemplate:
             spec:
-              # -- csi-hostpath-sc is the only SC in this cluster that
-              # supports VolumeSnapshots, which is required for kopiur
-              # backup coverage. The StatefulSet's volumeClaimTemplate
-              # is immutable, so the local-path → csi-hostpath-sc
-              # migration requires deleting the StatefulSet and letting
-              # Helm recreate it from the updated chart value. Data is
-              # preserved across that cutover by the imperative flow in
-              # k3s/applications/monitoring/migration/.
-              storageClassName: csi-hostpath-sc
+              # Migrated from csi-hostpath-sc to longhorn in
+              # feat/monitoring-longhorn. The Restore CR in
+              # k3s/applications/monitoring/migration/restore.yaml
+              # creates a new PVC on longhorn and populates it from
+              # the latest kopia snapshot; the chart's volumeClaimTemplate
+              # then matches what's already there and Helm doesn't
+              # recreate the StatefulSet.
+              storageClassName: longhorn
               accessModes: ["ReadWriteOnce"]
               resources:
                 requests:
@@ -196,15 +195,13 @@ spec:
         accessModes:
           - ReadWriteOnce
         size: 5Gi
-        # -- csi-hostpath-sc is the only SC in this cluster that supports
-        # VolumeSnapshots, which is required for kopiur backup coverage.
-        # Migration from local-path was performed imperatively (the chart
-        # value change alone wouldn't move the existing PVC); the imperative
-        # flow uses an intermediate `grafana-hostpath` PVC on csi-hostpath-sc,
-        # an rsync stage-1, then a chart-managed `kube-prometheus-stack-grafana`
-        # PVC recreated on csi-hostpath-sc and an rsync stage-2 into it.
-        # Manifests in `k3s/applications/monitoring/migration/`.
-        storageClassName: csi-hostpath-sc
+        # Migrated from csi-hostpath-sc to longhorn in
+        # feat/monitoring-longhorn. The Restore CR in
+        # k3s/applications/monitoring/migration/restore.yaml
+        # creates a new PVC on longhorn and populates it from the
+        # latest kopia snapshot; the chart's PVC template then matches
+        # what's already there and Helm doesn't recreate it.
+        storageClassName: longhorn
       ingress:
         enabled: true
         ingressClassName: traefik

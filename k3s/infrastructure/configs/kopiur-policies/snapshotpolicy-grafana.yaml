@@ -14,7 +14,11 @@ spec:
         name: kube-prometheus-stack-grafana
       sourcePathOverride: /var/lib/grafana
   copyMethod: Snapshot
-  volumeSnapshotClassName: csi-hostpath-snapclass
+  # Migrated from csi-hostpath-snapclass to longhorn-snapclass in
+  # feat/monitoring-longhorn. The grafana PVC is now on the `longhorn`
+  # StorageClass (PR prepping the move in helmrelease.yaml), so the
+  # CSI snapshot must use the matching Longhorn VolumeSnapshotClass.
+  volumeSnapshotClassName: longhorn-snapclass
   compression:
     compressor: zstd
   retention:
