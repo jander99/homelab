@@ -1,0 +1,102 @@
+---
+# Restore CR for the headlamp csi-hostpath-sc → longhorn migration.
+#
+# This is operator-applied (NOT in kustomization.yaml — Flux will not
+# reconcile it on every sync). Run with `kubectl apply -f` once after
+# scaling headlamp to 0 replicas.
+#
+# Kept in the tree as a record of the migration (matches the pattern
+# in gatus/migration/ and portainer/migration/). After the migration
+# succeeds, the Restore CR is a no-op and the completed status is
+# harmless; delete it manually if desired:
+#   kubectl delete restore -n headlamp headlamp-longhorn-migration
+#
+# Why a Restore CR instead of rsync:
+#   The kopiur-repo PVC is a Kopia deduplicated repository (kopia.repository.f
+#   in the root, packed blob dirs p00–pff), not a flat directory of snapshot
+#   files. We can't just rsync from it. The Restore CR pulls data from the
+#   kopia repository and writes it into a target PVC — the proper way to pull
+#   data back out of a kopiur backup.
+#
+# What this does:
+#   1. Resolves the latest successful Snapshot CR from SnapshotPolicy
+#      `headlamp` (the live csi-hostpath-sc backup chain). Headlamp runs
+#      hourly, so the latest snapshot is at most an hour old.
+#   2. Creates a new PVC named `headlamp` on the `longhorn` StorageClass
+#      (operator-managed: target.pvc is a freshly created PVC, not a pre-existing one).
+#   3. Pops a mover Job that reads from kopia and writes to the new PVC.
+#   4. Records phase=Completed when the mover succeeds.
+#
+# Pre-conditions (operator must do before applying):
+#   - headlamp HelmRelease suspended (so the controller doesn't try to
+#     upgrade-with-recreate while we're swapping the PVC underneath it).
+#   - headlamp deployment scaled to 0 replicas (releases RWO on the old
+#     csi-hostpath-sc PVC).
+#   - Stale csi-hostpath-snapclass VolumeSnapshots cleared (they hold
+#     pvc-as-source-protection finalizers on the source PVC). See the
+#     gatus migration (PR #307) for the exact patch sequence.
+#   - The old csi-hostpath-sc PVC `headlamp` deleted (Restore's target.pvc
+#     would otherwise hit a name conflict; the data is safe in the kopia
+#     snapshot).
+#
+# Post-conditions:
+#   - PVC `headlamp` exists, bound on `longhorn`, populated with the latest snapshot.
+#   - HelmRelease can be updated to `storageClassName: longhorn` and the chart's
+#     PVC template will match the existing PVC (no conflict).
+#   - headlamp deployment scaled back to 1 replica binds to the longhorn PVC.
+#   - The chart's initContainer runs as root and chowns /build/plugins to
+#     100:101 — the restored plugin state is preserved, the plugin binaries
+#     are re-populated from the image (the snapshot was never the source of
+#     truth for binaries; that's what the initContainer is for).
+#
+# UID/GID safety:
+#   `mover.inheritSecurityContextFrom.snapshot: {}` reads the UID/GID kopia
+#   recorded on the backup itself (kopiur-meta kopia tag). The snapshot
+#   policy's mover runs as runAsUser=100, runAsGroup=101, fsGroup=101; the
+#   restore mover inherits the same. Result: restored files are owned by
+#   100:101, matching what the chart's initContainer chowns to. No manual
+#   chown needed.
+#
+# credentialProjection:
+#   REQUIRED. The source SnapshotPolicy uses ClusterRepository `nas`, whose
+#   credential Secret lives in `kopiur-system`, not `headlamp`. The mover
+#   Job mounts that Secret via envFrom (namespace-local). Without
+#   `credentialProjection.enabled: true`, the Restore stalls in Pending
+#   with `MissingCredentialsSecret`. See gatus migration PR #308 for the
+#   lesson-learned doc.
+apiVersion: kopiur.home-operations.com/v1alpha1
+kind: Restore
+metadata:
+  name: headlamp-longhorn-migration
+  namespace: headlamp
+spec:
+  source:
+    fromPolicy:
+      # Pull the latest snapshot taken by the `headlamp` SnapshotPolicy.
+      # The policy runs hourly; the latest snapshot is at most ~1h old.
+      name: headlamp
+      offset: 0
+  target:
+    pvc:
+      # Name MUST match the chart-managed PVC name so the HelmRelease's
+      # PVC template reuses the restored PVC after the storageClassName
+      # update in commit 2 of the migration.
+      name: headlamp
+      storageClassName: longhorn
+      accessModes:
+        - ReadWriteOnce
+      capacity: 1Gi
+  credentialProjection:
+    enabled: true
+  mover:
+    inheritSecurityContextFrom:
+      snapshot: {}
+    cache:
+      capacity: 1Gi
+      storageClassName: local-path
+      mode: Ephemeral
+  failurePolicy:
+    backoffLimit: 2
+    activeDeadlineSeconds: 1800
+  policy:
+    onMissingSnapshot: Fail

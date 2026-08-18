@@ -96,7 +96,12 @@ spec:
         - ReadWriteOnce
       enabled: true
       size: 1Gi
-      storageClassName: csi-hostpath-sc
+      # Migrated from csi-hostpath-sc to longhorn (paired with the
+      # Restore CR in migration/restore.yaml). The Restore creates a
+      # new 'headlamp' PVC on longhorn and populates it from the
+      # latest kopia snapshot; the chart's PVC template then matches
+      # what's already there and Helm doesn't recreate it.
+      storageClassName: longhorn
     volumeMounts:
       - mountPath: /build/plugins
         name: headlamp-plugins
