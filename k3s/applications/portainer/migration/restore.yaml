@@ -1,0 +1,103 @@
+---
+# Restore CR for the portainer csi-hostpath-sc → longhorn migration.
+#
+# This is operator-applied (NOT in kustomization.yaml — Flux will not
+# reconcile it on every sync). Run with `kubectl apply -f` once after
+# scaling portainer to 0 replicas.
+#
+# Kept in the tree as a record of the migration (matches the pattern
+# in gatus/migration/ and headlamp/migration/; the existing
+# portainer/migration/ directory holds the artifacts from the previous
+# local-path → csi-hostpath-sc migration, also kept for record).
+# Delete manually if desired:
+#   kubectl delete restore -n portainer portainer-longhorn-migration
+#
+# Why a Restore CR instead of rsync:
+#   The kopiur-repo PVC is a Kopia deduplicated repository, not a flat
+#   directory of snapshot files. The Restore CR pulls data from the
+#   kopia repository and writes it into a target PVC — the proper way
+#   to pull data back out of a kopiur backup.
+#
+# What this does:
+#   1. Resolves the latest successful Snapshot CR from SnapshotPolicy
+#      `portainer` (the live csi-hostpath-sc backup chain).
+#   2. Creates a new PVC named `portainer` on the `longhorn` StorageClass
+#      (operator-managed: target.pvc is a freshly created PVC, not a pre-existing one).
+#   3. Pops a mover Job that reads from kopia and writes to the new PVC.
+#   4. Records phase=Completed when the mover succeeds.
+#
+# Pre-conditions (operator must do before applying):
+#   - portainer HelmRelease suspended (so the controller doesn't try to
+#     upgrade-with-recreate while we're swapping the PVC underneath it).
+#   - portainer deployment scaled to 0 replicas (releases RWO on the old
+#     csi-hostpath-sc PVC).
+#   - The stale csi-hostpath-snapclass VolumeSnapshot
+#     (`portainer-scheduled-20260818100200-snap`) cleared of its
+#     `pvc-as-source-protection` finalizer on the source PVC. Same
+#     pattern as the gatus migration (PR #307).
+#   - The old csi-hostpath-sc PVC `portainer` deleted (Restore's
+#     target.pvc would otherwise hit a name conflict; the data is safe
+#     in the kopia snapshot).
+#   - Note: the `portainer-hostpath` leftover PVC from the previous
+#     migration is NOT in the snapshot policy, so it isn't restored.
+#     Delete it separately after the migration is verified.
+#
+# Post-conditions:
+#   - PVC `portainer` exists, bound on `longhorn`, populated with the latest snapshot.
+#   - HelmRelease can be updated to `storageClassClass: longhorn` and the chart's
+#     PVC template will match the existing PVC (no conflict).
+#   - portainer deployment scaled back to 1 replica binds to the longhorn PVC.
+#
+# UID/GID safety:
+#   The portainer snapshot policy uses privileged mover mode (runAsUser=0,
+#   runAsGroup=0, fsGroup=0) — the namespace carries the
+#   `kopiur.home-operations.com/privileged-movers: "true"` annotation
+#   that opts in. The Restore inherits the same identity from the recorded
+#   snapshot via `inheritSecurityContextFrom.snapshot: {}`. Result:
+#   restored files are owned by root, matching what the portainer chart's
+#   runtime expects (the chart's data directory is set up by root at
+#   startup, which is why this app needs privileged mode in the first
+#   place).
+#
+# credentialProjection:
+#   REQUIRED. The source SnapshotPolicy uses ClusterRepository `nas`,
+#   whose credential Secret lives in `kopiur-system`, not `portainer`.
+#   The mover Job mounts that Secret via envFrom (namespace-local).
+#   Without `credentialProjection.enabled: true`, the Restore stalls in
+#   Pending with `MissingCredentialsSecret`. See gatus PR #308 for the
+#   lesson learned.
+apiVersion: kopiur.home-operations.com/v1alpha1
+kind: Restore
+metadata:
+  name: portainer-longhorn-migration
+  namespace: portainer
+spec:
+  source:
+    fromPolicy:
+      # Pull the latest snapshot taken by the `portainer` SnapshotPolicy.
+      name: portainer
+      offset: 0
+  target:
+    pvc:
+      # Name MUST match the chart-managed PVC name so the HelmRelease's
+      # PVC template reuses the restored PVC after the storageClass
+      # update in commit 2 of the migration.
+      name: portainer
+      storageClassName: longhorn
+      accessModes:
+        - ReadWriteOnce
+      capacity: 10Gi
+  credentialProjection:
+    enabled: true
+  mover:
+    inheritSecurityContextFrom:
+      snapshot: {}
+    cache:
+      capacity: 1Gi
+      storageClassName: local-path
+      mode: Ephemeral
+  failurePolicy:
+    backoffLimit: 2
+    activeDeadlineSeconds: 1800
+  policy:
+    onMissingSnapshot: Fail
