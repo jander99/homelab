@@ -1,0 +1,81 @@
+---
+# Restore CR for the gatus csi-hostpath-sc → longhorn migration.
+#
+# This is operator-applied (NOT in kustomization.yaml — Flux will not
+# reconcile it on every sync). Run with `kubectl apply -f` once after
+# scaling gatus to 0 replicas.
+#
+# Kept in the tree as a record of the migration (matches the pattern
+# in k3s/applications/portainer/migration/ and tdarr/migration/).
+# After the migration succeeds, the Restore CR is a no-op and the
+# completed status is harmless; delete it manually if desired:
+#   kubectl delete restore -n gatus gatus-longhorn-migration
+#
+# Why a Restore CR instead of rsync:
+#   The kopiur-repo PVC is a Kopia deduplicated repository (kopia.repository.f
+#   in the root, packed blob dirs p00–pff), not a flat directory of snapshot
+#   files. We can't just rsync from it. The Restore CR pulls data from the
+#   kopia repository and writes it into a target PVC — the proper way to pull
+#   data back out of a kopiur backup.
+#
+# What this does:
+#   1. Resolves the latest successful Snapshot CR from SnapshotPolicy `gatus`
+#      (the live csi-hostpath-sc backup chain).
+#   2. Creates a new PVC named `gatus` on the `longhorn` StorageClass
+#      (operator-managed: target.pvc is a freshly created PVC, not a pre-existing one).
+#   3. Pops a mover Job that reads from kopia and writes to the new PVC.
+#   4. Records phase=Completed when the mover succeeds.
+#
+# Pre-conditions (operator must do before applying):
+#   - gatus deployment scaled to 0 replicas (releases RWO on the old csi-hostpath-sc PVC).
+#   - The old csi-hostpath-sc PVC `gatus` deleted (Restored target.pvc would otherwise
+#     hit a name conflict; the data is safe in the kopia snapshot).
+#
+# Post-conditions:
+#   - PVC `gatus` exists, bound on `longhorn`, populated with the latest snapshot.
+#   - HelmRelease can be updated to `storageClassName: longhorn` and the chart's
+#     PVC template will match the existing PVC (no conflict).
+#   - gatus deployment scaled back to 1 replica binds to the longhorn PVC.
+#
+# UID/GID safety:
+#   `mover.inheritSecurityContextFrom.snapshot: {}` reads the UID/GID kopia recorded
+#   on the backup itself (the backup mover ran as 1000:1000) and applies them to the
+#   restore mover. Result: restored files are owned by 1000:1000, matching the
+#   gatus container's runAsUser. No manual chown needed.
+apiVersion: kopiur.home-operations.com/v1alpha1
+kind: Restore
+metadata:
+  name: gatus-longhorn-migration
+  namespace: gatus
+spec:
+  source:
+    fromPolicy:
+      # Pull the latest snapshot taken by the `gatus` SnapshotPolicy.
+      # The policy runs daily at 23:48 (latest: 2026-08-18 00:48 UTC).
+      name: gatus
+      offset: 0
+  target:
+    pvc:
+      # Name MUST match the chart-managed PVC name so the HelmRelease's
+      # PVC template reuses the restored PVC after the storageClassName
+      # update in commit 2 of the migration.
+      name: gatus
+      storageClassName: longhorn
+      accessModes:
+        - ReadWriteOnce
+      capacity: 1Gi
+  mover:
+    inheritSecurityContextFrom:
+      # Restore-only field: inherit UID/GID from the backup's recorded
+      # identity (kopiur-meta kopia tag). The original snapshot was
+      # taken with runAsUser=1000, runAsGroup=1000, fsGroup=1000.
+      snapshot: {}
+    cache:
+      capacity: 1Gi
+      storageClassName: local-path
+      mode: Ephemeral
+  failurePolicy:
+    backoffLimit: 2
+    activeDeadlineSeconds: 1800
+  policy:
+    onMissingSnapshot: Fail
