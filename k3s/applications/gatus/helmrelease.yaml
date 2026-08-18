@@ -49,14 +49,19 @@ spec:
       - secretRef:
           name: gatus-oidc-secret
 
-    # PVC for history persistence (sqlite at /data/data.db)
+    # PVC for history persistence (sqlite at /data/data.db).
+    # Migrated from csi-hostpath-sc to longhorn in #307 (could-be-PR).
+    # Operator workflow: apply migration/restore.yaml to populate a new
+    # longhorn PVC with the existing kopia snapshot, then this chart's
+    # PVC template matches the freshly-created PVC and Helm doesn't
+    # recreate it.
     persistence:
       enabled: true
       size: 1Gi
       mountPath: /data
       accessModes:
         - ReadWriteOnce
-      storageClassName: csi-hostpath-sc
+      storageClassName: longhorn
 
     # Ingress with Traefik + cert-manager. Auth is now Gatus-native OIDC
     # (via the security.oidc block in config.yaml), so no Traefik
