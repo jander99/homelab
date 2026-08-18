@@ -1,0 +1,154 @@
+---
+# Restore CRs for the monitoring stack csi-hostpath-sc → longhorn migration.
+#
+# Two Restores in one file — alertmanager and grafana — both in the
+# `monitoring` namespace, both backed up by hourly kopiur snapshots.
+# Both are owned by the kube-prometheus-stack HelmRelease, so the
+# HelmRelease update + suspend/resume cycle has to happen after both
+# Restores complete.
+#
+# This is operator-applied (NOT in kustomization.yaml — Flux will not
+# reconcile it on every sync). Run with `kubectl apply -f` once after
+# suspending the kube-prometheus-stack HelmRelease and scaling both
+# workloads to 0 replicas.
+#
+# Kept in the tree as a record of the migration (matches the pattern
+# in gatus/migration/, headlamp/migration/, portainer/migration/; the
+# existing `monitoring/migration/` directory holds the artifacts from
+# the previous local-path → csi-hostpath-sc migration, also kept for
+# record).
+#
+# Why a Restore CR instead of rsync:
+#   The kopiur-repo PVC is a Kopia deduplicated repository, not a flat
+#   directory of snapshot files. The Restore CR pulls data from the
+#   kopia repository and writes it into a target PVC — the proper way
+#   to pull data back out of a kopiur backup.
+#
+# What this does:
+#   1. Resolves the latest successful Snapshot CR from each SnapshotPolicy.
+#   2. Creates a new PVC per workload on the `longhorn` StorageClass
+#      (operator-managed: target.pvc is a freshly created PVC, not a pre-existing one).
+#   3. Pops a mover Job per workload that reads from kopia and writes
+#      to the new PVC.
+#   4. Records phase=Completed per workload when the mover succeeds.
+#
+# Pre-conditions (operator must do before applying):
+#   - SnapshotSchedules `alertmanager-scheduled` and `grafana-scheduled`
+#     suspended (`kubectl patch snapshotschedule -n monitoring
+#     <name> --type merge -p '{"spec":{"suspend":true}}'`). The
+#     policies in this PR were updated to longhorn-snapclass, but the
+#     PVCs are still on csi-hostpath-sc; an hourly snapshot run during
+#     the cutover would fail. Re-suspend after migrations complete.
+#   - kube-prometheus-stack HelmRelease suspended (so the controller
+#     doesn't try to upgrade-with-recreate while we're swapping the
+#     PVCs underneath it).
+#   - alertmanager StatefulSet scaled to 0 replicas (releases RWO on
+#     the old csi-hostpath-sc PVC).
+#   - grafana Deployment scaled to 0 replicas (releases RWO on the old
+#     csi-hostpath-sc PVC).
+#   - Stale csi-hostpath-snapclass VolumeSnapshots cleared. As of
+#     2026-08-18, only one stale snapshot exists:
+#       alertmanager-scheduled-20260818100000-snap (13h old)
+#     Grafana has none. Same patch-the-finalizer pattern as the gatus
+#     migration.
+#   - The old csi-hostpath-sc PVCs deleted. Two PVCs to delete:
+#       alertmanager-kube-prometheus-stack-alertmanager-db-alertmanager-kube-prometheus-stack-alertmanager-0
+#       kube-prometheus-stack-grafana
+#     Both are bound to csi-hostpath-sc PVs that will be auto-collected
+#     by the reclaim-policy=Delete default.
+#   - Stale Completed pods from the previous migration (in the same
+#     directory's `*-pvc-copy-stage[12].yaml` artifacts) checked and
+#     deleted if they still hold the kubernetes.io/pvc-protection
+#     finalizer on the source PVCs. The portainer migration hit this.
+#
+# Post-conditions:
+#   - PVC `alertmanager-...` exists, bound on `longhorn`, populated.
+#   - PVC `kube-prometheus-stack-grafana` exists, bound on `longhorn`,
+#     populated.
+#   - HelmRelease can be updated to `storageClassName: longhorn` and the
+#     chart's volumeClaimTemplate / PVC will match the existing PVCs.
+#   - Both workloads scaled back to 1+ replicas bind to the longhorn PVCs.
+#
+# UID/GID safety:
+#   `mover.inheritSecurityContextFrom.snapshot: {}` reads the UID/GID
+#   kopia recorded on the backup itself. The SnapshotPolicy mover
+#   identities are:
+#     alertmanager: runAsUser=1000, runAsGroup=2000, fsGroup=2000
+#     grafana:      runAsUser=472,  runAsGroup=472,  fsGroup=472
+#   These are the recorded identities; the Restore inherits them.
+#
+# credentialProjection:
+#   REQUIRED. The source SnapshotPolicies use ClusterRepository `nas`,
+#   whose credential Secret lives in `kopiur-system`, not `monitoring`.
+#   The mover Job mounts that Secret via envFrom (namespace-local).
+#   Without `credentialProjection.enabled: true`, the Restores stall
+#   in Pending with `MissingCredentialsSecret`. See gatus PR #308 for
+#   the lesson learned.
+apiVersion: kopiur.home-operations.com/v1alpha1
+kind: Restore
+metadata:
+  name: alertmanager-longhorn-migration
+  namespace: monitoring
+spec:
+  source:
+    fromPolicy:
+      name: alertmanager
+      offset: 0
+  target:
+    pvc:
+      # Matches the StatefulSet's volumeClaimTemplate name. The
+      # volumeClaimTemplate is immutable, so this name is fixed.
+      name: alertmanager-kube-prometheus-stack-alertmanager-db-alertmanager-kube-prometheus-stack-alertmanager-0
+      storageClassName: longhorn
+      accessModes:
+        - ReadWriteOnce
+      capacity: 1Gi
+  credentialProjection:
+    enabled: true
+  mover:
+    inheritSecurityContextFrom:
+      snapshot: {}
+    cache:
+      capacity: 1Gi
+      storageClassName: local-path
+      mode: Ephemeral
+  failurePolicy:
+    backoffLimit: 2
+    activeDeadlineSeconds: 1800
+  policy:
+    onMissingSnapshot: Fail
+---
+apiVersion: kopiur.home-operations.com/v1alpha1
+kind: Restore
+metadata:
+  name: grafana-longhorn-migration
+  namespace: monitoring
+spec:
+  source:
+    fromPolicy:
+      name: grafana
+      offset: 0
+  target:
+    pvc:
+      # Matches the chart-managed PVC name. Same name as the existing
+      # csi-hostpath-sc PVC; the operator deletes the old one before
+      # this Restore creates the new one.
+      name: kube-prometheus-stack-grafana
+      storageClassName: longhorn
+      accessModes:
+        - ReadWriteOnce
+      capacity: 5Gi
+  credentialProjection:
+    enabled: true
+  mover:
+    inheritSecurityContextFrom:
+      snapshot: {}
+    cache:
+      capacity: 1Gi
+      storageClassName: local-path
+      mode: Ephemeral
+  failurePolicy:
+    backoffLimit: 2
+    activeDeadlineSeconds: 1800
+  policy:
+    onMissingSnapshot: Fail
