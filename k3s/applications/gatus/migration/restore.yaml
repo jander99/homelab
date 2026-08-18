@@ -64,6 +64,16 @@ spec:
       accessModes:
         - ReadWriteOnce
       capacity: 1Gi
+  credentialProjection:
+    # Required when the source SnapshotPolicy uses a ClusterRepository
+    # whose credential Secret lives in another namespace (here:
+    # kopiur-system). Without this, the Restore mover Job can't read
+    # the kopia password and stalls in Pending. The matching
+    # SnapshotPolicy already has `credentialProjection.enabled: true`,
+    # so the source snapshot is restorable only if the Restore opts in
+    # the same way. See PR #307 for the gatus migration that exercised
+    # this.
+    enabled: true
   mover:
     inheritSecurityContextFrom:
       # Restore-only field: inherit UID/GID from the backup's recorded
