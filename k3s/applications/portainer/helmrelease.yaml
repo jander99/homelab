@@ -49,15 +49,16 @@ spec:
     persistence:
       enabled: true
       size: "10Gi"
-      # -- csi-hostpath-sc is the only SC in this cluster that supports
-      # VolumeSnapshots, which is required for kopiur backup coverage.
-      # Migration from local-path was performed imperatively (Helm won't
-      # recreate an existing PVC just because the chart value changed);
-      # the imperative flow uses an intermediate `portainer-hostpath`
-      # PVC on csi-hostpath-sc, an rsync stage-1, then a chart-managed
-      # `portainer` PVC recreated on csi-hostpath-sc and an rsync
-      # stage-2 into it. Manifests in `migration/`.
-      storageClass: csi-hostpath-sc
+      # -- Migrated from csi-hostpath-sc to longhorn in
+      # feat/portainer-longhorn. The Restore CR in migration/restore.yaml
+      # creates a new 'portainer' PVC on longhorn and populates it from
+      # the latest kopia snapshot; the chart's PVC template then matches
+      # what's already there and Helm doesn't recreate it. The previous
+      # `portainer-hostpath` intermediate PVC from the local-path →
+      # csi-hostpath-sc migration (migration/pvc-hostpath.yaml) is no
+      # longer needed and is deleted separately after the migration is
+      # verified.
+      storageClass: longhorn
       accessMode: ReadWriteOnce
 
     resources:
