@@ -5,14 +5,12 @@ resources:
   - helmrepository.yaml
   - helmrelease.yaml
   # migration/ holds the imperative artifacts used to move portainer's PVC
-  # from local-path to csi-hostpath-sc. The intermediate PVC, copy Jobs, and
-  # recreate-on-cutover PVC live here. HelmRelease owns `portainer` (chart
-  # value `persistence.storageClass: csi-hostpath-sc`); once the migration
-  # is finished, the chart-managed PVC and the imperative ones in this
-  # directory must stay in sync — the intermediate and the stage copy Jobs
-  # are deleted at the end of the flow but the manifests are kept here as
-  # a record of the change.
-  - migration/pvc.yaml
-  - migration/pvc-hostpath.yaml
-  - migration/pvc-copy-stage1.yaml
-  - migration/pvc-copy-stage2.yaml
+  # from local-path to csi-hostpath-sc (PR #298) and from csi-hostpath-sc
+  # to longhorn (PR #310). The manifests are kept here as a record of the
+  # changes but are intentionally NOT Flux-managed — listing them in this
+  # resources list causes Flux to re-apply them on every reconcile, which
+  # conflicts with the HelmRelease's chart-managed PVC (storageClassName
+  # mismatch between the imperative manifest and the chart's rendered
+  # PVC). The new csi-hostpath → longhorn migration uses
+  # migration/restore.yaml, which is operator-applied (kubectl apply -f)
+  # and intentionally not listed here.
