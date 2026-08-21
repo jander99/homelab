@@ -1,0 +1,57 @@
+---
+# Restore CR for the radarr csi-hostpath-sc → longhorn migration.
+#
+# Operator-applied (NOT in kustomization.yaml). Run with `kubectl apply -f`
+# once after scaling radarr to 0 replicas. Matches the pattern in
+# prowlarr/migration/, gatus/migration/, headlamp/migration/, portainer/migration/.
+#
+# Delete manually if desired:
+#   kubectl delete restore -n media radarr-longhorn-migration
+#
+# Pre-conditions (operator must do before applying):
+#   - radarr deployment scaled to 0 replicas (releases RWO on old PVC).
+#   - Stale csi-hostpath-snapclass VolumeSnapshots cleared (they hold
+#     pvc-as-source-protection finalizers on the source PVC).
+#   - The old csi-hostpath-sc PVC `radarr-config` deleted (Restore's
+#     target.pvc would otherwise hit a name conflict; data is safe in kopia).
+#
+# Post-conditions:
+#   - PVC `radarr-config` exists, bound on `longhorn`, populated with snapshot.
+#   - radarr deployment scaled back to 1 replica binds to longhorn PVC.
+#   - Restored files are owned by UID 1027 GID 100 (LinuxServer radarr
+#     PUID/PGID), matching the policy's recorded snapshot metadata.
+#
+# credentialProjection: REQUIRED. ClusterRepository `nas` secret lives in
+# kopiur-system, not media. Without `credentialProjection.enabled: true`
+# the Restore stalls with MissingCredentialsSecret.
+apiVersion: kopiur.home-operations.com/v1alpha1
+kind: Restore
+metadata:
+  name: radarr-longhorn-migration
+  namespace: media
+spec:
+  source:
+    fromPolicy:
+      name: radarr
+      offset: 0
+  target:
+    pvc:
+      name: radarr-config
+      storageClassName: longhorn
+      accessModes:
+        - ReadWriteOnce
+      capacity: 2Gi
+  credentialProjection:
+    enabled: true
+  mover:
+    inheritSecurityContextFrom:
+      snapshot: {}
+    cache:
+      capacity: 1Gi
+      storageClassName: local-path
+      mode: Ephemeral
+  failurePolicy:
+    backoffLimit: 2
+    activeDeadlineSeconds: 1800
+  policy:
+    onMissingSnapshot: Fail
