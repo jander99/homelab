@@ -14,7 +14,7 @@ spec:
         name: gluetun-config
       sourcePathOverride: /gluetun
   copyMethod: Snapshot
-  volumeSnapshotClassName: csi-hostpath-snapclass
+  volumeSnapshotClassName: longhorn-snapclass   # was: csi-hostpath-snapclass
   compression:
     compressor: zstd
   retention:
