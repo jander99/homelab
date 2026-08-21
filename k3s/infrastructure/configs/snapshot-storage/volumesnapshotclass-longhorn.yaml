@@ -5,10 +5,11 @@
 # alongside the kopiur configs in the infra-configs layer, same as
 # csi-hostpath-snapclass.
 #
-# type: longhorn-snapshot takes an in-cluster, copy-on-write Longhorn
-# snapshot (fast, node-local) rather than pushing to a configured Longhorn
-# backup target — kopiur's mover Pods handle moving data off-cluster, so
-# there's no need for Longhorn's own backup-target push here.
+# type: snap takes an in-cluster, copy-on-write Longhorn snapshot (fast,
+# node-local) rather than pushing to a configured Longhorn backup target
+# (which would require type: bak) — kopiur's mover Pods handle moving data
+# off-cluster, so there's no need for Longhorn's own backup-target push
+# here. Valid values per the Longhorn CSI driver are "snap", "bak", or "".
 #
 # Deliberately NOT setting snapshot.storage.kubernetes.io/is-default-class,
 # same reasoning as csi-hostpath-snapclass.
@@ -19,4 +20,4 @@ metadata:
 driver: driver.longhorn.io
 deletionPolicy: Delete
 parameters:
-  type: longhorn-snapshot
+  type: snap
