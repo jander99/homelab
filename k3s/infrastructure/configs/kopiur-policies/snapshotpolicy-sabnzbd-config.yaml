@@ -14,7 +14,7 @@ spec:
         name: sabnzbd-config
       sourcePathOverride: /config
   copyMethod: Snapshot
-  volumeSnapshotClassName: longhorn-snapclass
+  volumeSnapshotClassName: csi-hostpath-snapclass
   compression:
     compressor: zstd
   retention:
