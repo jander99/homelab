@@ -1,3 +1,21 @@
+---
+# sabnzbd host_whitelist note
+#
+# sabnzbd's app config (`/config/sabnzbd.ini`) auto-populates
+# `host_whitelist` with the *pod hostname* at first startup (e.g.
+# `sabnzbd-b545495fb-hq959`). On any future pod-restart that value becomes
+# stale and gatus then receives a 503 from gluetun's HTTP proxy when
+# reaching the app via the ingress hostname (`sabnzbd.homelab.properties`).
+#
+# Imperative fix after every fresh sabnzbd pod start:
+#   kubectl exec -n sabnzbd deploy/sabnzbd -c sabnzbd -- \
+#     sed -i 's/^host_whitelist.*/host_whitelist = sabnzbd.homelab.properties, sabnzbd-*, */' \
+#       /config/sabnzbd.ini
+#   kubectl rollout restart deploy/sabnzbd -n sabnzbd
+#
+# The new value is captured by the hourly sabnzbd-config SnapshotPolicy
+# (longhorn-snapclass after the csi-hostpath → longhorn migration), so
+# subsequent restores will inherit the correct whitelist.
 apiVersion: apps/v1
 kind: Deployment
 metadata:
