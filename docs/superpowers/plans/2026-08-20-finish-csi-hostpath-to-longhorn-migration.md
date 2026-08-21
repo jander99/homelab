@@ -27,7 +27,13 @@ These commands MUST pass before marking any task complete. Run them, read the ou
 
 ```bash
 # Per-app snapshot health (after Task 0 and before each migration task)
-kubectl get snapshots -n <ns> -l kopiur.home-operations.com/policy-name=<policy> --sort-by=.metadata.creationTimestamp | tail -5
+# NOTE: kopiur Snapshot CRs use label `kopiur.home-operations.com/config=<policy>`
+# (not `policy-name` as documented elsewhere) and `status.phase` (not
+# `ReadyToUse`). Mapped from VolumeSnapshot convention.
+kubectl get snapshots -n <ns> --selector=kopiur.home-operations.com/config=<policy> --sort-by=.metadata.creationTimestamp | tail -5
+
+# To check ReadyToUse status, inspect:
+kubectl get snapshots -n <ns> --selector=kopiur.home-operations.com/config=<policy> -o jsonpath='{range .items[*]}{.metadata.name}{"\t"}{.status.phase}{"\n"}' | tail -5
 
 # Per-app Restore CR status (after Commit 1 of each migration task)
 kubectl get restore -n <ns> -o jsonpath='{.items[*].status.phase}{"\n"}'
@@ -67,12 +73,12 @@ for ns in media media media pihole authentik qbittorrent sabnzbd tdarr; do
   esac
   for app in $apps; do
     echo "=== $ns / $app ==="
-    kubectl get snapshots -n "$ns" -l kopiur.home-operations.com/policy-name="$app" --sort-by=.metadata.creationTimestamp 2>/dev/null | tail -3
+    kubectl get snapshots -n "$ns" --selector=kopiur.home-operations.com/config="$app" --sort-by=.metadata.creationTimestamp 2>/dev/null | tail -3
   done
 done
 ```
 
-Note any app where the most recent snapshot is missing, `status: ReadyToUse: false`, or older than 2 hours.
+Note any app where the most recent snapshot is missing, `status.phase != Succeeded`, or older than 2 hours. (kopiur Snapshot uses `status.phase` not `ReadyToUse`.)
 
 - [ ] **Step 2: Check Restore CR conflicts**
 
@@ -97,10 +103,10 @@ Expected: All pods Running. If any are CrashLoopBackOff or Pending, pause and fi
 
 For each of the 8 apps, write down:
 - Most recent snapshot creation timestamp
-- Most recent snapshot ReadyToUse status
+- Most recent snapshot `status.phase` (Succeeded/Failed)
 - Backup policy name (for use in Task N Restore CRs)
 
-Expected outcome: each app has a recent (≤2h old) ReadyToUse snapshot.
+Expected outcome: each app has a recent (≤2h old) `Succeeded` snapshot.
 
 If any app has a missing/failed/old snapshot:
 - Investigate the snapshot policy: `kubectl get snapshotpolicy -n <ns> <policy> -o yaml`
@@ -333,8 +339,9 @@ Wait for the next hourly snapshot and verify it succeeds:
 # Find next scheduled time:
 kubectl get snapshotpolicy -n media prowlarr -o jsonpath='{.spec.schedule}{"\n"}'
 # Wait until that time, then:
-kubectl get snapshots -n media -l kopiur.home-operations.com/policy-name=prowlarr --sort-by=.metadata.creationTimestamp | tail -2
-# Expected: status shows ReadyToUse: True on the new snapshot
+kubectl get snapshots -n media --selector=kopiur.home-operations.com/config=prowlarr --sort-by=.metadata.creationTimestamp | tail -2
+# Expected: status.phase shows Succeeded on the new snapshot (NOT ReadyToUse — kopiur uses phase)
+kubectl get snapshots -n media --selector=kopiur.home-operations.com/config=prowlarr -o jsonpath='{range .items[-2:]}{.metadata.name}{"\t"}{.status.phase}{"\n"}'
 ```
 
 - [ ] **Step 6: Cleanup follow-up — verify kustomization.yaml doesn't list migration/**
@@ -1867,14 +1874,14 @@ for ns in media pihole authentik qbittorrent sabnzbd tdarr; do
   echo "=== $ns ==="
   for policy in $(kubectl get snapshotpolicy -n "$ns" -o name | sed 's|.*/||'); do
     echo "  $policy:"
-    kubectl get snapshots -n "$ns" -l kopiur.home-operations.com/policy-name="$policy" --sort-by=.metadata.creationTimestamp | tail -2
+    kubectl get snapshots -n "$ns" --selector=kopiur.home-operations.com/config="$policy" --sort-by=.metadata.creationTimestamp | tail -2
   done
 done
 ```
 
 (prowlarr/radarr/sonarr all live in media; iterate their policies)
 
-Expected: each app's most recent snapshot shows `ReadyToUse: True` with a recent creation timestamp, using `longhorn-snapclass`.
+Expected: each app's most recent snapshot shows `status.phase: Succeeded` with a recent creation timestamp, using `longhorn-snapclass`.
 
 - [ ] **Step 5: Document the migration**
 
