@@ -6,7 +6,7 @@ metadata:
 spec:
   accessModes:
     - ReadWriteOnce
-  storageClassName: csi-hostpath-sc
+  storageClassName: longhorn
   resources:
     requests:
       storage: 2Gi
