@@ -1,0 +1,59 @@
+---
+# Restore CR for the sabnzbd gluetun-config csi-hostpath-sc → longhorn migration.
+# Part of the csi-hostpath → longhorn migration batch.
+#
+# sabnzbd-config is intentionally NOT in this Restore — the source PVC contains
+# Downloads/complete/*.mkv (sabnzbd is misconfigured to write COMPLETE inside
+# /config instead of /downloads) which exceeds any reasonable target capacity.
+# The user will reconfigure sabnzbd to write COMPLETE outside /config, then
+# a separate Restore CR will be created for sabnzbd-config.
+#
+# This Restore restores ONLY gluetun-config from the new sabnzbd-gluetun
+# SnapshotPolicy (split out by PR #318 to fix the multi-source policy bug).
+#
+# Operator-applied (NOT in kustomization.yaml — Flux will not reconcile it
+# on every sync). Run with `kubectl apply -f` once after scaling sabnzbd
+# to 0 replicas.
+#
+# Pre-conditions:
+#   - sabnzbd deployment scaled to 0 (force-delete if Flux reschedules)
+#   - The old csi-hostpath-sc PVC `gluetun-config` deleted (Restore's
+#     target.pvc would otherwise hit a name conflict)
+#
+# Post-conditions:
+#   - PVC `gluetun-config` exists, bound on `longhorn`, populated with the
+#     sabnzbd-gluetun snapshot (which has gluetun's hostname verification
+#     settings restored — fixes the broken WebUI access).
+#   - sabnzbd deployment scaled back to 1 — both PVCs mount; sabnzbd-config
+#     is empty (acceptable for now); gluetun-config has original settings.
+apiVersion: kopiur.home-operations.com/v1alpha1
+kind: Restore
+metadata:
+  name: sabnzbd-gluetun-config-longhorn-migration
+  namespace: sabnzbd
+spec:
+  source:
+    fromPolicy:
+      name: sabnzbd-gluetun
+      offset: 0
+  target:
+    pvc:
+      name: gluetun-config
+      storageClassName: longhorn
+      accessModes:
+        - ReadWriteOnce
+      capacity: 1Gi
+  credentialProjection:
+    enabled: true
+  mover:
+    inheritSecurityContextFrom:
+      snapshot: {}
+    cache:
+      capacity: 1Gi
+      storageClassName: local-path
+      mode: Ephemeral
+  failurePolicy:
+    backoffLimit: 2
+    activeDeadlineSeconds: 1800
+  policy:
+    onMissingSnapshot: Fail
