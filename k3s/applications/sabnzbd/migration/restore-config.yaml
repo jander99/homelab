@@ -1,0 +1,64 @@
+---
+# Recovery Restore CR for sabnzbd-config, pinned to the last known-good
+# pre-incident snapshot.
+#
+# Context: Task 5 of the csi-hostpath->longhorn migration deleted the
+# source sabnzbd-config PVC and its Restore CR failed (multi-source
+# SnapshotPolicy bug, fixed in PR #318) and was never retried. sabnzbd's
+# manifest then dynamically provisioned a brand-new empty PVC and the app
+# has been running as a blank install since 2026-08-21T21:41:35Z.
+#
+# This restores from `nas-disc-37aa4b30bc50cd5f`, a Discovered Snapshot CR
+# (deletionPolicy: Retain) recorded 2026-08-21T20:06:31Z, ~90 minutes
+# before the wipe — the newest snapshot known to hold real config data.
+# Pinned explicitly via snapshotRef, NOT fromPolicy: the SnapshotPolicy's
+# own scheduled snapshots since the wipe are of the blank state and would
+# silently restore nothing useful.
+#
+# Target capacity is 20Gi (not the original plan's 5Gi) because this
+# snapshot is ~12.5GiB — sabnzbd's complete_dir setting has historically
+# written completed downloads into /config/Downloads/complete instead of
+# the dedicated /downloads PVC, so the config snapshot carries that media
+# along with it. See Task 5 in the plan doc for the cleanup/fix.
+#
+# Operator-applied (NOT in kustomization.yaml — Flux will not reconcile it
+# on every sync). Run with `kubectl apply -f` once after scaling sabnzbd
+# to 0 replicas and deleting the current blank sabnzbd-config PVC.
+#
+# Pre-conditions:
+#   - sabnzbd deployment scaled to 0
+#   - The blank csi-hostpath-sc PVC `sabnzbd-config` deleted (Restore's
+#     target.pvc would otherwise hit a name conflict)
+#
+# Post-conditions:
+#   - PVC `sabnzbd-config` exists, bound on `longhorn`, populated with the
+#     real pre-incident config (sabnzbd.ini, admin/, logs/, Downloads/).
+apiVersion: kopiur.home-operations.com/v1alpha1
+kind: Restore
+metadata:
+  name: sabnzbd-config-longhorn-migration
+  namespace: sabnzbd
+spec:
+  source:
+    snapshotRef:
+      name: nas-disc-37aa4b30bc50cd5f
+      namespace: sabnzbd
+  target:
+    pvc:
+      name: sabnzbd-config
+      storageClassName: longhorn
+      accessModes:
+        - ReadWriteOnce
+      capacity: 20Gi
+  credentialProjection:
+    enabled: true
+  mover:
+    inheritSecurityContextFrom:
+      snapshot: {}
+    cache:
+      capacity: 1Gi
+      storageClassName: local-path
+      mode: Ephemeral
+  failurePolicy:
+    backoffLimit: 2
+    activeDeadlineSeconds: 3600
