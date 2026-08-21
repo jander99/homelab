@@ -82,6 +82,8 @@ spec:
               value: "30s"
             - name: UPDATER_PERIOD
               value: "24h"
+            - name: HTTPPROXY_HOSTNAME
+              value: ""
           volumeMounts:
             - name: gluetun-config
               mountPath: /gluetun
