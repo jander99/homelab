@@ -4,7 +4,7 @@ metadata:
     name: sabnzbd-apikey
     namespace: sabnzbd
 stringData:
-    api-key: ENC[AES256_GCM,data:EO8Y706/e4tHzu3vJ2ReEU0Kk6y9nvqj6j8FnoF6fxA=,iv:SHJ05sWeKJ38VDBJnEb/LdAITcyGtB+tYhve/3qrQME=,tag:aNwNWlszJNgSLraRCkrDng==,type:str]
+    api-key: ENC[AES256_GCM,data:UccNjb58yAkW7GxBkxxxRySR8gifNSNWXfGyYNB/f+E=,iv:a3ZcEEOQISLpkTkGJ9yjlS9sXJ9/9TlLIS3Uur1ckQI=,tag:8Jf8j0R4npKhc7ILuIitUg==,type:str]
 sops:
     age:
         - recipient: age1qntcdwtxrfu92lhj2nzhlc3uqt8nxks5vw7rd23w2cj7c0qyuqqqmey085
@@ -16,7 +16,7 @@ sops:
             U3BoRHBxUjh3NG9BUms2Q0tBTGRyZnMKaKe/S+pW8ND70CkXhPE5rfqdxhe2flt9
             R+NHIS9OwP9MZlyVpAe5b/CrgIdh/+h+IFs/duO5G3gxvAcP1lNDzA==
             -----END AGE ENCRYPTED FILE-----
-    lastmodified: "2026-06-02T01:03:04Z"
-    mac: ENC[AES256_GCM,data:AH0BzGJn8qEFPAJw4rzNFQN3MJ+vsjb+f8MvlDkD4V6+ARuVJGpm1xBC/pxdCXIGZmo5speqDeuvuh6vLRlp077danKHuDZThiYM9GPZGL+n4RewfKh12fQR1+o9iygvUn7vYVvuP/97fDf1VdfxeizCaciBELUqjpiReaFbb+o=,iv:ANRGuejp/9kug639Qpa2gat/lPMTo8wiGVbmDnCzArw=,tag:Dfs02m0qyKyLPAjyV8rldQ==,type:str]
+    lastmodified: "2026-08-21T22:58:10Z"
+    mac: ENC[AES256_GCM,data:1E3kDAS9GkRB/Fl0Ozt+zizrPxieOD6Qrua9R+fcqYWoBoahp3U+Ucq1LhujJozwl4GvIThxOujjegYVhGOT3C714XlLyR93Qkv+i2+p0pl3r3EKxoAgfJielPm7wbzTNyk6K2yA97DDsFIfZLdl5UGNciFK8rCkwYNUgX5SB9Q=,iv:Ibswx+Xe7zWYwWuRWKKD7XdBAVMzR0nGAIpiw88k6Ms=,tag:9HEJsvcfNQ3ywF9yvwT4WA==,type:str]
     encrypted_regex: ^(data|stringData)$
     version: 3.12.2
