@@ -6,10 +6,10 @@ metadata:
 spec:
   accessModes:
     - ReadWriteOnce
-  storageClassName: csi-hostpath-sc
+  storageClassName: longhorn   # was: csi-hostpath-sc
   resources:
     requests:
-      storage: 5Gi
+      storage: 20Gi   # was: 5Gi — snapshot data includes misplaced Downloads/complete, see docs/superpowers/plans/2026-08-21-restore-sabnzbd-config-from-kopia-backup.md Task 5
 ---
 apiVersion: v1
 kind: PersistentVolumeClaim
