@@ -46,6 +46,8 @@ Goal: move every csi-hostpath-sc PVC to Longhorn with no data loss, applying the
 2. **Backup health verified before each Restore CR.** Per past session (S108), backup snapshots have been failing silently. Verify a recent successful snapshot exists before applying each Restore CR; pause and fix the backup system first if not.
 3. **Match established pattern.** Restore CR + storageClassName change + snapshot policy snapclass change. Don't invent a new mechanism.
 4. **Migration files NOT in kustomization resources.** Per portainer #312 lesson, imperative PVC manifests in `migration/` must not be Flux-managed if they conflict with the HelmRelease-managed PVC.
+5. **A failed or unretried Restore CR is a hard stop, not a deferred TODO.** Scale the app to 0 and leave it down rather than let it come back up on a substitute/auto-provisioned empty PVC. Do not proceed to the next app's migration task until the restore is fixed and re-run, or a human explicitly decides to abandon it. Real incident (2026-08-21): sabnzbd-config's restore failed, the failure was documented as "BLOCKED" in a task report, work moved on to other apps/tasks, and sabnzbd ran on a silently-reprovisioned blank config PVC for ~90 minutes before it was noticed — see `docs/superpowers/plans/2026-08-21-restore-sabnzbd-config-from-kopia-backup.md`.
+6. **`Completed` phase is not proof of correct data — verify content.** Compare restored size against the source snapshot's `status.stats.sizeBytes` and spot-check that files have plausible pre-migration mtimes, not today's date.
 
 ## Architecture
 
@@ -201,7 +203,7 @@ next hourly snapshot uses longhorn VolumeSnapshotClass
 
 | After commit | Verification |
 |--------------|--------------|
-| Commit 1 (Restore CR applied) | `kubectl get restore -n <ns> -o jsonpath='{.items[*].status.phase}'` → `Completed`<br>`kubectl get pvc -n <ns> <name> -o jsonpath='{.spec.storageClassName}{"\t"}{.status.phase}'` → `longhorn\tBound` |
+| Commit 1 (Restore CR applied) | `kubectl get restore -n <ns> -o jsonpath='{.items[*].status.phase}'` → `Completed`<br>`kubectl get pvc -n <ns> <name> -o jsonpath='{.spec.storageClassName}{"\t"}{.status.phase}'` → `longhorn\tBound`<br>**Content check (Constraint 6):** exec/run a throwaway pod against the restored PVC, confirm `du -sh` is in the right ballpark for the source snapshot's `sizeBytes` and file mtimes predate the migration — don't trust `Completed` alone |
 | Commit 2 (storageClassName change) | `kubectl get helmrelease -n <ns> <name>` → `Ready: True`<br>or for raw apps: `kubectl get pvc -n <ns> <name> -o jsonpath='{.spec.storageClassName}'` → `longhorn`<br>App pod running and healthy: `kubectl get pods -n <ns>` |
 | Commit 3 (snapshot policy update) | `kubectl get snapshotpolicy -n <ns> <name> -o jsonpath='{.spec.volumeSnapshotClassName}'` → `longhorn-snapclass`<br>Wait for next hourly snapshot, verify it succeeds |
 
@@ -209,10 +211,12 @@ next hourly snapshot uses longhorn VolumeSnapshotClass
 
 ### Restore CR fails or stalls
 
+0. **Before anything else: `kubectl scale deployment <app> -n <ns> --replicas=0` and leave it there** (Constraint 5). Do not let the app's own manifest reprovision a fresh empty PVC in place of the one that was supposed to be restored.
 1. `kubectl delete restore -n <ns> <name>` (clears operator locks)
 2. Investigate: stale finalizers? missing snapshot? mover Job crash?
 3. Fix root cause
 4. Re-apply same Restore CR (idempotent)
+5. Do not proceed to the next app's migration task, and do not scale the app back up, until this Restore CR reaches `Completed` and passes content verification — or a human explicitly decides to abandon this PVC's migration.
 
 ### Pod won't start on longhorn PVC
 

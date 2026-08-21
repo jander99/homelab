@@ -20,6 +20,8 @@
 6. **Each PR must reference the issue/PR it closes or relates to** in the body, and link back to the spec doc.
 7. **Commit messages follow Conventional Commits:** `feat(<scope>): <description>`, `fix(<scope>): <description>`, `docs(<scope>): <description>`.
 8. **PR titles mirror the squash commit message** for clean history.
+9. **A Restore CR that does not reach `Completed` is a hard stop, not a deferred TODO.** Scale the app to 0 and leave it down. Do not scale it back up on the untouched/auto-provisioned PVC, and do not move on to the next app's migration task, until the restore is either fixed and re-run successfully, or the migration for that PVC is explicitly abandoned by the human partner (not by the agent). *Why this exists:* the sabnzbd-config restore failed during this migration (multi-source SnapshotPolicy bug), the failure was written into a task report as "BLOCKED" and work continued to other apps/tasks, and the app's own manifest silently reprovisioned a brand-new empty PVC — sabnzbd ran on a blank config for ~90 minutes before anyone noticed (see `docs/superpowers/plans/2026-08-21-restore-sabnzbd-config-from-kopia-backup.md`). A written status note is not a safeguard; a scaled-to-0 deployment is.
+10. **A `Completed` Restore CR is not itself proof the data is right — verify content, not just phase.** At minimum: compare restored size against the source snapshot's `status.stats.sizeBytes`, and spot-check that a known file/directory has a plausible pre-migration mtime (not "today"). See Task 3 Step 5 of the sabnzbd recovery plan for a worked example using a throwaway busybox pod.
 
 ## Verification Standards
 
@@ -49,6 +51,15 @@ kubectl get pods -n <ns> -o wide
 
 # Per-app snapshot policy snapclass (after Commit 3)
 kubectl get snapshotpolicy -n <ns> <policy> -o jsonpath='{.spec.volumeSnapshotClassName}{"\n"}'
+
+# Content verification (after Restore CR reaches Completed — Constraint 10).
+# `Completed` phase alone is not sufficient; confirm the bytes and the
+# mtimes actually look like the pre-migration data, not a fresh/empty PVC.
+kubectl get restore -n <ns> <restore-name> -o jsonpath='{.status.resolved.kopiaSnapshotID}{"\n"}'
+kubectl get snapshots -n <ns> -l kopiur.home-operations.com/config=<policy> -o jsonpath='{.items[-1:].status.stats.sizeBytes}{"\n"}'
+kubectl run <app>-restore-check --restart=Never -n <ns> --image=busybox:1.36 \
+  --overrides='{"spec":{"containers":[{"name":"check","image":"busybox:1.36","command":["sh","-c","du -sh /data; find /data -maxdepth 2 -printf \"%TY-%Tm-%Td %p\\n\" | sort | tail -10"],"volumeMounts":[{"name":"d","mountPath":"/data"}]}],"volumes":[{"name":"d","persistentVolumeClaim":{"claimName":"<pvc>"}}]}}'
+# then: kubectl logs <app>-restore-check -n <ns>; kubectl delete pod <app>-restore-check -n <ns>
 ```
 
 ---
