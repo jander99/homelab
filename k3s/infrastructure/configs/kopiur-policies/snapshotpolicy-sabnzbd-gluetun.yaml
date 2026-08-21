@@ -1,18 +1,15 @@
 ---
-# k3s/infrastructure/configs/kopiur-policies/snapshotpolicy-sabnzbd.yaml
+# k3s/infrastructure/configs/kopiur-policies/snapshotpolicy-sabnzbd-gluetun.yaml
 apiVersion: kopiur.home-operations.com/v1alpha1
 kind: SnapshotPolicy
 metadata:
-  name: sabnzbd
+  name: sabnzbd-gluetun
   namespace: sabnzbd
 spec:
   repository:
     kind: ClusterRepository
     name: nas
   sources:
-    - pvc:
-        name: sabnzbd-config
-      sourcePathOverride: /config
     - pvc:
         name: gluetun-config
       sourcePathOverride: /gluetun
@@ -33,7 +30,9 @@ spec:
     enabled: true
   mover:
     # LinuxServer sabnzbd image (PUID=1027, PGID=100); same recipe as
-    # prowlarr/radarr/sonarr/qbittorrent.
+    # prowlarr/radarr/sonarr/qbittorrent. Pinned to the gluetun-config
+    # PVC so the VPN credentials and forward-port history survive pod
+    # restarts.
     securityContext:
       runAsUser: 1027
       runAsGroup: 100

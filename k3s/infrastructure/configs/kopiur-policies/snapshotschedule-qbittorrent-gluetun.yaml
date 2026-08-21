@@ -1,13 +1,13 @@
 ---
-# k3s/infrastructure/configs/kopiur-policies/snapshotschedule-qbittorrent.yaml
+# k3s/infrastructure/configs/kopiur-policies/snapshotschedule-qbittorrent-gluetun.yaml
 apiVersion: kopiur.home-operations.com/v1alpha1
 kind: SnapshotSchedule
 metadata:
-  name: qbittorrent-config-scheduled
+  name: qbittorrent-gluetun-scheduled
   namespace: qbittorrent
 spec:
   policyRef:
-    name: qbittorrent-config
+    name: qbittorrent-gluetun
   schedule:
     cron: "H * * * *"
     runOnCreate: false

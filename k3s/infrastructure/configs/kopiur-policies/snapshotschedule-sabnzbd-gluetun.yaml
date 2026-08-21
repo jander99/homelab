@@ -1,13 +1,13 @@
 ---
-# k3s/infrastructure/configs/kopiur-policies/snapshotschedule-sabnzbd.yaml
+# k3s/infrastructure/configs/kopiur-policies/snapshotschedule-sabnzbd-gluetun.yaml
 apiVersion: kopiur.home-operations.com/v1alpha1
 kind: SnapshotSchedule
 metadata:
-  name: sabnzbd-config-scheduled
+  name: sabnzbd-gluetun-scheduled
   namespace: sabnzbd
 spec:
   policyRef:
-    name: sabnzbd-config
+    name: sabnzbd-gluetun
   schedule:
     cron: "H * * * *"
     runOnCreate: false

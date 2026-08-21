@@ -27,10 +27,14 @@ resources:
   - snapshotschedule-sonarr.yaml
   - snapshotpolicy-pihole.yaml
   - snapshotschedule-pihole.yaml
-  - snapshotpolicy-qbittorrent.yaml
+  - snapshotpolicy-qbittorrent-config.yaml
   - snapshotschedule-qbittorrent.yaml
-  - snapshotpolicy-sabnzbd.yaml
+  - snapshotpolicy-qbittorrent-gluetun.yaml
+  - snapshotschedule-qbittorrent-gluetun.yaml
+  - snapshotpolicy-sabnzbd-config.yaml
   - snapshotschedule-sabnzbd.yaml
+  - snapshotpolicy-sabnzbd-gluetun.yaml
+  - snapshotschedule-sabnzbd-gluetun.yaml
   - snapshotpolicy-portainer.yaml
   - snapshotschedule-portainer.yaml
   - snapshotpolicy-alertmanager.yaml
