@@ -4,19 +4,19 @@ metadata:
     name: sabnzbd-apikey
     namespace: sabnzbd
 stringData:
-    api-key: ENC[AES256_GCM,data:UccNjb58yAkW7GxBkxxxRySR8gifNSNWXfGyYNB/f+E=,iv:a3ZcEEOQISLpkTkGJ9yjlS9sXJ9/9TlLIS3Uur1ckQI=,tag:8Jf8j0R4npKhc7ILuIitUg==,type:str]
+    api-key: ENC[AES256_GCM,data:mwGWE/Ap0MGe3sdPXm+qXGJOedjcXY8DNJuIfezvKdQ=,iv:kAaWfZ7CaXpqa+JhD9S5CQuY2nMpXcN5I/rq5JB3mbI=,tag:w6IpeQAQduSNp/opmmJemw==,type:str]
 sops:
     age:
         - recipient: age1qntcdwtxrfu92lhj2nzhlc3uqt8nxks5vw7rd23w2cj7c0qyuqqqmey085
           enc: |
             -----BEGIN AGE ENCRYPTED FILE-----
-            YWdlLWVuY3J5cHRpb24ub3JnL3YxCi0+IFgyNTUxOSBrcDd0YUM2VnlGL2RKZ2xP
-            UzEyTjFteU1qd25xaWJIaHBscHRURUUxblNBCnljbmR4RmdRTHJ6UllHQkd2K0tp
-            b0JPWXE5clA0TGhNUDZLYkkrNzEzZmsKLS0tIFFzejdqdFE1cjQyaVVobXFxR2VW
-            U3BoRHBxUjh3NG9BUms2Q0tBTGRyZnMKaKe/S+pW8ND70CkXhPE5rfqdxhe2flt9
-            R+NHIS9OwP9MZlyVpAe5b/CrgIdh/+h+IFs/duO5G3gxvAcP1lNDzA==
+            YWdlLWVuY3J5cHRpb24ub3JnL3YxCi0+IFgyNTUxOSBNaFdJMk9BNG56b0xDZ3B0
+            VjNvaEVzeHBsWkZDcndkdjhuUk53eUpidVdzClZLRnVNT0JHd0c5Ymh0QWlYR0FP
+            cDBLL2NJSGRWUEJTbTRqd25ZUG85T3cKLS0tIDBIL2VEUGhUVmprZVI1Y1BJcjJX
+            MFR4K1ZValVvcjhDdHFvRnR5MktJRncKXRuoBOXRA3wqBpbs/DqOxzSwEg0cF1Iu
+            HBgmoIXovu+2uVzfu8s6nnAy6Hv3g7FA0QPCTDycQMNzuWBpU99bug==
             -----END AGE ENCRYPTED FILE-----
-    lastmodified: "2026-08-21T22:58:10Z"
-    mac: ENC[AES256_GCM,data:1E3kDAS9GkRB/Fl0Ozt+zizrPxieOD6Qrua9R+fcqYWoBoahp3U+Ucq1LhujJozwl4GvIThxOujjegYVhGOT3C714XlLyR93Qkv+i2+p0pl3r3EKxoAgfJielPm7wbzTNyk6K2yA97DDsFIfZLdl5UGNciFK8rCkwYNUgX5SB9Q=,iv:Ibswx+Xe7zWYwWuRWKKD7XdBAVMzR0nGAIpiw88k6Ms=,tag:9HEJsvcfNQ3ywF9yvwT4WA==,type:str]
+    lastmodified: "2026-08-22T23:13:42Z"
+    mac: ENC[AES256_GCM,data:1yLQmkDl+mGkj9Kv17zgY1rjbHEJk90HFRdMdNgHFGiUi3unB+8qnijI/hLquUp9XMqJKoga1QMqZ3VCtQ75lapiKOGzAqacYgzVA/KqEWoF5kw64h+ynvubu6Bct2+8eSg3MVkPCDg7S4KFyJ9hlMi6oWWalFdxh92wGebnQfA=,iv:HFQAjjV2b+Z0Ldvrhq3DdAk/pM7Q7RKJKvzWWZOXUds=,tag:FK17SV4jcK7shxHFvvVSuQ==,type:str]
     encrypted_regex: ^(data|stringData)$
     version: 3.12.2
