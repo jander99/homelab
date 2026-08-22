@@ -117,6 +117,9 @@ spec:
       # file — `null` renders no affinity block at all, `{}` still renders
       # the hard anti-affinity.
       affinity: null
+      resources:
+        requests:
+          cpu: 10m
 
     # Allow kube-prometheus-stack Prometheus to scrape Loki's metrics.
     serviceMonitor:

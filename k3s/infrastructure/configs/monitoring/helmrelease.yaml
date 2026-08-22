@@ -87,8 +87,8 @@ spec:
         probeSelectorNilUsesHelmValues: false
         resources:
           requests:
-            cpu: 51m
-            memory: 966Mi
+            cpu: 100m
+            memory: 1250Mi
           limits:
             memory: 2Gi
         storageSpec:

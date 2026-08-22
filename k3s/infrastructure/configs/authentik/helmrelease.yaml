@@ -118,7 +118,7 @@ spec:
     server:
       resources:
         requests:
-          cpu: 200m
+          cpu: 600m
           memory: 1Gi
         limits:
           memory: 1500Mi
