@@ -1,0 +1,94 @@
+---
+# Restore CR for the tdarr-server-data csi-hostpath-sc → longhorn migration.
+# Operator-applied (NOT in kustomization.yaml — see tdarr/kustomization.yaml
+# comment about migration-job.yaml being intentionally excluded). Run with
+# `kubectl apply -f` once after scaling tdarr-server and tdarr-node to 0.
+# Pattern matches qbittorrent #64d47bc, sabnzbd #319/#324 (this repo).
+#
+# Pre-conditions (operator must do before applying):
+#   - tdarr-server deployment scaled to 0 replicas (releases RWO on old PVC).
+#   - tdarr-node deployment scaled to 0 replicas (also mounts the same
+#     tdarr-node-config PVC; RWO contention).
+#   - The old csi-hostpath-sc PVCs `tdarr-server-data` and `tdarr-node-config`
+#     deleted (Restore's target.pvc would otherwise hit a name conflict; data
+#     is safe in kopia).
+#
+# Post-conditions:
+#   - PVC `tdarr-server-data` exists, bound on `longhorn`, populated from
+#     latest kopia snapshot via the snapshot policy `tdarr-server-data`.
+#   - Restored files retain ownership metadata recorded by the snapshot
+#     policy's runAsUser/runAsGroup. The tdarr namespace has
+#     `kopiur.home-operations.com/privileged-movers: "true"` so the mover
+#     can read the root-owned files left by the tdarr-server entrypoint
+#     before user drop.
+#
+# credentialProjection: REQUIRED. ClusterRepository `nas` secret lives in
+# kopiur-system, not tdarr. Without `credentialProjection.enabled: true`
+# the Restore stalls with MissingCredentialsSecret.
+apiVersion: kopiur.home-operations.com/v1alpha1
+kind: Restore
+metadata:
+  name: tdarr-server-data-longhorn-migration
+  namespace: tdarr
+spec:
+  source:
+    fromPolicy:
+      name: tdarr-server-data
+      offset: 0
+  target:
+    pvc:
+      name: tdarr-server-data
+      storageClassName: longhorn
+      accessModes:
+        - ReadWriteOnce
+      capacity: 10Gi
+  credentialProjection:
+    enabled: true
+  mover:
+    inheritSecurityContextFrom:
+      snapshot: {}
+    cache:
+      capacity: 1Gi
+      storageClassName: local-path
+      mode: Ephemeral
+  failurePolicy:
+    backoffLimit: 2
+    activeDeadlineSeconds: 1800
+  policy:
+    onMissingSnapshot: Fail
+---
+# Restore CR for the tdarr-node-config csi-hostpath-sc → longhorn migration.
+# tdarr-node-config is shared by both tdarr-server and tdarr-node containers
+# (mounted at /app/configs in each); both deployments must be scaled to 0
+# before this Restore runs to release the RWO lock.
+apiVersion: kopiur.home-operations.com/v1alpha1
+kind: Restore
+metadata:
+  name: tdarr-node-config-longhorn-migration
+  namespace: tdarr
+spec:
+  source:
+    fromPolicy:
+      name: tdarr-node-config
+      offset: 0
+  target:
+    pvc:
+      name: tdarr-node-config
+      storageClassName: longhorn
+      accessModes:
+        - ReadWriteOnce
+      capacity: 1Gi
+  credentialProjection:
+    enabled: true
+  mover:
+    inheritSecurityContextFrom:
+      snapshot: {}
+    cache:
+      capacity: 1Gi
+      storageClassName: local-path
+      mode: Ephemeral
+  failurePolicy:
+    backoffLimit: 2
+    activeDeadlineSeconds: 1800
+  policy:
+    onMissingSnapshot: Fail
