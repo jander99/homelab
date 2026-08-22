@@ -45,9 +45,13 @@ Goal: move every csi-hostpath-sc PVC to Longhorn with no data loss, applying the
 1. **No data loss.** Every migration preserves the existing data via kopiur snapshot.
 2. **Backup health verified before each Restore CR.** Per past session (S108), backup snapshots have been failing silently. Verify a recent successful snapshot exists before applying each Restore CR; pause and fix the backup system first if not.
 3. **Match established pattern.** Restore CR + storageClassName change + snapshot policy snapclass change. Don't invent a new mechanism.
-4. **Migration files NOT in kustomization resources.** Per portainer #312 lesson, imperative PVC manifests in `migration/` must not be Flux-managed if they conflict with the HelmRelease-managed PVC.
+4. **Migration files NOT in kustomization resources.** Per portainer #312 lesson, imperative PVC manifests in `migration/` must not be Flux-managed if they conflict with the HelmRelease-managed PVC. **This applies to `kustomization.yaml` resources listings as well** — a stale `migration/pvc.yaml` listed there will be re-applied with the old storageClassName on every reconcile, fighting the new longhorn PVC in Flux dry-run.
 5. **A failed or unretried Restore CR is a hard stop, not a deferred TODO.** Scale the app to 0 and leave it down rather than let it come back up on a substitute/auto-provisioned empty PVC. Do not proceed to the next app's migration task until the restore is fixed and re-run, or a human explicitly decides to abandon it. Real incident (2026-08-21): sabnzbd-config's restore failed, the failure was documented as "BLOCKED" in a task report, work moved on to other apps/tasks, and sabnzbd ran on a silently-reprovisioned blank config PVC for ~90 minutes before it was noticed — see `docs/superpowers/plans/2026-08-21-restore-sabnzbd-config-from-kopia-backup.md`.
-6. **`Completed` phase is not proof of correct data — verify content.** Compare restored size against the source snapshot's `status.stats.sizeBytes` and spot-check that files have plausible pre-migration mtimes, not today's date.
+6. **`Completed` phase is not proof of correct data — verify content.** Compare restored size against the source snapshot's `status.stats.sizeBytes` and spot-check that files have plausible pre-migration mtimes, not today's date. For multi-PVC apps especially, the restored PVC could be the right size with plausible mtimes and still contain the *wrong* PVC's data (qbittorrent-gluetun-config incident: got qbittorrent-config's data, gluetun regenerated its tunnel state so the corruption was invisible at the VPN layer). Use a per-app content verification table mapping each restored PVC to the files/directories it must and must not contain.
+7. **Single-source snapshot policy is a precondition.** A kopiur `SnapshotPolicy` with multiple `sources:` only captures the **first** source — the rest are silently dropped, no error, no warning. The Restore CR that follows writes the wrong PVC's data into the target. Every policy backing a Restore CR must have exactly one `sources:` entry AND the most recent Snapshot CR's `status.resolved.sources` must list exactly one source matching the source PVC name. If either fails, the migration is BLOCKED until the policy is split per app/PVC.
+8. **Source PVC deletion requires a verified, recently-completed snapshot for that exact source PVC.** Order is: scale down → verify latest snapshot has `status.phase: Succeeded` AND `status.resolved.sources` matches the source PVC name → delete source PVC → apply Restore CR. Never delete the source PVC based on a stale or empty snapshot check.
+9. **Never delete user-facing cluster resources to recover from a Flux dry-run failure.** No `kubectl delete helmrelease`, `kubectl delete pvc <restored>`, or `kubectl delete deployment` to "fix" a stuck reconcile. Helm-controller GC will garbage-collect the chart-managed PVC and permanently destroy the restored data (portainer #310 incident). Safe tools, in order: `flux reconcile kustomization apps --with-source`, restart `helm-controller` pod, restart `kustomize-controller` pod, wait. **If a dry-run shows an unexpected value, FIRST `grep -rn <value> k3s/applications/<app>/`** — a stale `migration/` resource listing the old storageClassName is the most common cause (portainer #312). Controller restarts never fix a conflict that comes from the repo.
+10. **Reverse-recovery procedure:** if you discover an app is running on a fresh/empty PVC after a migration completed (or after a failed/abandoned restore), recovery is a new Restore CR pinned via `spec.source.snapshotRef` to the last known-good **Discovered** Snapshot CR for that source path — NOT `fromPolicy`, because the policy's own post-incident scheduled snapshots are of the blank state and will silently restore nothing useful. Worked example: `docs/superpowers/plans/2026-08-21-restore-sabnzbd-config-from-kopia-backup.md`.
 
 ## Architecture
 
@@ -111,6 +115,7 @@ Per-app flow (3 commits in 1 PR):
 - tdarr: 2 PVCs (tdarr-server-data, tdarr-node-config)
 - Each PVC needs its own Restore CR (single Restore CR per source PVC)
 - Both PVCs migrate in lockstep — gluetun-config must be ready before app pod starts
+- **Split policies (PR #318):** qbittorrent and sabnzbd each have separate snapshot policies per source PVC (`qbittorrent-config` / `qbittorrent-gluetun-config`, `sabnzbd-config` / `sabnzbd-gluetun-config`). The Restore CR's `source.fromPolicy.name` MUST reference the **split** policy that matches the source PVC — not the pre-split umbrella name. Verify per Constraint 7.
 
 ### Restore CR template (per PVC source, per namespace)
 
@@ -198,6 +203,10 @@ next hourly snapshot uses longhorn VolumeSnapshotClass
 3. `kubectl get pvc -n <ns> <pvc> -o jsonpath='{.spec.storageClassName}'` → confirm `csi-hostpath-sc`
 4. `kubectl get volumesnapshot -n <ns>` → check for stale snapshots holding `pvc-as-source-protection` finalizers; clear before applying Restore CR (gatus #307 lesson)
 5. `kubectl get restore -n <ns>` → confirm no other Restore CR is in-flight in this namespace
+6. **(Constraint 7)** `kubectl get snapshotpolicy -n <ns> <policy> -o jsonpath='{.spec.sources}' | yq '. | length'` → exactly `1`. For multi-source policies, **split first** and wait one snapshot cycle. For qbittorrent/sabnzbd, verify the Restore CR references the *split* policy name (`qbittorrent-config`, `qbittorrent-gluetun-config`, etc.), not the pre-split umbrella name.
+7. **(Constraint 7)** `kubectl get snapshots -n <ns> -l kopiur.home-operations.com/config=<policy> -o jsonpath='{.items[-1:].status.resolved.sources}' | yq '. | length'` → exactly `1`, and that source's `pvc` matches the source PVC name for this Restore CR.
+8. **(Constraint 4)** `grep -E "migration/" k3s/applications/<app>/kustomization.yaml` → expected empty. If non-empty, fix the kustomization first (separate fix PR, matching the portainer #312 precedent) before running the migration.
+9. **(Constraint 8 — controller-load awareness)** Migrations churn Flux, kopiur, snapshot, and Longhorn controllers. Single-node k3s+kine (SQLite) has a write-concurrency ceiling. Check for current symptoms (`kubectl get events -A --field-selector reason=Backoff`) and defer or pause kopiur snapshot schedules if the cluster is already under load.
 
 ## Per-commit verification
 
@@ -213,7 +222,7 @@ next hourly snapshot uses longhorn VolumeSnapshotClass
 
 0. **Before anything else: `kubectl scale deployment <app> -n <ns> --replicas=0` and leave it there** (Constraint 5). Do not let the app's own manifest reprovision a fresh empty PVC in place of the one that was supposed to be restored.
 1. `kubectl delete restore -n <ns> <name>` (clears operator locks)
-2. Investigate: stale finalizers? missing snapshot? mover Job crash?
+2. Investigate: stale finalizers? missing snapshot? mover Job crash? **Single-source policy?** (Constraint 7 — multi-source silently drops sources; the restore's source data may be the wrong PVC entirely.)
 3. Fix root cause
 4. Re-apply same Restore CR (idempotent)
 5. Do not proceed to the next app's migration task, and do not scale the app back up, until this Restore CR reaches `Completed` and passes content verification — or a human explicitly decides to abandon this PVC's migration.
@@ -226,8 +235,26 @@ next hourly snapshot uses longhorn VolumeSnapshotClass
 
 ### Commit 2 causes Flux conflict
 
-- Usually means `migration/` files listed in `kustomization.yaml` resources
-- Follow up with cleanup PR removing `migration/` from resources list (portainer #312 lesson)
+- **Do NOT `kubectl delete helmrelease`, `kubectl delete pvc <restored>`, or `kubectl delete deployment` to fix this** (Constraint 9). Helm-controller GC will permanently destroy the restored data.
+- **First step: `grep -rn "csi-hostpath-sc" k3s/applications/<app>/`** — the most likely cause is a stale `migration/*.yaml` listed in `kustomization.yaml` resources re-applying the old storageClassName on every reconcile (portainer #312 lesson). Fix the kustomization (separate fix PR) before continuing.
+- If the repo is clean, restart controllers in this order, each a pod delete (not a resource delete): `flux reconcile kustomization apps --with-source`, then `kubectl delete pod -n flux-system -l app=helm-controller`, then `kubectl delete pod -n flux-system -l app=kustomize-controller`, then wait for the next reconcile interval.
+
+### Restore CR completes but PVC contains wrong PVC's data
+
+Symptom: Restore reaches `Completed`, PVC is on longhorn, size and mtimes look plausible — but the per-app content check (Constraint 6) fails because the restored data belongs to a different PVC.
+
+Cause: the source SnapshotPolicy was multi-source and silently dropped all but the first source (Constraint 7).
+
+Fix:
+1. Do not scale the app back up (Constraint 5).
+2. Delete the longhorn PVC and the Restore CR.
+3. Split the source policy per source PVC (one policy per source), wait one snapshot cycle, re-run the pre-flight Constraint 7 check.
+4. Re-apply the Restore CR using the split policy.
+5. Verify content per Constraint 6.
+
+### Reverse-recovery: app discovered on a blank PVC after the fact
+
+If post-migration verification reveals the app is running on a freshly-reprovisioned empty PVC (the sabnzbd-config incident): see Constraint 10. Recovery uses `spec.source.snapshotRef` pinned to a pre-incident `Discovered` Snapshot CR, not `fromPolicy`.
 
 ## Rollback path
 
@@ -276,6 +303,11 @@ For raw-deployment apps: verify `k3s/applications/<app>/kustomization.yaml` does
 - HelmRelease PVC recreation race during storage class change — watch Flux logs
 - StatefulSet PVC name mismatch breaks migration — Restore CR's `target.pvc.name` must be exact
 - CSI hostpath provisioner timeout on snapshot restores — affects backup system, not the migration flow itself, but blocks step 1 (need working snapshot)
+- **Multi-source SnapshotPolicy silently drops sources** — Constraint 7 mitigates; the policy must be single-source or split per source PVC before any Restore CR runs
+- **App reprovisioning silently on blank PVC after failed Restore** — Constraint 5 (hard stop, leave app at scale 0) and Constraint 8 (verify snapshot before delete) mitigate
+- **k3s+kine controller-load ceiling** — Constraint 8's controller-load awareness step mitigates; defer migrations when cluster is already under heavy controller churn
+- **Stale `migration/` files in kustomization.yaml** — Constraint 4 (extended) mitigates; pre-flight grep before each migration
+- **HelmRelease/PVC deletion to "fix" dry-run destroys data** — Constraint 9 mitigates; grep the repo first, restart controller pods only
 
 ## Out of scope (deferred)
 
@@ -297,3 +329,14 @@ For raw-deployment apps: verify `k3s/applications/<app>/kustomization.yaml` does
   - `csi-hostpath-to-longhorn-restore-cr.md` — credentialProjection + inheritSecurityContextFrom required
   - `kopiur-privileged-mover.md` — apps with chart-init root-owned files need namespace annotation
   - `kopiur-repo-per-namespace.md` — kopiur-repo PV/PVC must exist per namespace
+- Hardening precedents driving Constraints 7-10:
+  - **Sabnzbd-config data loss (PR #324):** Restore CR failed, source PVC deleted, app reprovisioned blank PVC, ran ~90 minutes on blank config before noticed. Corrective plan: `docs/superpowers/plans/2026-08-21-restore-sabnzbd-config-from-kopia-backup.md`. Established Constraint 5 (hard stop) and Constraint 6 (verify content).
+  - **qbittorrent-gluetun-config contamination (PR #326):** Multi-source SnapshotPolicy silently dropped all but first source; gluetun-config got qbittorrent-config's data. Established Constraint 7 (single-source precondition).
+  - **Portainer data loss (PR #310):** HelmRelease deleted to "fix" dry-run; helm-controller GC destroyed chart-managed PVC. Established Constraint 9 (never delete user-facing resources).
+  - **Portainer dry-run conflict (PR #312):** Stale `migration/pvc.yaml` listed in kustomization resources caused Flux to keep re-applying the old storageClassName. Extended Constraint 4 and added the "grep first" rule in Constraint 9.
+
+- Lessons-learned docs in repo memory (claude-mem) — additional:
+  - `kopiur-multi-source-snapshot-policy-silently-drops-sources.md` — the bug behind Constraint 7
+  - `csi-hostpath-to-longhorn-migration-bundled-changes.md` — why all three commits must land together
+  - `sabnzbd-config-data-loss-2026-08-21.md` — incident timeline behind Constraints 5/6/10
+  - `k3s-kine-scalability-ceiling.md` — the controller-load context behind Constraint 8's load awareness
