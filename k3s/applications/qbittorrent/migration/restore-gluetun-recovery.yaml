@@ -1,0 +1,66 @@
+---
+# Recovery Restore CR for gluetun-config, superseding the original
+# gluetun-config-longhorn-migration Restore in migration/restore.yaml.
+#
+# Context: the original Restore (see restore.yaml, `fromPolicy: qbittorrent`)
+# was written before the multi-source SnapshotPolicy bug was understood
+# (fixed in PR #318). kopiur silently captures only the FIRST declared
+# source in a multi-source policy — so both qbittorrent-config's and
+# gluetun-config's Restore CRs pulled the same qbittorrent-config snapshot.
+# The Restore reported Completed with no error, but /gluetun ended up
+# populated with a `qBittorrent/` directory and no wg0.conf. gluetun's own
+# tunnel auto-regeneration masked this (VPN still connects), so it went
+# unnoticed. Found during the sabnzbd-config data-loss postmortem
+# (docs/superpowers/plans/2026-08-21-restore-sabnzbd-config-from-kopia-backup.md)
+# when checking whether the same bug class affected other apps.
+#
+# This restores from the `qbittorrent-gluetun` policy (split out by PR #318),
+# which has been taking correct, clean /gluetun-only snapshots since
+# 2026-08-21T22:46. Using `fromPolicy: qbittorrent-gluetun, offset: 0`
+# (not a pinned snapshotRef) is safe here — unlike the sabnzbd-config
+# recovery, every snapshot since the split is already clean, there's no
+# "already-corrupted latest snapshot" to avoid.
+#
+# Operator-applied (NOT in kustomization.yaml). Run with `kubectl apply -f`
+# once after scaling qbittorrent to 0 replicas and deleting the current
+# contaminated longhorn `gluetun-config` PVC.
+#
+# Pre-conditions:
+#   - qbittorrent deployment scaled to 0 replicas
+#   - The contaminated `gluetun-config` PVC deleted (Restore's target.pvc
+#     would otherwise hit a name conflict)
+#
+# Post-conditions:
+#   - PVC `gluetun-config` exists, bound on `longhorn`, populated with the
+#     real gluetun state (no qBittorrent/ directory, real wg config present).
+apiVersion: kopiur.home-operations.com/v1alpha1
+kind: Restore
+metadata:
+  name: gluetun-config-recovery
+  namespace: qbittorrent
+spec:
+  source:
+    fromPolicy:
+      name: qbittorrent-gluetun
+      offset: 0
+  target:
+    pvc:
+      name: gluetun-config
+      storageClassName: longhorn
+      accessModes:
+        - ReadWriteOnce
+      capacity: 1Gi
+  credentialProjection:
+    enabled: true
+  mover:
+    inheritSecurityContextFrom:
+      snapshot: {}
+    cache:
+      capacity: 1Gi
+      storageClassName: local-path
+      mode: Ephemeral
+  failurePolicy:
+    backoffLimit: 2
+    activeDeadlineSeconds: 1800
+  policy:
+    onMissingSnapshot: Fail
