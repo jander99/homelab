@@ -81,17 +81,19 @@ spec:
       existingSecret: "pihole-admin-password"
       passwordKey: "password"
 
-    # -- PVC persistence: csi-hostpath-sc, 1Gi, for /etc/pihole
-    # Changed from local-path → csi-hostpath-sc when pihole was onboarded
-    # to kopiur backups. Only csi-hostpath-sc PVCs can be snapshotted
-    # (csi-hostpath-snapclass is bound 1:1 to this storage class).
-    # Helm won't migrate the existing PVC; that's an imperative job.
+    # -- PVC persistence: longhorn, 1Gi, for /etc/pihole
+    # Migrated from csi-hostpath-sc to longhorn in feat/pihole-longhorn.
+    # The Restore CR in migration/restore.yaml creates a fresh longhorn PVC
+    # and populates it from the latest kopia snapshot BEFORE this chart value
+    # change ships. When the HelmRelease next reconciles after the PR merges,
+    # the chart's PVC template matches what's already there and Helm does not
+    # recreate the PVC.
     persistentVolumeClaim:
       enabled: true
       accessModes:
         - ReadWriteOnce
       size: "1Gi"
-      storageClass: "csi-hostpath-sc"
+      storageClass: "longhorn"
 
     # -- Probes: initialDelaySeconds: 30 — FTL is up in ~5s, the chart's
     #    default is 60s. 30s leaves a small buffer for first-boot gravity DB

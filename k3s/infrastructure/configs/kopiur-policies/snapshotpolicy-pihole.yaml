@@ -14,7 +14,11 @@ spec:
         name: pihole
       sourcePathOverride: /etc/pihole
   copyMethod: Snapshot
-  volumeSnapshotClassName: csi-hostpath-snapclass
+  # Migrated from csi-hostpath-snapclass to longhorn-snapclass in
+  # feat/pihole-longhorn. The pihole PVC is now on the `longhorn` StorageClass
+  # (PR prepping the move in helmrelease.yaml), so the CSI snapshot must use
+  # the matching Longhorn VolumeSnapshotClass.
+  volumeSnapshotClassName: longhorn-snapclass
   compression:
     compressor: zstd
   retention:

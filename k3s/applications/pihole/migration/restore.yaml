@@ -1,0 +1,68 @@
+---
+# Restore CR for the pihole csi-hostpath-sc → longhorn migration.
+# Operator-applied (NOT in kustomization.yaml — kustomization.yaml intentionally
+# lists only HelmRelease-managed artifacts; listing this Restore there causes
+# Flux to reapply it on every reconcile and fights the HelmRelease's
+# chart-managed PVC). Run with `kubectl apply -f` once after suspending
+# the HelmRelease and scaling pihole to 0 replicas. Matches the headlamp #309
+# and gatus #307 pattern.
+#
+# Pre-conditions (operator must do before applying):
+#   - HelmRelease `pihole` suspended (`kubectl patch helmrelease pihole -n pihole
+#     --type merge -p '{"spec":{"suspend":true}}'`). The Helm controller would
+#     otherwise recreate the csi-hostpath-sc PVC the moment we delete it.
+#   - pihole deployment scaled to 0 replicas (releases RWO on the old PVC).
+#   - Stale csi-hostpath-snapclass VolumeSnapshots cleared (they hold
+#     pvc-as-source-protection finalizers on the source PVC).
+#   - The old csi-hostpath-sc PVC `pihole` deleted (Restore's target.pvc would
+#     otherwise hit a name conflict; data is safe in kopia).
+#
+# Post-conditions:
+#   - PVC `pihole` exists, bound on `longhorn`, populated from the latest kopia
+#     snapshot via snapshot policy `pihole`.
+#   - Files retain original ownership: /etc/pihole/logrotate is `root:root 0640`
+#     (chart-init writes it before the user drop), and pihole-FTL.db / gravity.db
+#     are `pihole:pihole`. The snapshot policy uses `runAsUser: 0` / `runAsGroup:
+#     0` (privileged mover), which the Restore inherits via
+#     inheritSecurityContextFrom.snapshot, so restored files keep their original
+#     ownership. The pihole container runs as root (uid=0) so it can read
+#     logrotate.
+#
+# credentialProjection: REQUIRED. ClusterRepository `nas` secret lives in
+# kopiur-system, not pihole. Without `credentialProjection.enabled: true`
+# the Restore stalls with MissingCredentialsSecret.
+#
+# DNS impact: while pihole is scaled to 0, the network's DNS resolver at
+# 192.168.1.201 returns SERVFAIL for ~1–3 minutes during the swap. Pods in the
+# cluster are unaffected because they use 8.8.8.8 via podDnsConfig.
+apiVersion: kopiur.home-operations.com/v1alpha1
+kind: Restore
+metadata:
+  name: pihole-longhorn-migration
+  namespace: pihole
+spec:
+  source:
+    fromPolicy:
+      name: pihole
+      offset: 0
+  target:
+    pvc:
+      name: pihole
+      storageClassName: longhorn
+      accessModes:
+        - ReadWriteOnce
+      capacity: 1Gi
+  credentialProjection:
+    enabled: true
+  mover:
+    inheritSecurityContextFrom:
+      snapshot: {}
+    cache:
+      capacity: 1Gi
+      storageClassName: local-path
+      mode: Ephemeral
+  failurePolicy:
+    backoffLimit: 2
+    activeDeadlineSeconds: 1800
+  policy:
+    onMissingSnapshot: Fail
