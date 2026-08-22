@@ -4,6 +4,7 @@
 # Install once:
 #   pip install pre-commit
 #   pre-commit install
+#   pre-commit install --hook-type pre-push
 #
 # Run on demand:
 #   pre-commit run --all-files
@@ -12,6 +13,13 @@
 # same indentation / trailing-space / duplicate-key rules fire on
 # `git commit` instead of waiting for a PR. Catches the class of bug
 # from PR #188 (env list with inconsistent indent) at commit time.
+#
+# yamllint is also bound to the `pre-push` stage so a `git push` (or a
+# commit made with `--no-verify`) is blocked before the branch leaves
+# the workstation. Same args / scope as the CI job; if the local hook
+# passes, CI cannot fail on the same files. Catches the class of bug
+# from PR #329 (snapshotpolicy had an extra blank line at EOF) and
+# PR #328 (restore.yaml was missing a trailing newline).
 repos:
   - repo: https://github.com/pre-commit/pre-commit-hooks
     rev: v5.0.0
@@ -44,3 +52,4 @@ repos:
         # Mirror the CI scope so devs and CI agree on what gets linted.
         files: '^(k3s/|\.github/workflows/)'
         exclude: '\.sops\.ya?ml$'
+        stages: [pre-commit, pre-push]
