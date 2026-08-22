@@ -95,16 +95,16 @@ spec:
             memory: 512Mi
         persistence:
           size: 2Gi
-          # -- csi-hostpath-sc is the only SC in this cluster that supports
-          # VolumeSnapshots, which is required for kopiur backup coverage.
-          # Migration from local-path was performed imperatively (the chart
-          # value change alone wouldn't move the existing PVC); the imperative
-          # flow uses an intermediate `authentik-postgresql-hostpath` PVC on
-          # csi-hostpath-sc, an rsync stage-1 (with postgres quiesced), then
-          # the chart-managed `data-authentik-postgresql-0` PVC recreated on
-          # csi-hostpath-sc and an rsync stage-2 into it. Manifests in
-          # `k3s/applications/authentik/migration/`.
-          storageClass: csi-hostpath-sc
+          # -- Migrated from csi-hostpath-sc to longhorn in
+          # feat/authentik-longhorn. The Restore CR in
+          # k3s/applications/authentik/migration/restore.yaml creates a new
+          # data-authentik-postgresql-0 PVC on longhorn and populates it from
+          # the latest kopia snapshot; the StatefulSet's volumeClaimTemplate
+          # then matches what's already there. (Prior history: migrated from
+          # local-path to csi-hostpath-sc imperatively via an intermediate
+          # PVC + two rsync stages, manifests still in
+          # `k3s/applications/authentik/migration/` for the record.)
+          storageClass: longhorn
 
     redis:
       enabled: true

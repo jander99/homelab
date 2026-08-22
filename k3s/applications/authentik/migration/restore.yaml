@@ -1,0 +1,50 @@
+---
+# Restore CR for the authentik-postgresql csi-hostpath-sc → longhorn migration.
+# Operator-applied. Matches headlamp #309 pattern.
+#
+# authentik-specific notes:
+# - Uses bitnami/postgresql StatefulSet. PVC name `data-authentik-postgresql-0`
+#   is fixed by the volumeClaimTemplate (immutable). The Restore's
+#   target.pvc.name MUST match exactly or the StatefulSet will fail to bind.
+# - Bitnami postgres runs as UID/GID 1001. Namespace carries
+#   kopiur.home-operations.com/privileged-movers: "true" so the snapshot
+#   can read the few root-owned files the Bitnami chart-init creates before
+#   user drop (same as pihole).
+# - The HelmRelease that owns this workload lives at
+#   k3s/infrastructure/configs/authentik/helmrelease.yaml, NOT under
+#   k3s/applications/authentik/ (that directory is unwired from Flux and only
+#   holds historical local-path → csi-hostpath-sc migration artifacts). This
+#   Restore CR is kept alongside those historical files for consistency with
+#   the other apps' migration/ convention, but is applied imperatively only.
+apiVersion: kopiur.home-operations.com/v1alpha1
+kind: Restore
+metadata:
+  name: authentik-postgresql-longhorn-migration
+  namespace: authentik
+spec:
+  source:
+    fromPolicy:
+      name: authentik
+      offset: 0
+  target:
+    pvc:
+      # MUST match StatefulSet volumeClaimTemplate name exactly
+      name: data-authentik-postgresql-0
+      storageClassName: longhorn
+      accessModes:
+        - ReadWriteOnce
+      capacity: 2Gi
+  credentialProjection:
+    enabled: true
+  mover:
+    inheritSecurityContextFrom:
+      snapshot: {}
+    cache:
+      capacity: 1Gi
+      storageClassName: local-path
+      mode: Ephemeral
+  failurePolicy:
+    backoffLimit: 2
+    activeDeadlineSeconds: 1800
+  policy:
+    onMissingSnapshot: Fail
