@@ -56,4 +56,3 @@ spec:
       capacity: 1Gi
       storageClassName: local-path
       mode: Ephemeral
-
