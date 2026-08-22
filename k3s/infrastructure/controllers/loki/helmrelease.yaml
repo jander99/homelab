@@ -103,10 +103,20 @@ spec:
       # never schedule alongside the old one (only one node to avoid), and
       # the old one won't terminate until the surge pod is Ready. Hit during
       # the chart 18.7.6 -> 18.11.0 bump (PR #301); required manually
-      # deleting the old pod to unblock. Emptying affinity removes the
-      # constraint entirely, which is safe here since there's only ever one
-      # gateway replica anyway.
-      affinity: {}
+      # deleting the old pod to unblock.
+      #
+      # MUST be `null`, not `{}` (PR #333's original mistake): the template
+      # is `{{- with .Values.gateway.affinity }}` with no `else`, and the
+      # chart's own values.yaml already supplies the hard anti-affinity dict
+      # as the real default. Helm's map-merge treats an `{}` override as
+      # nothing-to-merge, so the chart default survives untouched; only an
+      # explicit `null` deletes the key from the merged values, which is what
+      # makes `with` skip the block. Verified via `helm template
+      # grafana-community/loki --version 18.11.0 --show-only
+      # templates/gateway/deployment.yaml` against the full values in this
+      # file — `null` renders no affinity block at all, `{}` still renders
+      # the hard anti-affinity.
+      affinity: null
 
     # Allow kube-prometheus-stack Prometheus to scrape Loki's metrics.
     serviceMonitor:
