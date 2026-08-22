@@ -14,12 +14,36 @@
 # (docs/superpowers/plans/2026-08-21-restore-sabnzbd-config-from-kopia-backup.md)
 # when checking whether the same bug class affected other apps.
 #
-# This restores from the `qbittorrent-gluetun` policy (split out by PR #318),
-# which has been taking correct, clean /gluetun-only snapshots since
-# 2026-08-21T22:46. Using `fromPolicy: qbittorrent-gluetun, offset: 0`
-# (not a pinned snapshotRef) is safe here — unlike the sabnzbd-config
-# recovery, every snapshot since the split is already clean, there's no
-# "already-corrupted latest snapshot" to avoid.
+# UPDATE after running this: the `qbittorrent-gluetun` policy (split out by
+# PR #318) takes its snapshots FROM THE LIVE PVC — it only fixed which
+# source gets captured, not the fact that the live PVC had already been
+# contaminated since 2026-08-21T02:03:57Z (the original Task 4 restore).
+# So every snapshot since the split, including the one this Restore CR
+# pulls, faithfully backs up the *same* qBittorrent-data contamination.
+# Applying this Restore CR alone does NOT fix anything — verified via
+# content check (find /gluetun -iname qBittorrent still matched).
+#
+# There is no clean historical snapshot to fall back on either: searched
+# every Snapshot CR for hostname=qbittorrent back to 2026-08-16 (when
+# qbittorrent was first onboarded to backup coverage, PR #297) and the
+# multi-source bug meant /gluetun was NEVER captured under its own
+# identity until the Aug 21 post-split snapshots — which are already
+# contaminated. There is no undamaged backup of qbittorrent's gluetun
+# state anywhere.
+#
+# Actual fix: after this Restore CR completes, gluetun's real persisted
+# state turns out to be just `servers.json` (~7MB VPN provider server
+# list cache) — everything else gluetun needs (WireGuard tunnel, keys) is
+# regenerated fresh on every boot from the NordVPN credentials Secret, so
+# there is no real data loss here, just accumulated contamination. Strip
+# the qBittorrent-origin paths in place rather than treating this as a
+# data-recovery problem:
+#
+#   kubectl run gluetun-clean --rm -i --restart=Never -n qbittorrent \
+#     --image=busybox:1.36 --overrides='{"spec":{"containers":[{"name":"clean","image":"busybox:1.36","command":["sh","-c","rm -rf /gluetun/qBittorrent /gluetun/.cache"],"volumeMounts":[{"name":"g","mountPath":"/gluetun"}]}],"volumes":[{"name":"g","persistentVolumeClaim":{"claimName":"gluetun-config"}}]}}'
+#
+# Verified clean afterward (7.1M, only servers.json + lost+found remain),
+# VPN reconnected normally post-cleanup.
 #
 # Operator-applied (NOT in kustomization.yaml). Run with `kubectl apply -f`
 # once after scaling qbittorrent to 0 replicas and deleting the current
