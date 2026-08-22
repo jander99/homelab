@@ -96,6 +96,17 @@ spec:
     gateway:
       enabled: true
       replicas: 1
+      # The chart's default gateway.affinity is a *required* pod
+      # anti-affinity (one gateway pod per node). With replicas=1 and the
+      # Deployment default maxUnavailable=0/maxSurge=25%->1, that deadlocks
+      # every rolling update on this single-node cluster: the surge pod can
+      # never schedule alongside the old one (only one node to avoid), and
+      # the old one won't terminate until the surge pod is Ready. Hit during
+      # the chart 18.7.6 -> 18.11.0 bump (PR #301); required manually
+      # deleting the old pod to unblock. Emptying affinity removes the
+      # constraint entirely, which is safe here since there's only ever one
+      # gateway replica anyway.
+      affinity: {}
 
     # Allow kube-prometheus-stack Prometheus to scrape Loki's metrics.
     serviceMonitor:
