@@ -14,7 +14,11 @@ spec:
         name: data-authentik-postgresql-0
       sourcePathOverride: /bitnami/postgresql/data
   copyMethod: Snapshot
-  volumeSnapshotClassName: csi-hostpath-snapclass
+  # Migrated from csi-hostpath-snapclass to longhorn-snapclass in
+  # feat/authentik-longhorn. data-authentik-postgresql-0 is now on the
+  # `longhorn` StorageClass, so the CSI snapshot must use the matching
+  # Longhorn VolumeSnapshotClass.
+  volumeSnapshotClassName: longhorn-snapclass
   compression:
     compressor: zstd
   retention:
