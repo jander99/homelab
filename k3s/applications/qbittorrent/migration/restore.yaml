@@ -57,6 +57,17 @@ spec:
   policy:
     onMissingSnapshot: Fail
 ---
+# SUPERSEDED — DO NOT RE-APPLY. See migration/restore-gluetun-recovery.yaml.
+#
+# This Restore CR completed "successfully" but restored the WRONG data:
+# kopiur's multi-source SnapshotPolicy bug (fixed in PR #318) meant
+# `fromPolicy: qbittorrent` silently pulled the qbittorrent-config source
+# for BOTH Restores below, so /gluetun ended up containing a `qBittorrent/`
+# directory instead of real gluetun state. No error was reported —
+# `Completed` phase, wrong content. Left here only as a historical record
+# of the bug; the actual fix lives in restore-gluetun-recovery.yaml, which
+# restores from the corrected, split `qbittorrent-gluetun` policy.
+#
 # Restore CR for the gluetun-config csi-hostpath-sc → longhorn migration.
 #
 # gluetun-config must be ready BEFORE qbittorrent deployment scales back up —

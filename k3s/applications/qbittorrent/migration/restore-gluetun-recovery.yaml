@@ -1,0 +1,90 @@
+---
+# Recovery Restore CR for gluetun-config, superseding the original
+# gluetun-config-longhorn-migration Restore in migration/restore.yaml.
+#
+# Context: the original Restore (see restore.yaml, `fromPolicy: qbittorrent`)
+# was written before the multi-source SnapshotPolicy bug was understood
+# (fixed in PR #318). kopiur silently captures only the FIRST declared
+# source in a multi-source policy — so both qbittorrent-config's and
+# gluetun-config's Restore CRs pulled the same qbittorrent-config snapshot.
+# The Restore reported Completed with no error, but /gluetun ended up
+# populated with a `qBittorrent/` directory and no wg0.conf. gluetun's own
+# tunnel auto-regeneration masked this (VPN still connects), so it went
+# unnoticed. Found during the sabnzbd-config data-loss postmortem
+# (docs/superpowers/plans/2026-08-21-restore-sabnzbd-config-from-kopia-backup.md)
+# when checking whether the same bug class affected other apps.
+#
+# UPDATE after running this: the `qbittorrent-gluetun` policy (split out by
+# PR #318) takes its snapshots FROM THE LIVE PVC — it only fixed which
+# source gets captured, not the fact that the live PVC had already been
+# contaminated since 2026-08-21T02:03:57Z (the original Task 4 restore).
+# So every snapshot since the split, including the one this Restore CR
+# pulls, faithfully backs up the *same* qBittorrent-data contamination.
+# Applying this Restore CR alone does NOT fix anything — verified via
+# content check (find /gluetun -iname qBittorrent still matched).
+#
+# There is no clean historical snapshot to fall back on either: searched
+# every Snapshot CR for hostname=qbittorrent back to 2026-08-16 (when
+# qbittorrent was first onboarded to backup coverage, PR #297) and the
+# multi-source bug meant /gluetun was NEVER captured under its own
+# identity until the Aug 21 post-split snapshots — which are already
+# contaminated. There is no undamaged backup of qbittorrent's gluetun
+# state anywhere.
+#
+# Actual fix: after this Restore CR completes, gluetun's real persisted
+# state turns out to be just `servers.json` (~7MB VPN provider server
+# list cache) — everything else gluetun needs (WireGuard tunnel, keys) is
+# regenerated fresh on every boot from the NordVPN credentials Secret, so
+# there is no real data loss here, just accumulated contamination. Strip
+# the qBittorrent-origin paths in place rather than treating this as a
+# data-recovery problem:
+#
+#   kubectl run gluetun-clean --rm -i --restart=Never -n qbittorrent \
+#     --image=busybox:1.36 --overrides='{"spec":{"containers":[{"name":"clean","image":"busybox:1.36","command":["sh","-c","rm -rf /gluetun/qBittorrent /gluetun/.cache"],"volumeMounts":[{"name":"g","mountPath":"/gluetun"}]}],"volumes":[{"name":"g","persistentVolumeClaim":{"claimName":"gluetun-config"}}]}}'
+#
+# Verified clean afterward (7.1M, only servers.json + lost+found remain),
+# VPN reconnected normally post-cleanup.
+#
+# Operator-applied (NOT in kustomization.yaml). Run with `kubectl apply -f`
+# once after scaling qbittorrent to 0 replicas and deleting the current
+# contaminated longhorn `gluetun-config` PVC.
+#
+# Pre-conditions:
+#   - qbittorrent deployment scaled to 0 replicas
+#   - The contaminated `gluetun-config` PVC deleted (Restore's target.pvc
+#     would otherwise hit a name conflict)
+#
+# Post-conditions:
+#   - PVC `gluetun-config` exists, bound on `longhorn`, populated with the
+#     real gluetun state (no qBittorrent/ directory, real wg config present).
+apiVersion: kopiur.home-operations.com/v1alpha1
+kind: Restore
+metadata:
+  name: gluetun-config-recovery
+  namespace: qbittorrent
+spec:
+  source:
+    fromPolicy:
+      name: qbittorrent-gluetun
+      offset: 0
+  target:
+    pvc:
+      name: gluetun-config
+      storageClassName: longhorn
+      accessModes:
+        - ReadWriteOnce
+      capacity: 1Gi
+  credentialProjection:
+    enabled: true
+  mover:
+    inheritSecurityContextFrom:
+      snapshot: {}
+    cache:
+      capacity: 1Gi
+      storageClassName: local-path
+      mode: Ephemeral
+  failurePolicy:
+    backoffLimit: 2
+    activeDeadlineSeconds: 1800
+  policy:
+    onMissingSnapshot: Fail
