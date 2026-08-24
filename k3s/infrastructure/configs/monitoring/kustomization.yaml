@@ -12,6 +12,7 @@ resources:
   - probe-portainer.yaml
   - probe-tdarr.yaml
   - probe-headlamp.yaml
+  - probe-goldilocks.yaml
   - probe-authentik.yaml
   - authentik-middleware.yaml
   - scrapeconfig-synology.yaml
