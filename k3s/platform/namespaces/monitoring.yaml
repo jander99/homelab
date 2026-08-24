@@ -12,5 +12,7 @@ apiVersion: v1
 kind: Namespace
 metadata:
   name: monitoring
+  labels:
+    goldilocks.fairwinds.com/enabled: "true"
   annotations:
     kopiur.home-operations.com/privileged-movers: "true"
