@@ -32,6 +32,7 @@ metadata:
     app.kubernetes.io/part-of: flux
     pod-security.kubernetes.io/warn: restricted
     pod-security.kubernetes.io/warn-version: latest
+    goldilocks.fairwinds.com/enabled: "true"
   annotations:
     # Excluded from garbage collection on purpose.
     #

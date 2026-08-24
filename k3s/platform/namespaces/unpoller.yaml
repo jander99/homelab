@@ -5,3 +5,4 @@ metadata:
   name: unpoller
   labels:
     app.kubernetes.io/name: unpoller
+    goldilocks.fairwinds.com/enabled: "true"
