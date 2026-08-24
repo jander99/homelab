@@ -1,0 +1,66 @@
+---
+apiVersion: helm.toolkit.fluxcd.io/v2
+kind: HelmRelease
+metadata:
+  name: goldilocks
+  namespace: flux-system
+spec:
+  interval: 30m
+  chart:
+    spec:
+      chart: goldilocks
+      version: "11.0.0"
+      sourceRef:
+        kind: HelmRepository
+        name: fairwinds-stable
+        namespace: flux-system
+      interval: 12h
+  targetNamespace: goldilocks
+  install:
+    createNamespace: true
+    # The vpa sub-chart bundles the VerticalPodAutoscaler CRD; Helm only
+    # applies CRDs on first install by default, so a future chart bump that
+    # touches the CRD needs CreateReplace to actually land (same pattern as
+    # snapshot-controller's helmrelease.yaml).
+    crds: CreateReplace
+    remediation:
+      retries: 3
+  upgrade:
+    crds: CreateReplace
+    remediation:
+      retries: 3
+  values:
+    vpa:
+      enabled: true
+      # Goldilocks' own values.yaml only overrides `updater.enabled: false`
+      # on the vpa sub-chart — admissionController still defaults to `true`
+      # there (verified via `helm show values fairwinds-stable/vpa --version
+      # 4.12.5`). Left enabled, it registers a cluster-wide mutating webhook
+      # on every Pod create — the exact "Auto" behavior (plus an extra
+      # single point of failure) this deployment deliberately avoids by
+      # staying recommend-only.
+      admissionController:
+        enabled: false
+    dashboard:
+      # Chart default is 2 replicas; no HA benefit on a single-node cluster.
+      replicaCount: 1
+      ingress:
+        enabled: true
+        ingressClassName: traefik
+        annotations:
+          cert-manager.io/cluster-issuer: letsencrypt-prod
+          traefik.ingress.kubernetes.io/router.entrypoints: websecure
+          # Goldilocks has no built-in auth. Reuses the existing
+          # authentik-forwardauth Middleware defined in the monitoring
+          # namespace via Traefik's cross-namespace middleware reference
+          # syntax (<namespace>-<name>@kubernetescrd).
+          traefik.ingress.kubernetes.io/router.middlewares: monitoring-authentik-forwardauth@kubernetescrd
+        hosts:
+          - host: goldilocks.homelab.properties
+            paths:
+              - path: /
+                type: Prefix
+        tls:
+          - secretName: goldilocks-tls
+            hosts:
+              - goldilocks.homelab.properties

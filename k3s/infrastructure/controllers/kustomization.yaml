@@ -17,4 +17,5 @@ resources:
   - snapshot-controller
   - csi-hostpath
   - longhorn
+  - goldilocks
   - flux2
