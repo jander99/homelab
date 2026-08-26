@@ -52,6 +52,14 @@ spec:
         externalSecret:
           enabled: true
           name: headlamp-oidc-secret
+          # Required when the secret contains an OIDC_SCOPES key. The chart
+          # gates the `-oidc-scopes=$(OIDC_SCOPES)` arg on this flag
+          # (default false) and silently omits it otherwise, so the binary
+          # falls back to its built-in default of `openid profile email`.
+          # Without offline_access in the authorize URL, authentik never
+          # issues a refresh token, and Headlamp forces re-auth every
+          # session-ttl (24h) once the access token expires.
+          hasScopes: true
     clusterRoleBinding:
       clusterRoleName: cluster-admin
     resources:
