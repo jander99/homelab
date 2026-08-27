@@ -1,0 +1,12 @@
+---
+apiVersion: source.toolkit.fluxcd.io/v1
+kind: HelmRepository
+metadata:
+  name: rancher-charts
+  namespace: flux-system
+spec:
+  # Same 1h cadence as other controllers (#1451); aligns with Renovate's
+  # weekly schedule so a Renovate-triggered chart bump is visible within
+  # the same reconciliation cycle it lands.
+  interval: 1h
+  url: https://charts.rancher.io/index.yaml
