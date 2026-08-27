@@ -7,15 +7,15 @@
 # server).
 #
 # To force an upgrade outside the window:
-#   kubectl create job --from=plan/server-plan -n system-upgrade manual-upgrade
-# (controller refuses if a job of that name exists; retry until it accepts.)
+#   kubectl -n cattle-system create job --from=plan/server-plan manual-upgrade
+# (controller refuses if a job of that name still exists; retry until it accepts.)
 #
 # Field reference: https://github.com/rancher/system-upgrade-controller/blob/main/pkg/apis/upgrade.cattle.io/v1/types.go
 apiVersion: upgrade.cattle.io/v1
 kind: Plan
 metadata:
   name: server-plan
-  namespace: system-upgrade
+  namespace: cattle-system
 spec:
   # Drain and replace the control-plane kubeconfig secret in-flight.
   concurrency: 1
@@ -25,7 +25,9 @@ spec:
     matchExpressions:
       - key: node-role.kubernetes.io/control-plane
         operator: Exists
-  serviceAccountName: system-upgrade
+  # Created by the chart in cattle-system; the chart's ClusterRoleBinding
+  # grants cluster-admin so the upgrade Job can manipulate node state.
+  serviceAccountName: system-upgrade-controller
   # Mark the node unschedulable before the upgrade pod runs (drain is
   # default-skipped since this is a single-server cluster — there are no
   # pods to evict; k3s-system pods are DaemonSet-managed and ignored).

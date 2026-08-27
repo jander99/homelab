@@ -20,11 +20,18 @@ spec:
         kind: HelmRepository
         name: rancher-charts
         namespace: flux-system
-  # The upstream controller manifest
-  # (https://github.com/rancher/system-upgrade-controller/blob/main/manifests/system-upgrade-controller.yaml)
-  # lives in the `system-upgrade` namespace and the chart defaults match.
-  # The `system-upgrade` ServiceAccount there is what Plan resources use.
-  targetNamespace: system-upgrade
+  # The rancher-charts `system-upgrade-controller` chart hardcodes the
+  # `cattle-system` namespace in its ServiceAccount / Deployment /
+  # ClusterRoleBinding templates — `targetNamespace` is ignored. The
+  # chart's installed SA there is named `system-upgrade-controller` and
+  # is what Plan resources reference.
+  #
+  # The bare upstream manifest (rancher/system-upgrade-controller
+  # manifests/system-upgrade-controller.yaml) uses `system-upgrade` and
+  # was what #344 originally targeted — but that is the deprecated
+  # direct-deploy manifest, not the chart. The chart is what Flux needs
+  # to drive upgrades.
+  targetNamespace: cattle-system
   install:
     createNamespace: true
     # Chart ships the Plan CRDs (upgrade.cattle.io/v1); same CRD strategy
