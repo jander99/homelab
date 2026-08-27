@@ -1,0 +1,9 @@
+---
+# Flux picks the directory up automatically via infra-controllers.yaml
+# (path: ./k3s/infrastructure/controllers) — no edits there needed.
+apiVersion: kustomize.config.k8s.io/v1beta1
+kind: Kustomization
+resources:
+  - helmrepository.yaml
+  - helmrelease.yaml
+  - plans.yaml
