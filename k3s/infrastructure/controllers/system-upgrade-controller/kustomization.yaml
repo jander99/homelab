@@ -1,15 +1,31 @@
 ---
-# System-upgrade-controller — vendored from upstream raw manifests.
+# System-upgrade-controller — vendored from upstream raw manifests,
+# pinned to release v0.20.1 (controller.yaml, clusterrole.yaml,
+# clusterrolebinding.yaml, and crd.yaml here are byte-identical to
+# https://github.com/rancher/system-upgrade-controller's manifests/
+# and pkg/crds/yaml/generated/upgrade.cattle.io_plans.yaml at that
+# tag). Note: upstream's own checked-in manifests/system-upgrade-
+# controller.yaml still hardcodes `image: ...:v0.14.0` even at the
+# v0.20.1 tag — that's an upstream staleness bug in their example
+# manifest, not a real "latest" pointer. v0.14.0 predates the Plan
+# CRD's `window` field (added to the controller's Go types in
+# v0.16.0), which silently no-ops a `window:` block set on a Plan
+# instead of enforcing it. Confirmed v0.20.1 is an actually-published
+# image (`docker pull rancher/system-upgrade-controller:v0.20.1`
+# resolves) with RBAC/deployment shape identical to v0.14.0's, so the
+# image tag was bumped by hand here without any other manifest changes.
 #
 # Why raw manifest + not the rancher-charts Helm chart (which is what
 # #344 used): chart 110.0.0 ships no Plan CRDs and hardcodes
 # `namespace: cattle-system` in its template files, neither of which is
 # the right answer for this cluster. The upstream raw manifest puts the
 # workload in `system-upgrade` namespace (matches upstream
-# conventions), and the Plan CRD lives at
-# rancher/system-upgrade-controller/pkg/crds/yaml/generated/upgrade.cattle.io_plans.yaml.
+# conventions).
 #
-# Vendoring pins the version — bump by hand when needed.
+# Vendoring pins the version — bump by hand when needed. Re-diff
+# against the target tag's manifests/ and pkg/crds/yaml/generated/
+# before bumping again; don't assume the checked-in image tag in
+# upstream's own manifest reflects the latest published image.
 #
 # Apply order: CRDs → controller resources → consumer Plan (in
 # `configs/system-upgrade-controller/`, applied via `infra-configs`

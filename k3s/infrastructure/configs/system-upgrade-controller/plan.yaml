@@ -5,30 +5,40 @@
 # control-plane node. No external trigger is needed: the controller
 # polls `channel` on its own reconcile loop and creates an Apply Job
 # whenever the channel-resolved latestVersion differs from the
-# running node's version — that's what bumped this node from
-# 1.36.3-k3s1 to 1.36.4+k3s1 on 2026-08-28 (controller logs show
-# Apply Jobs at 03:51 and 17:20 UTC), with zero manual/cron trigger
-# involved.
+# running node's version, constrained to the `window` below.
 #
-# A previous revision of this repo (#350) added a weekly CronJob that
-# ran `kubectl create job --from=plan/server-plan` to "trigger" this
-# Plan, on the mistaken assumption that v0.14.0's lack of `window`/
-# `cron` fields meant upgrades needed external scheduling. That
-# command is a client-side no-op: `kubectl create job --from=` only
-# resolves against a hardcoded scheme that knows CronJob, not
-# arbitrary CRDs — it fails immediately with `no kind "Plan" is
-# registered for version "upgrade.cattle.io/v1"`, no matter what
-# image or kubectl version runs it. Removed in the following PR; do
-# not reintroduce a trigger CronJob using this pattern.
+# History, for whoever touches this next: #349 originally shipped
+# this Plan with a `window:` block. #350 removed it, claiming the
+# vendored CRD didn't support the field — wrong: the CRD schema has
+# always declared `window` (confirmed via `kubectl explain` and a
+# server-side dry-run apply). The real issue was one layer deeper —
+# the controller *binary* was pinned to v0.14.0, which predates
+# `Window` in the Go `PlanSpec` struct (added upstream in v0.16.0);
+# a Plan with `window:` set would validate fine and then be silently
+# ignored at runtime. #350 then added a CronJob to work around the
+# (misdiagnosed) missing scheduling support — also broken, since
+# `kubectl create job --from=` only resolves against CronJob, never
+# a CRD like Plan; removed in #351, which restored auto-upgrade via
+# the controller's own reconcile loop but, not knowing about the
+# v0.16.0 gap yet, left upgrades unconstrained by any time window
+# (confirmed live: an auto-upgrade fired Friday 17:20 UTC). The
+# `kustomization.yaml` in `controllers/system-upgrade-controller/`
+# now pins the controller image to v0.20.1, which does implement
+# `window` — so it's restored here for real this time.
 #
 # No agent Plan because this cluster has no agents (apps run on the
 # server).
 #
 # The ServiceAccount `system-upgrade` referenced below is created by
-# the upstream vendored manifest; its ClusterRoleBinding grants
-# cluster-admin so the upgrade Job can manipulate node state.
+# the upstream vendored manifest; its ClusterRoleBinding binds the
+# `system-upgrade-controller` and `system-upgrade-controller-drainer`
+# ClusterRoles (see `controllers/system-upgrade-controller/
+# clusterrole.yaml`) — not cluster-admin. Those roles grant node
+# get/update/patch, pod eviction/delete, Job management, and Plan
+# read/write, which is what the upgrade Job needs to cordon, drain,
+# and swap the k3s binary on the node it's running on.
 #
-# Field reference (v0.14.0): https://raw.githubusercontent.com/rancher/system-upgrade-controller/v0.14.0/pkg/apis/upgrade.cattle.io/v1/types.go
+# Field reference (v0.20.1): https://raw.githubusercontent.com/rancher/system-upgrade-controller/v0.20.1/pkg/apis/upgrade.cattle.io/v1/types.go
 apiVersion: upgrade.cattle.io/v1
 kind: Plan
 metadata:
@@ -53,3 +63,14 @@ spec:
   # Stable k3s release channel URL — controller polls this on each
   # reconcile and pins the latest version advertised at that time.
   channel: https://update.k3s.io/v1-release/channels/stable
+  # Only generate Apply Jobs inside this window. Sundays 04:00-05:00
+  # UTC: single-server cluster, ~30-60s unavailability during the
+  # binary swap is acceptable at this hour. Requires controller
+  # v0.16.0+ (see controllers/system-upgrade-controller/
+  # kustomization.yaml) — silently ignored on older images.
+  window:
+    days:
+      - sun
+    startTime: "04:00"
+    endTime: "05:00"
+    timeZone: "UTC"
