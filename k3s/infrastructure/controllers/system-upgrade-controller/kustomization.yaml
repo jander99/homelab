@@ -1,7 +1,7 @@
 ---
 # System-upgrade-controller — vendored from upstream raw manifests,
-# pinned to release v0.20.1 (controller.yaml, clusterrole.yaml,
-# clusterrolebinding.yaml, and crd.yaml here are byte-identical to
+# pinned to release v0.20.1 (clusterrole.yaml, clusterrolebinding.yaml,
+# and crd.yaml here are byte-identical to
 # https://github.com/rancher/system-upgrade-controller's manifests/
 # and pkg/crds/yaml/generated/upgrade.cattle.io_plans.yaml at that
 # tag). Note: upstream's own checked-in manifests/system-upgrade-
@@ -14,6 +14,17 @@
 # image (`docker pull rancher/system-upgrade-controller:v0.20.1`
 # resolves) with RBAC/deployment shape identical to v0.14.0's, so the
 # image tag was bumped by hand here without any other manifest changes.
+#
+# controller.yaml is NOT byte-identical to upstream — two deliberate
+# deviations, both because upstream's own defaults were stale, not
+# because anything here is wrong: the controller container now sets
+# `resources` (upstream ships none at all), and
+# SYSTEM_UPGRADE_JOB_KUBECTL_IMAGE is bumped to rancher/kubectl:v1.36.2
+# (upstream's compiled-in default, v1.30.3, is hardcoded in
+# pkg/upgrade/job/job.go regardless of controller version and is 6
+# minors behind this cluster's k3s server — outside kubectl's
+# supported skew). Re-check both against upstream's current defaults
+# when next bumping the controller version.
 #
 # Why raw manifest + not the rancher-charts Helm chart (which is what
 # #344 used): chart 110.0.0 ships no Plan CRDs and hardcodes
