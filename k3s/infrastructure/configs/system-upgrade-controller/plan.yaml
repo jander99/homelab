@@ -2,7 +2,13 @@
 # Plan resource for system-upgrade-controller.
 #
 # Follows the k3s stable release channel and upgrades the single
-# control-plane node weekly inside a Sun 04:00-05:00 UTC window.
+# control-plane node when triggered. Triggered weekly by the
+# `server-plan-trigger` CronJob in this directory (controller binary
+# installed via the vendored upstream manifest is v0.14.0, whose
+# `Plan` spec does not include `window` or `cron` — the upstream
+# repo's vendored CRD predates those fields, which is why the schedule
+# has to live in a CronJob, not on the Plan).
+#
 # No agent Plan because this cluster has no agents (apps run on the
 # server).
 #
@@ -10,12 +16,11 @@
 # the upstream vendored manifest; its ClusterRoleBinding grants
 # cluster-admin so the upgrade Job can manipulate node state.
 #
-# To force an upgrade outside the window:
+# To force an upgrade outside the trigger window:
 #   kubectl -n system-upgrade create job --from=plan/server-plan manual-upgrade
 # (controller refuses if a job of that name still exists; retry.)
 #
-# Field reference:
-# https://github.com/rancher/system-upgrade-controller/blob/master/pkg/apis/upgrade.cattle.io/v1/types.go
+# Field reference (v0.14.0): https://raw.githubusercontent.com/rancher/system-upgrade-controller/v0.14.0/pkg/apis/upgrade.cattle.io/v1/types.go
 apiVersion: upgrade.cattle.io/v1
 kind: Plan
 metadata:
@@ -24,9 +29,6 @@ metadata:
 spec:
   # Drain and replace the control-plane kubeconfig secret in-flight.
   concurrency: 1
-  # matchExpressions is more idiomatic than matchLabels and matches the
-  # upstream k3s example
-  # (https://github.com/rancher/system-upgrade-controller/blob/master/examples/k3s-upgrade.yaml).
   nodeSelector:
     matchExpressions:
       - key: node-role.kubernetes.io/control-plane
@@ -37,19 +39,9 @@ spec:
   # evict; k3s-system pods are DaemonSet-managed and ignored.
   cordon: true
   upgrade:
-    # The tag is irrelevant — the `channel` field below drives the
-    # actual k3s release selected.
+    # The tag is irrelevant — `channel` below drives the actual k3s
+    # release selected.
     image: rancher/k3s-upgrade
   # Stable k3s release channel URL — controller polls this on each
   # reconcile and pins the latest version advertised at that time.
   channel: https://update.k3s.io/v1-release/channels/stable
-  # Schedule: Sundays 04:00-05:00 UTC. Plan has no `cron` field — it
-  # uses a time window per the CRD types. The 1-hour window gives the
-  # controller room to start the upgrade Job without missing the
-  # deadline.
-  window:
-    days:
-      - sun
-    startTime: "04:00"
-    endTime: "05:00"
-    timeZone: "UTC"
