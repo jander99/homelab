@@ -9,9 +9,4 @@ spec:
   # weekly schedule so a Renovate-triggered chart bump is visible within
   # the same reconciliation cycle it lands.
   interval: 1h
-  # Rancher publishes the index at https://charts.rancher.io/index.yaml,
-  # but Flux v2 HelmRepository appends an /index.yaml of its own, so the
-  # spec.url must be the repository root. With index.yaml here, the
-  # source-controller fetches charts.rancher.io/index.yaml/index.yaml
-  # and the reconcile fails with 404.
-  url: https://charts.rancher.io
+  url: https://charts.rancher.io/index.yaml
