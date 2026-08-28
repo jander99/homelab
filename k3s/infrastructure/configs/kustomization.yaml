@@ -10,4 +10,3 @@ resources:
   - coredns
   - kopiur
   - snapshot-storage
-  - system-upgrade-controller
