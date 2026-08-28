@@ -25,6 +25,13 @@ ignore: |
   **/*.sops.yaml
   k3s/bootstrap/ansible/**
   node_modules/
+  # Vendored upstream raw manifest + CRD for system-upgrade-controller.
+  # Upstream uses 4-space indent in places that this repo's strict 2-space
+  # rule rejects. Treat as a snapshot, not hand-authored YAML.
+  k3s/infrastructure/controllers/system-upgrade-controller/clusterrole.yaml
+  k3s/infrastructure/controllers/system-upgrade-controller/clusterrolebinding.yaml
+  k3s/infrastructure/controllers/system-upgrade-controller/controller.yaml
+  k3s/infrastructure/controllers/system-upgrade-controller/crd.yaml
 
 rules:
   # Hard-disable rules that don't fit this repo
