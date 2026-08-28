@@ -23,7 +23,13 @@ data:
   SYSTEM_UPGRADE_JOB_ACTIVE_DEADLINE_SECONDS: "900"
   SYSTEM_UPGRADE_JOB_BACKOFF_LIMIT: "99"
   SYSTEM_UPGRADE_JOB_IMAGE_PULL_POLICY: "Always"
-  SYSTEM_UPGRADE_JOB_KUBECTL_IMAGE: "rancher/kubectl:v1.30.3"
+  # Upstream's compiled-in default is v1.30.3 regardless of controller
+  # version (pkg/upgrade/job/job.go), which is 6 minors behind this
+  # cluster's k3s v1.36.4 server -- outside kubectl's supported +/-1
+  # skew. This is what runs `kubectl cordon <node>` as an init
+  # container in every upgrade Job (cordon: true on the Plan). Bumped
+  # by hand to the closest published rancher/kubectl tag.
+  SYSTEM_UPGRADE_JOB_KUBECTL_IMAGE: "rancher/kubectl:v1.36.2"
   # Only set if you have Windows nodes to upgrade; ignored otherwise.
   SYSTEM_UPGRADE_JOB_KUBECTL_IMAGE_WINDOWS: ""
   SYSTEM_UPGRADE_JOB_PRIVILEGED: "true"
@@ -88,6 +94,15 @@ spec:
         - name: system-upgrade-controller
           image: rancher/system-upgrade-controller:v0.20.1
           imagePullPolicy: IfNotPresent
+          # Not in upstream's manifest. Observed idle usage on this
+          # cluster is ~1m CPU / 15Mi memory; sized with headroom for
+          # reconcile spikes while a Plan is applying.
+          resources:
+            requests:
+              cpu: 10m
+              memory: 32Mi
+            limits:
+              memory: 128Mi
           securityContext:
             runAsNonRoot: true
             runAsUser: 65534
