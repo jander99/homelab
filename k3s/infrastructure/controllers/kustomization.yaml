@@ -15,6 +15,7 @@ resources:
   - alloy
   - kopiur
   - snapshot-controller
+  - system-upgrade-controller
   - csi-hostpath
   - longhorn
   - goldilocks

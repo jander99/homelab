@@ -1,0 +1,55 @@
+---
+# Plan resource for system-upgrade-controller.
+#
+# Follows the k3s stable release channel and upgrades the single
+# control-plane node weekly inside a Sun 04:00-05:00 UTC window.
+# No agent Plan because this cluster has no agents (apps run on the
+# server).
+#
+# The ServiceAccount `system-upgrade` referenced below is created by
+# the upstream vendored manifest; its ClusterRoleBinding grants
+# cluster-admin so the upgrade Job can manipulate node state.
+#
+# To force an upgrade outside the window:
+#   kubectl -n system-upgrade create job --from=plan/server-plan manual-upgrade
+# (controller refuses if a job of that name still exists; retry.)
+#
+# Field reference:
+# https://github.com/rancher/system-upgrade-controller/blob/master/pkg/apis/upgrade.cattle.io/v1/types.go
+apiVersion: upgrade.cattle.io/v1
+kind: Plan
+metadata:
+  name: server-plan
+  namespace: system-upgrade
+spec:
+  # Drain and replace the control-plane kubeconfig secret in-flight.
+  concurrency: 1
+  # matchExpressions is more idiomatic than matchLabels and matches the
+  # upstream k3s example
+  # (https://github.com/rancher/system-upgrade-controller/blob/master/examples/k3s-upgrade.yaml).
+  nodeSelector:
+    matchExpressions:
+      - key: node-role.kubernetes.io/control-plane
+        operator: Exists
+  serviceAccountName: system-upgrade
+  # Mark the node unschedulable before the upgrade pod runs. Drain is
+  # default-skipped on a single-server cluster — there are no pods to
+  # evict; k3s-system pods are DaemonSet-managed and ignored.
+  cordon: true
+  upgrade:
+    # The tag is irrelevant — the `channel` field below drives the
+    # actual k3s release selected.
+    image: rancher/k3s-upgrade
+  # Stable k3s release channel URL — controller polls this on each
+  # reconcile and pins the latest version advertised at that time.
+  channel: https://update.k3s.io/v1-release/channels/stable
+  # Schedule: Sundays 04:00-05:00 UTC. Plan has no `cron` field — it
+  # uses a time window per the CRD types. The 1-hour window gives the
+  # controller room to start the upgrade Job without missing the
+  # deadline.
+  window:
+    days:
+      - sun
+    startTime: "04:00"
+    endTime: "05:00"
+    timeZone: "UTC"

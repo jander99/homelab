@@ -1,9 +1,29 @@
 ---
-# Flux picks the directory up automatically via infra-controllers.yaml
-# (path: ./k3s/infrastructure/controllers) — no edits there needed.
+# System-upgrade-controller — vendored from upstream raw manifests.
+#
+# Why raw manifest + not the rancher-charts Helm chart (which is what
+# #344 used): chart 110.0.0 ships no Plan CRDs and hardcodes
+# `namespace: cattle-system` in its template files, neither of which is
+# the right answer for this cluster. The upstream raw manifest puts the
+# workload in `system-upgrade` namespace (matches upstream
+# conventions), and the Plan CRD lives at
+# rancher/system-upgrade-controller/pkg/crds/yaml/generated/upgrade.cattle.io_plans.yaml.
+#
+# Vendoring pins the version — bump by hand when needed.
+#
+# Apply order: CRDs → controller resources → consumer Plan (in
+# `configs/system-upgrade-controller/`, applied via `infra-configs`
+# which already depends on this layer).
+#
+# The `namespace: system-upgrade` setting injects `system-upgrade`
+# into the ClusterRoleBinding subjects (which the upstream
+# `clusterrolebinding.yaml` file lists without a namespace field).
+# Without this, the controller can't authenticate as the SA it ships.
 apiVersion: kustomize.config.k8s.io/v1beta1
 kind: Kustomization
+namespace: system-upgrade
 resources:
-  - helmrepository.yaml
-  - helmrelease.yaml
-  - plans.yaml
+  - crd.yaml
+  - controller.yaml
+  - clusterrole.yaml
+  - clusterrolebinding.yaml
