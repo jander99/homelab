@@ -2,12 +2,24 @@
 # Plan resource for system-upgrade-controller.
 #
 # Follows the k3s stable release channel and upgrades the single
-# control-plane node when triggered. Triggered weekly by the
-# `server-plan-trigger` CronJob in this directory (controller binary
-# installed via the vendored upstream manifest is v0.14.0, whose
-# `Plan` spec does not include `window` or `cron` — the upstream
-# repo's vendored CRD predates those fields, which is why the schedule
-# has to live in a CronJob, not on the Plan).
+# control-plane node. No external trigger is needed: the controller
+# polls `channel` on its own reconcile loop and creates an Apply Job
+# whenever the channel-resolved latestVersion differs from the
+# running node's version — that's what bumped this node from
+# 1.36.3-k3s1 to 1.36.4+k3s1 on 2026-08-28 (controller logs show
+# Apply Jobs at 03:51 and 17:20 UTC), with zero manual/cron trigger
+# involved.
+#
+# A previous revision of this repo (#350) added a weekly CronJob that
+# ran `kubectl create job --from=plan/server-plan` to "trigger" this
+# Plan, on the mistaken assumption that v0.14.0's lack of `window`/
+# `cron` fields meant upgrades needed external scheduling. That
+# command is a client-side no-op: `kubectl create job --from=` only
+# resolves against a hardcoded scheme that knows CronJob, not
+# arbitrary CRDs — it fails immediately with `no kind "Plan" is
+# registered for version "upgrade.cattle.io/v1"`, no matter what
+# image or kubectl version runs it. Removed in the following PR; do
+# not reintroduce a trigger CronJob using this pattern.
 #
 # No agent Plan because this cluster has no agents (apps run on the
 # server).
@@ -15,10 +27,6 @@
 # The ServiceAccount `system-upgrade` referenced below is created by
 # the upstream vendored manifest; its ClusterRoleBinding grants
 # cluster-admin so the upgrade Job can manipulate node state.
-#
-# To force an upgrade outside the trigger window:
-#   kubectl -n system-upgrade create job --from=plan/server-plan manual-upgrade
-# (controller refuses if a job of that name still exists; retry.)
 #
 # Field reference (v0.14.0): https://raw.githubusercontent.com/rancher/system-upgrade-controller/v0.14.0/pkg/apis/upgrade.cattle.io/v1/types.go
 apiVersion: upgrade.cattle.io/v1
