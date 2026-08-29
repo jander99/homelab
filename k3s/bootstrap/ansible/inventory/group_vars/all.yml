@@ -58,7 +58,7 @@ k3s_sysctl_params:
 
 # K3s version installed on all nodes — pin to a specific release.
 # Find the latest: https://github.com/k3s-io/k3s/releases
-k3s_version: "v1.36.3+k3s1"
+k3s_version: "v1.36.4+k3s1"
 
 # Use embedded etcd instead of SQLite. K3s migrates existing SQLite data into
 # etcd in place on restart (state.db is renamed aside afterward, not reused) —
