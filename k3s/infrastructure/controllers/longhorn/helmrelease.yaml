@@ -37,3 +37,13 @@ spec:
       # Same disk csi-hostpath-sc already writes into — no dedicated block
       # device required, Longhorn stores replicas as files on this path.
       defaultDataPath: /var/lib/longhorn
+    csi:
+      # Chart default is 3 per sidecar. On this single-node cluster all
+      # replicas land on the same node, so extra replicas give zero HA
+      # benefit while tripling leader-election lease writes against kine's
+      # SQLite contention ceiling (#355). Revisit once the 3-node cluster
+      # is up.
+      attacherReplicaCount: 1
+      provisionerReplicaCount: 1
+      resizerReplicaCount: 1
+      snapshotterReplicaCount: 1
