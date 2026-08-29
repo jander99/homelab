@@ -260,15 +260,17 @@ ansible-playbook -i inventory/hosts.yml playbooks/site.yml
 
 ## Part 2: Scaling to HA (Future State)
 
-> **Warning:** This section describes a future upgrade path. None of this is implemented yet. The single-node cluster uses SQLite as its datastore, which does not support in-place migration to embedded etcd. Moving from single-node SQLite to multi-node HA **requires a fresh cluster install** — there is no upgrade path that preserves state.
+> **Warning:** This section describes a future upgrade path. None of this is implemented yet.
+>
+> **Correction (2026-08-29):** an earlier version of this doc claimed SQLite→etcd migration requires a fresh cluster install with no upgrade path preserving state. That was wrong. K3s has a supported in-place migration: starting an existing single-node SQLite server with `--cluster-init` detects the SQLite datastore on disk and migrates all keys into a new embedded etcd store automatically, covering every object (Deployments, Secrets, PVs/PVCs, CRDs, etc.). If migration fails, startup fails loud rather than partially applying; on success it's marked done and skipped on later restarts. This is the *only* direct migration K3s supports (embedded SQLite → embedded etcd) — it does not support converting between other Kine SQL backends (e.g. SQLite → MySQL). See [K3s HA embedded etcd docs](https://docs.k3s.io/datastore/ha-embedded) and [k3s-io/k3s#3231](https://github.com/k3s-io/k3s/pull/3231). A past regression in this migration path ([k3s-io/k3s#12478](https://github.com/k3s-io/k3s/issues/12478)) was fixed in v1.33.2+k3s1, below the version this cluster runs (`v1.35.4+k3s1`).
 
 ### Prerequisites Before Scaling
 
 Before adding nodes, you must:
 
-1. **Back up the SQLite datastore** from `/var/lib/rancher/k3s/server/db/state.db` on the testbed.
+1. **Take an etcd/SQLite snapshot** (`k3s etcd-snapshot save` or equivalent kopiur backup) as a safety net — the migration is in-place and should preserve state, but back up before any datastore-affecting restart regardless.
 2. **Save the node join token** — it is stored at `~/.kube/k3s-testbed-token` on your control machine.
-3. **Ensure all workloads have GitOps-managed definitions** so they can be re-applied after a fresh install.
+3. **Ensure all workloads have GitOps-managed definitions** so they can be reconciled if anything needs re-applying.
 
 ### Step 1: Provision Additional Nodes
 
@@ -314,7 +316,7 @@ ansible-playbook -i inventory/hosts.yml playbooks/bootstrap-k3s.yml \
 
 This reconfigures K3s to use embedded etcd instead of SQLite and starts the HA cluster.
 
-> **Destructive operation:** Enabling `cluster-init: true` on an existing SQLite node will not migrate data. Back up workloads and re-apply them after the cluster is re-initialized.
+> **Note:** Enabling `cluster-init: true` on an existing SQLite node triggers K3s's built-in in-place migration — it migrates existing data into the new embedded etcd store rather than discarding it (see the correction note above). Still take a snapshot/backup first as a safety net before the restart.
 
 ### Step 4: Join Additional Nodes
 
