@@ -60,6 +60,13 @@ k3s_sysctl_params:
 # Find the latest: https://github.com/k3s-io/k3s/releases
 k3s_version: "v1.36.3+k3s1"
 
+# Use embedded etcd instead of SQLite. K3s migrates existing SQLite data into
+# etcd in place on restart (state.db is renamed aside afterward, not reused) —
+# see BOOTSTRAP.md Part 2 for details. Fixes the kine/SQLite leader-election
+# lease-contention ceiling tracked in #355. No firewall changes needed:
+# ports 2379/2380 are only required for multi-server etcd peer traffic.
+k3s_init_cluster: true
+
 # K3s built-in components to disable — these are replaced by external controllers.
 # servicelb (klipper-lb) must be disabled when MetalLB is installed to prevent
 # both controllers competing for LoadBalancer services.
