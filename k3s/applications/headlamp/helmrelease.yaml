@@ -24,6 +24,17 @@ spec:
         namespace: flux-system
       interval: 12h
   values:
+    # capabilities.drop and readOnlyRootFilesystem are opt-in in the chart's
+    # default values.yaml (commented out). Enabling both here; the chart
+    # auto-provisions a writable emptyDir (headlamp-tmp) mounted at /tmp
+    # when readOnlyRootFilesystem is true, so no extra volume config is
+    # needed on our side. runAsNonRoot/privileged/runAsUser/runAsGroup are
+    # left unset since the chart already defaults those correctly.
+    securityContext:
+      capabilities:
+        drop:
+          - ALL
+      readOnlyRootFilesystem: true
     service:
       type: ClusterIP
       port: 80
