@@ -16,6 +16,7 @@ spec:
       labels:
         app: authentik-outpost
     spec:
+      automountServiceAccountToken: false
       containers:
         - name: proxy
           image: ghcr.io/goauthentik/proxy:2026.8.0

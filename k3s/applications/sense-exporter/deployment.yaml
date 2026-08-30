@@ -20,6 +20,7 @@ spec:
       labels:
         app: sense-exporter
     spec:
+      automountServiceAccountToken: false
       containers:
         # NordVPN tunnel — all outbound traffic from this pod (including
         # api.sense.com HTTPS + websocket polling from the exporter below)

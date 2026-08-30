@@ -34,6 +34,7 @@ spec:
         app: sabnzbd
         app.kubernetes.io/name: sabnzbd
     spec:
+      automountServiceAccountToken: false
       securityContext:
         fsGroup: 100
       volumes:

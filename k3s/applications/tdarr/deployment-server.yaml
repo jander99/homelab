@@ -19,6 +19,7 @@ spec:
         app: tdarr-server
         app.kubernetes.io/name: tdarr-server
     spec:
+      automountServiceAccountToken: false
       securityContext:
         fsGroup: 100
       containers:
