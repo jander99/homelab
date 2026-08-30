@@ -1,0 +1,60 @@
+---
+# Shrink Restore CR for sabnzbd-config: 20Gi -> 2Gi.
+#
+# Context: sabnzbd-config was sized at 20Gi during the 2026-08-21 Kopia
+# recovery (see docs/superpowers/plans/2026-08-21-restore-sabnzbd-config-from-kopia-backup.md)
+# because that snapshot carried ~12.5GiB of media data misplaced by a since-fixed
+# sabnzbd complete_dir bug. The bug was fixed the same day; every snapshot since
+# has been ~27-32MB (real config only). At 20Gi provisioned, Longhorn's CSI
+# snapshot-restore path was cloning across the full provisioned extent on every
+# hourly backup (~6 minutes of full-disk-saturating I/O for 27MB of real data),
+# which correlates with recurring KubeAPIErrorBudgetBurn alerts on this
+# single-node cluster (etcd and Longhorn share the one aging root SSD).
+#
+# Sourced via fromPolicy (latest snapshot), not a pinned snapshotRef — unlike
+# the 2026-08-21 recovery there is no blank/corrupted intermediate state to
+# route around; the policy's own current snapshots are exactly what we want.
+#
+# Operator-applied (NOT in kustomization.yaml — Flux will not reconcile it
+# on every sync). Run with `kubectl apply -f` once after scaling sabnzbd
+# to 0 replicas and deleting the current 20Gi sabnzbd-config PVC.
+#
+# Pre-conditions:
+#   - sabnzbd deployment scaled to 0
+#   - The 20Gi sabnzbd-config PVC deleted (Restore's target.pvc would
+#     otherwise hit a name conflict)
+#
+# Post-conditions:
+#   - PVC sabnzbd-config exists, bound on longhorn, 2Gi, populated with the
+#     current real config (sabnzbd.ini, admin/, logs/).
+apiVersion: kopiur.home-operations.com/v1alpha1
+kind: Restore
+metadata:
+  name: sabnzbd-config-shrink
+  namespace: sabnzbd
+spec:
+  source:
+    fromPolicy:
+      name: sabnzbd-config
+      offset: 0
+  target:
+    pvc:
+      name: sabnzbd-config
+      storageClassName: longhorn
+      accessModes:
+        - ReadWriteOnce
+      capacity: 2Gi
+  credentialProjection:
+    enabled: true
+  mover:
+    inheritSecurityContextFrom:
+      snapshot: {}
+    cache:
+      capacity: 1Gi
+      storageClassName: local-path
+      mode: Ephemeral
+  failurePolicy:
+    backoffLimit: 2
+    activeDeadlineSeconds: 600
+  policy:
+    onMissingSnapshot: Fail
