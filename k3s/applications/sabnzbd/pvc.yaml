@@ -9,7 +9,11 @@ spec:
   storageClassName: longhorn   # was: csi-hostpath-sc
   resources:
     requests:
-      storage: 20Gi   # was: 5Gi — snapshot data includes misplaced Downloads/complete, see docs/superpowers/plans/2026-08-21-restore-sabnzbd-config-from-kopia-backup.md Task 5
+      storage: 2Gi   # was: 20Gi — over-provisioned for a stale Downloads/complete
+      # contamination bug fixed 2026-08-21; real usage is ~27-32MB. The 20Gi
+      # provisioned extent forced a ~6min full-volume Longhorn clone on every
+      # hourly backup, contributing to recurring KubeAPIErrorBudgetBurn alerts.
+      # See docs/superpowers/plans/2026-08-30-shrink-sabnzbd-config-pvc.md.
 ---
 apiVersion: v1
 kind: PersistentVolumeClaim
