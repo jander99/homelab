@@ -41,9 +41,43 @@ spec:
       # staying recommend-only.
       admissionController:
         enabled: false
+      recommender:
+        # Chart default is `resources.limits: {}` (unbounded). Pinned to the
+        # chart's own request floor (50m/500Mi, verified via `helm show
+        # values fairwinds-stable/vpa --version 4.12.5`) with a memory limit
+        # added; no CPU limit, matching this repo's general policy of not
+        # throttling controller CPU.
+        resources:
+          requests:
+            cpu: 50m
+            memory: 500Mi
+          limits:
+            memory: 500Mi
+    controller:
+      # Chart default is `resources.limits: {}` (unbounded). Pinned to the
+      # chart's own request floor (25m/256Mi, verified via `helm show values
+      # fairwinds-stable/goldilocks --version 11.0.0`) with a memory limit
+      # added; no CPU limit, matching this repo's general policy of not
+      # throttling controller CPU.
+      resources:
+        requests:
+          cpu: 25m
+          memory: 256Mi
+        limits:
+          memory: 256Mi
     dashboard:
       # Chart default is 2 replicas; no HA benefit on a single-node cluster.
       replicaCount: 1
+      # Chart default is `resources.limits: {}` (unbounded). Pinned to the
+      # chart's own request floor (25m/256Mi) with a memory limit added; no
+      # CPU limit, matching this repo's general policy of not throttling
+      # controller CPU.
+      resources:
+        requests:
+          cpu: 25m
+          memory: 256Mi
+        limits:
+          memory: 256Mi
       ingress:
         enabled: true
         ingressClassName: traefik
