@@ -9,5 +9,5 @@ spec:
   policyRef:
     name: prowlarr
   schedule:
-    cron: "H * * * *"
+    cron: "26 * * * *"
     runOnCreate: false
