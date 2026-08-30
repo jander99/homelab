@@ -62,7 +62,7 @@ spec:
         patches:
           - target:
               kind: DaemonSet
-              name: dcgm-exporter
+              name: kube-system-dcgm-exporter
             patch: |
               - op: replace
                 path: /spec/template/spec/containers/0/readinessProbe/initialDelaySeconds
