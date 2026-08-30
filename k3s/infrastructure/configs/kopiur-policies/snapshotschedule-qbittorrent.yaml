@@ -9,5 +9,5 @@ spec:
   policyRef:
     name: qbittorrent-config
   schedule:
-    cron: "H * * * *"
+    cron: "30 * * * *"
     runOnCreate: false

@@ -8,5 +8,5 @@ spec:
   policyRef:
     name: gatus
   schedule:
-    cron: "H * * * *"
+    cron: "8 * * * *"
     runOnCreate: false

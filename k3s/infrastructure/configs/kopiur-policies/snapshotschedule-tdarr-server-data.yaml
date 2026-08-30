@@ -9,5 +9,5 @@ spec:
   policyRef:
     name: tdarr-server-data
   schedule:
-    cron: "H * * * *"
+    cron: "56 * * * *"
     runOnCreate: false

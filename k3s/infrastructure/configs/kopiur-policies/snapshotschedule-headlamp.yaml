@@ -8,7 +8,10 @@ spec:
   policyRef:
     name: headlamp
   schedule:
-    # Jenkins-style H substitution hashes a stable per-policy minute; load
-    # self-distributes without manual offset bookkeeping.
-    cron: "H * * * *"
+    # Fixed offset instead of H-hash: with only 16 policies across 60 minutes,
+    # the hash clustered 5 of them within a 5-minute window (2026-08-30,
+    # 01:14-01:19 UTC), triggering a disk I/O spike that burned the apiserver
+    # error budget (#363). All 16 hourly SnapshotSchedules now use explicit
+    # minutes spaced ~4 min apart instead.
+    cron: "15 * * * *"
     runOnCreate: false

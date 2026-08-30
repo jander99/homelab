@@ -9,5 +9,5 @@ spec:
   policyRef:
     name: portainer
   schedule:
-    cron: "H * * * *"
+    cron: "23 * * * *"
     runOnCreate: false
