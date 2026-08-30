@@ -24,12 +24,15 @@ spec:
         namespace: flux-system
       interval: 12h
   values:
-    # Pi-hole v6 (appVersion: 2026.05.0) — chart version 2.35.0
+    # Pi-hole v6 (appVersion: 2026.07.2) — chart version 2.38.0
     replicaCount: 1
 
-    # -- Pi-hole container image: pin to specific version for Dependabot tracking
+    # -- Pi-hole container image: pin to specific version for Dependabot tracking.
+    # 2026.07.2 fixes GHSA-h8w9-qx2v-wrww (local privilege escalation from the
+    # pihole user to root via /etc/pihole/logrotate). No FTL-side config/API
+    # changes vs 2026.05.0.
     image:
-      tag: "2026.05.0"
+      tag: "2026.07.2"
 
     # -- Upstream DNS: plain DNS to Cloudflare
     DNS1: "1.1.1.1"
