@@ -17,9 +17,28 @@ spec:
         app: authentik-outpost
     spec:
       automountServiceAccountToken: false
+      # Pod-level hardening. lifecycle/container/proxy.Dockerfile (goauthentik/
+      # authentik @ main) sets `USER 1000` with no matching group creation, so
+      # the image runs as uid 1000 with no dedicated gid; pin runAsGroup to
+      # match. The image also sets `ENV TMPDIR=/dev/shm/`, i.e. its own
+      # temp-file writes are already redirected off the rootfs onto the
+      # container's default tmpfs shm mount, so readOnlyRootFilesystem below
+      # doesn't need an extra emptyDir.
+      securityContext:
+        runAsNonRoot: true
+        runAsUser: 1000
+        runAsGroup: 1000
       containers:
         - name: proxy
           image: ghcr.io/goauthentik/proxy:2026.8.0
+          securityContext:
+            allowPrivilegeEscalation: false
+            readOnlyRootFilesystem: true
+            seccompProfile:
+              type: RuntimeDefault
+            capabilities:
+              drop:
+                - ALL
           env:
             - name: AUTHENTIK_HOST
               value: "http://authentik-server.authentik.svc.cluster.local"
