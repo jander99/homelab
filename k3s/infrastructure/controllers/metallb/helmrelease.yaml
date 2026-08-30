@@ -24,6 +24,12 @@ spec:
     remediation:
       retries: 3
   values:
+    # This cluster only uses L2Advertisement (no BGPAdvertisement/BGPPeer
+    # resources exist), so the frr-k8s BGP backend DaemonSet is unused dead
+    # weight. Disable it to drop the extra 5-container pod, its resource
+    # usage, and attack surface. L2 mode does not require frr-k8s.
+    frrk8s:
+      enabled: false
     controller:
       resources:
         requests:
