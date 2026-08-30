@@ -195,19 +195,24 @@ spec:
         - name: custom-blueprints
           mountPath: /blueprints/custom
 
-    # Audit finding: serviceAccount.create: true (the chart default) pulls in
-    # the authentik-remote-cluster subchart, which grants the worker's
-    # ServiceAccount a namespaced Role with CRUD on secrets/services/
-    # configmaps/deployments/ingresses/middlewares/httproutes/servicemonitors
-    # (see charts/authentik-remote-cluster/templates/role.yaml at chart
-    # version 2.1.0). That RBAC exists so authentik's own "Kubernetes"
-    # outpost integration can render outposts as native k8s objects, but our
-    # actual outpost is the hand-rolled Deployment in outpost-deployment.yaml
-    # — the managed-outpost path is never used. Disabling create removes the
-    # ServiceAccount + Role/RoleBinding + ClusterRole/ClusterRoleBinding
-    # entirely (chart dependency condition: serviceAccount.create); the
-    # worker deployment template falls back to no serviceAccountName (i.e.
-    # the namespace's default SA) when this is false, so no other server/
-    # worker functionality depends on it.
+    # Audit finding (PR #373) tried disabling this to drop the unused
+    # authentik-remote-cluster RBAC (broad namespaced Role on secrets/
+    # services/configmaps/deployments/ingresses/etc. — see
+    # charts/authentik-remote-cluster/templates/role.yaml at chart version
+    # 2.1.0). That broke the live cluster: the worker/server Deployment
+    # templates hardcode `serviceAccountName: authentik`
+    # (serviceAccount.fullnameOverride) regardless of this flag — disabling
+    # `create` only stops the ServiceAccount object from being created, it
+    # does NOT change what the pods reference, so the worker rollout got
+    # stuck on `FailedMount: serviceaccounts "authentik" not found`.
+    # `authentik-remote-cluster` is aliased in as a single dependency gated
+    # by this one condition (Chart.yaml: `alias: serviceAccount, condition:
+    # serviceAccount.create`) — the chart bundles the ServiceAccount and the
+    # broad RBAC together with no finer-grained toggle to split them.
+    # Reverted to the chart default (true) to restore function. Dropping the
+    # unused RBAC cleanly would require a postRenderer patch to delete just
+    # the Role/RoleBinding/ClusterRole/ClusterRoleBinding objects while
+    # leaving the ServiceAccount itself — left as a follow-up, not attempted
+    # here given the live-breakage urgency.
     serviceAccount:
-      create: false
+      create: true
