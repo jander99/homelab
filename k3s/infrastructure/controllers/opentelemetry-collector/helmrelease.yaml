@@ -124,6 +124,38 @@ spec:
     # clusterMetrics + kubeletMetrics presets need it, and the preset
     # permissions are what we actually want.
 
+    # Hardening: the chart's podSecurityContext/securityContext both default
+    # to {} (fully open). We leave runAsNonRoot/runAsUser/runAsGroup unset
+    # here deliberately — the hostMetrics + kubeletMetrics presets mount host
+    # /proc, /sys, and kubelet cert/token paths that commonly require root
+    # (or a specific host-matching UID/GID) to read, and this branch can't be
+    # live-tested against Flux before merge. Forcing runAsNonRoot: true risks
+    # a silent permission-denied on those host-path scrapers. The other four
+    # fields are safe with any UID, including root, so we set those now.
+    podSecurityContext: {}
+    securityContext:
+      allowPrivilegeEscalation: false
+      seccompProfile:
+        type: RuntimeDefault
+      capabilities:
+        drop:
+          - ALL
+
+    # Audit finding: chart defaults enable Jaeger/Zipkin receivers with real
+    # hostPort bindings reachable from the LAN, but no pipeline in this
+    # config references jaeger or zipkin receivers (only `otlp`, used by the
+    # traces pipeline above). Disable the unused hostPort bindings without
+    # touching receiver config. otlp/otlp-http stay enabled (chart defaults).
+    ports:
+      jaeger-compact:
+        enabled: false
+      jaeger-thrift:
+        enabled: false
+      jaeger-grpc:
+        enabled: false
+      zipkin:
+        enabled: false
+
     # Tune for a single-node testbed. CPU limits stay unset (Go GC
     # throttling is a footgun on this class of workload).
     resources:
