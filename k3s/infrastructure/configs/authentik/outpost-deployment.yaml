@@ -72,6 +72,20 @@ spec:
               name: http
             - containerPort: 9443
               name: https
+          livenessProbe:
+            httpGet:
+              path: /outpost.goauthentik.io/ping
+              port: http
+            initialDelaySeconds: 10
+            periodSeconds: 20
+            failureThreshold: 3
+          readinessProbe:
+            httpGet:
+              path: /outpost.goauthentik.io/ping
+              port: http
+            initialDelaySeconds: 5
+            periodSeconds: 10
+            failureThreshold: 3
           resources:
             requests:
               cpu: 10m

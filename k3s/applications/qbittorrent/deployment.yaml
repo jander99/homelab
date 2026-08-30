@@ -209,6 +209,14 @@ spec:
             periodSeconds: 30
             failureThreshold: 5
             timeoutSeconds: 10
+          readinessProbe:
+            httpGet:
+              path: /metrics
+              port: 9090
+            initialDelaySeconds: 15
+            periodSeconds: 15
+            failureThreshold: 3
+            timeoutSeconds: 10
           resources:
             requests:
               cpu: 100m
@@ -239,6 +247,13 @@ spec:
             initialDelaySeconds: 30
             periodSeconds: 30
             failureThreshold: 5
+          readinessProbe:
+            httpGet:
+              path: /metrics
+              port: 9586
+            initialDelaySeconds: 15
+            periodSeconds: 15
+            failureThreshold: 3
           resources:
             requests:
               cpu: 25m
