@@ -16,6 +16,7 @@ spec:
         app: qbittorrent
         app.kubernetes.io/name: qbittorrent
     spec:
+      automountServiceAccountToken: false
       securityContext:
         fsGroup: 100
       volumes:

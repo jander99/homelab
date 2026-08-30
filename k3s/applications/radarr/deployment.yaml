@@ -16,6 +16,7 @@ spec:
         app: radarr
         app.kubernetes.io/name: radarr
     spec:
+      automountServiceAccountToken: false
       securityContext:
         fsGroup: 100
       containers:

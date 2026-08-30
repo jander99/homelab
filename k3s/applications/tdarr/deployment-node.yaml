@@ -20,6 +20,7 @@ spec:
         app.kubernetes.io/name: tdarr-node
     spec:
       runtimeClassName: nvidia
+      automountServiceAccountToken: false
       securityContext:
         fsGroup: 100
       containers:
