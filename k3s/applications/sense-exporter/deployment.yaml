@@ -127,6 +127,20 @@ spec:
             - name: config
               mountPath: /etc/sense_energy_prometheus_exporter/config.yaml
               subPath: config.yaml
+          livenessProbe:
+            httpGet:
+              path: /metrics
+              port: 9993
+            initialDelaySeconds: 30
+            periodSeconds: 30
+            failureThreshold: 5
+          readinessProbe:
+            httpGet:
+              path: /metrics
+              port: 9993
+            initialDelaySeconds: 15
+            periodSeconds: 15
+            failureThreshold: 3
           resources:
             requests:
               cpu: 10m

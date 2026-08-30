@@ -157,3 +157,39 @@ spec:
     # -- Required for Pi-hole to listen on all interfaces in K3s CNI
     extraEnvVars:
       FTLCONF_dns_listeningMode: "all"
+
+  # -- The chart's monitoring.sidecar (ekofr/pihole-exporter) has no probes
+  # value; it exposes Prometheus metrics on / at monitoring.sidecar.port
+  # (9617), confirmed live via `curl http://<pod-ip>:9617/metrics` (200).
+  # Patched in post-render since the chart template hardcodes the exporter
+  # container with no way to inject probes via values.
+  postRenderers:
+    - kustomize:
+        patches:
+          - target:
+              kind: Deployment
+              name: pihole
+            patch: |
+              apiVersion: apps/v1
+              kind: Deployment
+              metadata:
+                name: pihole
+              spec:
+                template:
+                  spec:
+                    containers:
+                      - name: exporter
+                        livenessProbe:
+                          httpGet:
+                            path: /metrics
+                            port: prometheus
+                          initialDelaySeconds: 30
+                          periodSeconds: 30
+                          failureThreshold: 5
+                        readinessProbe:
+                          httpGet:
+                            path: /metrics
+                            port: prometheus
+                          initialDelaySeconds: 15
+                          periodSeconds: 15
+                          failureThreshold: 3
