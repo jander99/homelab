@@ -127,20 +127,12 @@ spec:
             - name: config
               mountPath: /etc/sense_energy_prometheus_exporter/config.yaml
               subPath: config.yaml
-          livenessProbe:
-            httpGet:
-              path: /metrics
-              port: 9993
-            initialDelaySeconds: 30
-            periodSeconds: 30
-            failureThreshold: 5
-          readinessProbe:
-            httpGet:
-              path: /metrics
-              port: 9993
-            initialDelaySeconds: 15
-            periodSeconds: 15
-            failureThreshold: 3
+          # No liveness/readiness probes: /metrics performs a synchronous,
+          # per-request fetch from the Sense cloud API with no cheap health
+          # path. HTTP probes here previously crash-looped the container
+          # (probe timeouts during slow Sense API calls) and hammered
+          # Sense's API every 15s for 20+ hours, likely triggering the
+          # account-level rate limiting that made it worse.
           resources:
             requests:
               cpu: 10m
