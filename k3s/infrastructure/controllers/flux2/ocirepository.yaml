@@ -31,6 +31,6 @@ spec:
     #
     # Bump BOTH lines together; a tag bump alone is a no-op because the
     # digest wins.
-    tag: 2.19.0
-    digest: sha256:172529ede50c8bfbd1c30238d8daf4132fdfeb5e43fbdfb7dd84993be88b9723
+    tag: 2.19.1
+    digest: sha256:f62e968e5d4332d8dd63a9f0bd298ca10c32eb8b52a05a8e717596761881ae8f
   url: oci://ghcr.io/fluxcd-community/charts/flux2
