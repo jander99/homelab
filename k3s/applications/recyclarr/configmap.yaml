@@ -4,6 +4,9 @@ metadata:
   name: recyclarr-config
   namespace: media
 data:
+  # "Grab anything 720p+, upgrade to 2160p." `qualities` replaces the guide's
+  # list wholesale (highest first); `until_quality` must be an entry in it.
+  # Everything else (CF groups, scores, min/cutoff format scores) is guide default.
   recyclarr.yml: |
     sonarr:
       tv:
@@ -13,15 +16,22 @@ data:
         quality_definition:
           type: series
         quality_profiles:
-          - trash_id: 72dae194fc92bf828f32cde7744e51a1  # WEB-1080p (full ladder; 2160p upgrade target via upgrade.until_quality)
-            name: WEB-1080p
-            reset_unmatched_scores:
-              enabled: true
+          - trash_id: c4cadd6b35b95f62c3d47a408e53e2f7  # WEB-2160p (Combined): WEB 1080p + 2160p
+            name: WEB-2160p (Combined)
             upgrade:
               allowed: true
               until_quality: WEB 2160p
-              until_score: 10000
-            min_format_score: 0
+            qualities:
+              - name: WEB 2160p
+                qualities: [WEBDL-2160p, WEBRip-2160p]
+              - name: WEB 1080p
+                qualities: [WEBDL-1080p, WEBRip-1080p]
+              - name: Bluray-1080p
+              - name: HDTV-1080p
+              - name: WEB 720p
+                qualities: [WEBDL-720p, WEBRip-720p]
+              - name: Bluray-720p
+              - name: HDTV-720p
 
     radarr:
       movies:
@@ -31,12 +41,24 @@ data:
         quality_definition:
           type: movie
         quality_profiles:
-          - trash_id: d1d67249d3890e49bc12e275d989a7e9  # HD Bluray + WEB (full ladder; 2160p upgrade target via upgrade.until_quality)
-            name: HD Bluray + WEB
-            reset_unmatched_scores:
-              enabled: true
+          - trash_id: 64fb5f9858489bdac2af690e27c8f42f  # UHD Bluray + WEB
+            name: UHD Bluray + WEB (Combined)
             upgrade:
               allowed: true
               until_quality: Bluray-2160p
-              until_score: 10000
-            min_format_score: 0
+            qualities:
+              - name: Bluray-2160p
+              - name: WEB 2160p
+                qualities: [WEBDL-2160p, WEBRip-2160p]
+              - name: Bluray-1080p
+              - name: WEB 1080p
+                qualities: [WEBDL-1080p, WEBRip-1080p]
+        # The UHD profile only scores UHD Bluray tiers; add the HD tiers so
+        # 1080p Bluray fallbacks are ranked by group quality too.
+        custom_formats:
+          - trash_ids:
+              - ed27ebfef2f323e964fb1f61391bcb35  # HD Bluray Tier 01
+              - c20c8647f2746a1f4c4262b0fbbeeeae  # HD Bluray Tier 02
+              - 5608c71bcebba0a5e666223bae8c9227  # HD Bluray Tier 03
+            assign_scores_to:
+              - trash_id: 64fb5f9858489bdac2af690e27c8f42f

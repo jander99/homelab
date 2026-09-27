@@ -11,6 +11,7 @@ spec:
   failedJobsHistoryLimit: 1
   jobTemplate:
     spec:
+      backoffLimit: 1
       template:
         spec:
           securityContext:
@@ -22,9 +23,18 @@ spec:
           containers:
             - name: recyclarr
               image: ghcr.io/recyclarr/recyclarr:8.7.2
+              # recyclarr exits 0 even when a profile fails validation; fail the
+              # Job on any [ERR] line so KubeJobFailed fires instead of silence.
               command:
-                - recyclarr
-                - sync
+                - sh
+                - -c
+                - |
+                  set -o pipefail
+                  recyclarr sync 2>&1 | tee /tmp/sync.log || exit $?
+                  if grep -q '^\[ERR\]' /tmp/sync.log; then
+                    echo "recyclarr reported errors; failing job" >&2
+                    exit 1
+                  fi
               env:
                 - name: TZ
                   value: America/New_York
