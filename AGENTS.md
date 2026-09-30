@@ -71,7 +71,7 @@ Subdirectory deep-dives: `docker/AGENTS.md`, `docker/media/AGENTS.md`, `docker/p
 - Do not name a compose file `docker-compose.yml` — breaks the convention other tooling (Renovate, scripts) assumes.
 - Do not hand-edit `docker/prometheus/snmp_exporter/snmp.yml` — auto-generated; banner says so.
 - Do not "fix" the typo `WATHCTOWER_REVIVE_STOPPED` in the watchtower compose — leaving it as-is is intentional.
-- Do not enable `kubeEtcd` / `kubeScheduler` / `kubeControllerManager` / `kubeProxy` scrapers in kube-prometheus-stack — K3s binds them to 127.0.0.1 and uses SQLite; they always fail to scrape.
+- Do not enable `kubeScheduler` / `kubeControllerManager` / `kubeProxy` scrapers in kube-prometheus-stack — K3s binds them to 127.0.0.1; they always fail to scrape. `kubeEtcd` IS enabled: the cluster runs embedded etcd and the `k3s-server` role sets `etcd-expose-metrics: true` (:2381 on the node IP). Run the playbook before merging changes that scrape it, or `etcd*` alerts fire on `up==0`.
 - Do not treat `k3s/k3s.md` as current state — it describes the target, not reality. `k3s/AGENTS.md` and sub-AGENTS.md files are the verified-now sources.
 - Do not add real workloads to `applications/cdk8s/src/main.ts` until the `dist/` → `k3s/applications/` promotion workflow is designed and documented.
 - Do not force-push to a merged branch. Once a PR is merged, the next fix goes on a **new** branch off current master with a new PR. Editing the merged PR's body is pointless.

@@ -1,0 +1,40 @@
+---
+apiVersion: helm.toolkit.fluxcd.io/v2
+kind: HelmRelease
+metadata:
+  name: prometheus-smartctl-exporter
+  namespace: monitoring
+spec:
+  interval: 1h
+  # Creates a ServiceMonitor, so the CRDs from kube-prometheus-stack must exist first.
+  dependsOn:
+    - name: kube-prometheus-stack
+  install:
+    createNamespace: false
+    remediation:
+      retries: 3
+  upgrade:
+    remediation:
+      retries: 3
+  chart:
+    spec:
+      chart: prometheus-smartctl-exporter
+      sourceRef:
+        kind: HelmRepository
+        name: prometheus-community
+        namespace: flux-system
+      interval: 12h
+      version: "0.17.1"
+  values:
+    # Only physical disks. Longhorn's iSCSI volumes also show up as /dev/sdX
+    # (vendor IET) and would produce bogus SMART status; they enumerate after the OS disk.
+    config:
+      device_include: /dev/(sda|nvme[0-9]+)
+    serviceMonitor:
+      enabled: true
+    resources:
+      requests:
+        cpu: 10m
+        memory: 32Mi
+      limits:
+        memory: 64Mi

@@ -45,7 +45,7 @@ Flux Kustomization `infra-configs` has `dependsOn: [infra-controllers]`. This gu
 - **Ingresses**: grafana.homelab.properties, prometheus.homelab.properties, alertmanager.homelab.properties (all TLS via letsencrypt-prod)
 - **Storage**: Prometheus 20Gi PVC (local-path), Grafana 5Gi PVC (local-path), Alertmanager emptyDir
 - **Secret**: `grafana-secret.sops.yaml` — SOPS age-encrypted Grafana admin credentials (`admin-user` / `admin-password` keys)
-- **K3s scrapers disabled**: kubeEtcd, kubeScheduler, kubeControllerManager, kubeProxy (K3s uses SQLite; control plane binds to 127.0.0.1)
+- **K3s scrapers disabled**: kubeScheduler, kubeControllerManager, kubeProxy (control plane binds to 127.0.0.1). **kubeEtcd enabled** via `etcd-expose-metrics: true` (endpoints = server node IPs)
 - **PodMonitor discovery**: `podMonitorSelectorNilUsesHelmValues: false` + `serviceMonitorSelectorNilUsesHelmValues: false`
 
 ### opentelemetry-collector
@@ -112,7 +112,7 @@ Flux Kustomization `infra-configs` has `dependsOn: [infra-controllers]`. This gu
 - **Do not duplicate ClusterIssuers** — `letsencrypt-prod` and `letsencrypt-staging` already exist; reference by name in ingress annotations.
 - **Do not add a new controller without a matching entry** in the `infra-controllers` Kustomization's `resources:` list at `k3s/clusters/homelab/infra-controllers.yaml`.
 - **Do not place namespaces inside `configs/`** — namespaces belong in `k3s/platform/namespaces/` (see monitoring namespace as the established pattern).
-- **Do not enable kubeEtcd/kubeScheduler/kubeControllerManager/kubeProxy scrapers** — K3s binds these to 127.0.0.1 and uses SQLite; they will always fail to scrape.
+- **Do not enable kubeScheduler/kubeControllerManager/kubeProxy scrapers** — K3s binds these to 127.0.0.1; they will always fail to scrape. kubeEtcd is the exception (needs `etcd-expose-metrics: true`; add each server IP to `kubeEtcd.endpoints` when HA nodes join).
 
 ## NOTES
 

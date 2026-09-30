@@ -9,6 +9,8 @@ resources:
   - helmrepository.yaml
   - helmrelease.yaml
   - helmrelease-blackbox.yaml
+  - helmrelease-smartctl-exporter.yaml
+  - servicemonitor-longhorn.yaml
   - probe-portainer.yaml
   - probe-tdarr.yaml
   - probe-headlamp.yaml
