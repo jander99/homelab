@@ -33,6 +33,17 @@ spec:
       # replica, so anything higher leaves volumes permanently degraded.
       # Raise to 2 or 3 once the 3-node cluster is up.
       defaultClassReplicaCount: 1
+    networkPolicies:
+      # Longhorn 1.13 ships NetworkPolicies that block everything but its own components
+      # from longhorn-manager :9500, including the Prometheus scrape (connection refused).
+      # :9500 also serves the REST API, so allow only the Prometheus pod, not the namespace.
+      metricsScrapeSources:
+        - namespaceSelector:
+            matchLabels:
+              kubernetes.io/metadata.name: monitoring
+          podSelector:
+            matchLabels:
+              app.kubernetes.io/name: prometheus
     defaultSettings:
       # Same disk csi-hostpath-sc already writes into — no dedicated block
       # device required, Longhorn stores replicas as files on this path.
