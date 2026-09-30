@@ -26,9 +26,19 @@ spec:
         namespace: flux-system
       interval: 12h
   values:
-    # K3s-specific: disable scrapers that bind to 127.0.0.1 or use SQLite
+    # K3s-specific: scheduler/controller-manager/proxy bind to 127.0.0.1 and can't be scraped.
+    # etcd is scrapable because k3s runs with etcd-expose-metrics: true (k3s-server role),
+    # which serves plain-HTTP metrics on <node-ip>:2381. List every server's IP here when
+    # the 3-node HA cluster comes up (.40/.41/.42).
     kubeEtcd:
-      enabled: false
+      enabled: true
+      endpoints:
+        - 192.168.1.128
+      service:
+        port: 2381
+        targetPort: 2381
+      serviceMonitor:
+        scheme: http
     kubeScheduler:
       enabled: false
     kubeControllerManager:

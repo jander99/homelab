@@ -80,6 +80,10 @@
 
       # Start cluster with embedded etcd (HA mode)
       cluster-init: true
+
+      # Serve etcd metrics (:2381) on the node IP instead of 127.0.0.1 so Prometheus can
+      # scrape etcd_disk_wal_fsync_duration_seconds etc. (kubeEtcd in kube-prometheus-stack).
+      etcd-expose-metrics: true
       {% endif %}
       {% if k3s_server_url | length > 0 %}
 
