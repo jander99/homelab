@@ -26,10 +26,10 @@ spec:
       interval: 12h
       version: "0.17.1"
   values:
-    # Only physical disks. Longhorn's iSCSI volumes also show up as /dev/sdX
+    # Only physical disks (matched by bare name, not /dev path). Longhorn's iSCSI volumes also show up as /dev/sdX
     # (vendor IET) and would produce bogus SMART status; they enumerate after the OS disk.
     config:
-      device_include: /dev/(sda|nvme[0-9]+)
+      device_include: "^(sda|nvme[0-9]+)$"
     serviceMonitor:
       enabled: true
     resources:
