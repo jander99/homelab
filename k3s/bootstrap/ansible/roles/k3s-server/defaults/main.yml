@@ -49,3 +49,8 @@ k3s_show_node_token: false
 # external controllers. Example: disable servicelb when using MetalLB.
 # k3s_disable_components: [servicelb, traefik]
 k3s_disable_components: []
+
+# Disable leader election for the embedded controller-manager, scheduler and cloud-controller-manager.
+# Only safe on a SINGLE server: with several servers all of them would run the controllers at once.
+# Leave false (leader election on) for HA; group_vars/all.yml sets it for the single-node testbed.
+k3s_disable_leader_election: false
