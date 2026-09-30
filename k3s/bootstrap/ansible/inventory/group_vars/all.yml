@@ -67,6 +67,10 @@ k3s_version: "v1.36.4+k3s1"
 # ports 2379/2380 are only required for multi-server etcd peer traffic.
 k3s_init_cluster: true
 
+# Single-node testbed only: a lease-renew timeout during etcd stalls crashes k3s (see roles/k3s-server).
+# REMOVE (or set false) when the other two servers join — HA needs leader election.
+k3s_disable_leader_election: true
+
 # K3s built-in components to disable — these are replaced by external controllers.
 # servicelb (klipper-lb) must be disabled when MetalLB is installed to prevent
 # both controllers competing for LoadBalancer services.
