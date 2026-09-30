@@ -16,6 +16,7 @@ common_packages:
   - jq
   - update-notifier-common
   - cifs-utils
+  - smartmontools  # SSD health (smartctl); etcd + Longhorn share one consumer SSD
 
 # DNS servers written to /etc/netplan/99-homelab-dns.yaml — overrides DHCP-provided DNS.
 dns_servers:
