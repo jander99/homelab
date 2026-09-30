@@ -54,3 +54,24 @@
     name: iscsid
     state: started
     enabled: true
+
+# multipathd grabs Longhorn's iSCSI disks (IET VIRTUAL-DISK) as mpath maps, after which
+# the kernel refuses the direct mount ("already mounted or mount point busy").
+- name: Blacklist sd devices from multipath (Longhorn volumes are iSCSI sd* devices)
+  ansible.builtin.copy:
+    dest: /etc/multipath.conf
+    mode: "0644"
+    content: |
+      defaults {
+          user_friendly_names yes
+      }
+      blacklist {
+          devnode "^sd[a-z0-9]+"
+      }
+  register: multipath_conf
+
+- name: Flush stale multipath maps and restart multipathd
+  ansible.builtin.shell: multipath -F; systemctl restart multipathd
+  when: multipath_conf.changed
+  failed_when: false
+  changed_when: true
