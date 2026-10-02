@@ -56,6 +56,12 @@ k3s_sysctl_params:
   # at hundreds of pods without re-tuning.
   fs.inotify.max_user_watches: 1048576
   fs.inotify.max_user_instances: 8192
+  # Cap dirty page cache so bulk writers (SABnzbd, Tdarr) flush in small steady
+  # chunks instead of multi-GB bursts that stall etcd fdatasync on the shared SSD.
+  # Setting the *_bytes knobs makes the kernel ignore the *_ratio ones.
+  # NOTE: this dict replaces the k3s-prereqs role default wholesale (no merge).
+  vm.dirty_background_bytes: 67108864  # 64 MiB
+  vm.dirty_bytes: 268435456  # 256 MiB
 
 # K3s version installed on all nodes — pin to a specific release.
 # Find the latest: https://github.com/k3s-io/k3s/releases
