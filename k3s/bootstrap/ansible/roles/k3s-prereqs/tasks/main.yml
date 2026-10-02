@@ -35,7 +35,7 @@
     state: present
   loop: "{{ k3s_kernel_modules }}"
 
-- name: Configure sysctl parameters for K3s networking
+- name: Configure sysctl parameters for K3s networking and writeback
   ansible.posix.sysctl:
     name: "{{ item.key }}"
     value: "{{ item.value }}"

@@ -159,6 +159,28 @@
   changed_when: true
   notify: Restart k3s
 
+- name: Create K3s systemd drop-in directory
+  ansible.builtin.file:
+    path: /etc/systemd/system/k3s.service.d
+    state: directory
+    owner: root
+    group: root
+    mode: "0755"
+
+# Drop-in rather than k3s.service.env: the install script rewrites that file on upgrade.
+- name: Set K3s supervisor leader election timings
+  ansible.builtin.copy:
+    dest: /etc/systemd/system/k3s.service.d/leader-election.conf
+    content: |
+      # Managed by Ansible (k3s-server role).
+      [Service]
+      Environment="CATTLE_ELECTION_LEASE_DURATION={{ k3s_election_lease_duration }}"
+      Environment="CATTLE_ELECTION_RENEW_DEADLINE={{ k3s_election_renew_deadline }}"
+    owner: root
+    group: root
+    mode: "0644"
+  notify: Restart k3s
+
 - name: Enable and start K3s service
   ansible.builtin.systemd:
     name: k3s
