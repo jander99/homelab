@@ -54,3 +54,9 @@ k3s_disable_components: []
 # Only safe on a SINGLE server: with several servers all of them would run the controllers at once.
 # Leave false (leader election on) for HA; group_vars/all.yml sets it for the single-node testbed.
 k3s_disable_leader_election: false
+
+# Lease timings for K3s's own supervisor leader election (k3s, k3s-etcd, ...), read by wrangler
+# from CATTLE_ELECTION_* env vars. Defaults are 45s/30s; a longer etcd stall makes k3s exit with
+# "leaderelection lost for k3s-etcd". Raising them only slows failover between HA servers.
+k3s_election_lease_duration: "90s"
+k3s_election_renew_deadline: "60s"
