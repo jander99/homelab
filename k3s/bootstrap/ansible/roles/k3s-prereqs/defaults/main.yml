@@ -10,3 +10,9 @@ k3s_sysctl_params:
   net.bridge.bridge-nf-call-ip6tables: 1
   net.ipv4.ip_forward: 1
   vm.swappiness: 0
+  # Cap dirty page cache so bulk writers (SABnzbd, Tdarr) flush in small steady
+  # chunks instead of multi-GB bursts that stall etcd fdatasync on the shared SSD.
+  # The default ratios (10/20% of 30 GiB) allowed ~3-6 GiB of dirty pages.
+  # Setting the *_bytes knobs makes the kernel ignore the *_ratio ones.
+  vm.dirty_background_bytes: 67108864  # 64 MiB
+  vm.dirty_bytes: 268435456  # 256 MiB
