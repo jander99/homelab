@@ -19,7 +19,6 @@
 - name: Export target Flux manifests for v{{ flux_cli_version }}
   ansible.builtin.command: >
     {{ flux_install_dir }}/flux install --export
-    --components-extra=image-reflector-controller,image-automation-controller
   register: flux_export_raw
   changed_when: false
   delegate_to: localhost
