@@ -109,20 +109,13 @@ spec:
           memory: 162Mi
         limits:
           memory: 162Mi
+    # Image automation is unused (no ImageRepository/ImagePolicy resources;
+    # Renovate handles image updates). image-reflector-controller also spun
+    # at ~1 core with nothing to reconcile.
     imageAutomationController:
-      resources:
-        requests:
-          cpu: 10m
-          memory: 100Mi
-        limits:
-          memory: 100Mi
+      create: false
     imageReflectionController:
-      resources:
-        requests:
-          cpu: 16m
-          memory: 100Mi
-        limits:
-          memory: 100Mi
+      create: false
     kustomizeController:
       resources:
         requests:
