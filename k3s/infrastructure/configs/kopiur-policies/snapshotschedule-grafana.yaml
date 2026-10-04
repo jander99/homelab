@@ -9,5 +9,5 @@ spec:
   policyRef:
     name: grafana
   schedule:
-    cron: "11 * * * *"
+    cron: "11 6,18 * * *"
     runOnCreate: false

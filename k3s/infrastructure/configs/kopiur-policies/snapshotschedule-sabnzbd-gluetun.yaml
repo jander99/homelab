@@ -9,5 +9,5 @@ spec:
   policyRef:
     name: sabnzbd-gluetun
   schedule:
-    cron: "45 * * * *"
+    cron: "45 10,22 * * *"
     runOnCreate: false

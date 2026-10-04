@@ -9,5 +9,5 @@ spec:
   policyRef:
     name: sonarr
   schedule:
-    cron: "49 * * * *"
+    cron: "49 0,6,12,18 * * *"
     runOnCreate: false

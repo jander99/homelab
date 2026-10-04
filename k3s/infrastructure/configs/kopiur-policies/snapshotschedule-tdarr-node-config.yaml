@@ -9,5 +9,5 @@ spec:
   policyRef:
     name: tdarr-node-config
   schedule:
-    cron: "53 * * * *"
+    cron: "53 8,20 * * *"
     runOnCreate: false
