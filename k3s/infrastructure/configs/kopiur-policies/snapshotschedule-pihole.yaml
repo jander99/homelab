@@ -9,5 +9,5 @@ spec:
   policyRef:
     name: pihole
   schedule:
-    cron: "19 * * * *"
+    cron: "19 3,15 * * *"
     runOnCreate: false

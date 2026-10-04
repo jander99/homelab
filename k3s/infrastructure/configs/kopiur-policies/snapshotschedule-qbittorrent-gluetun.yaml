@@ -9,5 +9,5 @@ spec:
   policyRef:
     name: qbittorrent-gluetun
   schedule:
-    cron: "34 * * * *"
+    cron: "34 9,21 * * *"
     runOnCreate: false

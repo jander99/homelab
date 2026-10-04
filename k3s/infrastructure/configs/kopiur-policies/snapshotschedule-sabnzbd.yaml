@@ -9,5 +9,5 @@ spec:
   policyRef:
     name: sabnzbd-config
   schedule:
-    cron: "41 * * * *"
+    cron: "41 5,11,17,23 * * *"
     runOnCreate: false

@@ -9,5 +9,5 @@ spec:
   policyRef:
     name: alertmanager
   schedule:
-    cron: "0 * * * *"
+    cron: "0 5,17 * * *"
     runOnCreate: false

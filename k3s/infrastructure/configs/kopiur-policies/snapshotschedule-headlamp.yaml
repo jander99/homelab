@@ -11,7 +11,9 @@ spec:
     # Fixed offset instead of H-hash: with only 16 policies across 60 minutes,
     # the hash clustered 5 of them within a 5-minute window (2026-08-30,
     # 01:14-01:19 UTC), triggering a disk I/O spike that burned the apiserver
-    # error budget (#363). All 16 hourly SnapshotSchedules now use explicit
-    # minutes spaced ~4 min apart instead.
-    cron: "15 * * * *"
+    # error budget (#363). Schedules use explicit minutes, and since the
+    # single-node disk (etcd + Longhorn) cannot absorb 16 hourly clone+backup
+    # cycles without lease 504s, each runs every 4-12h at a distinct
+    # hour/minute so no two fire within ~4 min of each other.
+    cron: "15 1,13 * * *"
     runOnCreate: false

@@ -9,5 +9,5 @@ spec:
   policyRef:
     name: radarr
   schedule:
-    cron: "38 * * * *"
+    cron: "38 3,9,15,21 * * *"
     runOnCreate: false
