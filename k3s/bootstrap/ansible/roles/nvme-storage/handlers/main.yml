@@ -1,0 +1,8 @@
+---
+# roles/nvme-storage/handlers/main.yml
+
+- name: Restart smartd
+  ansible.builtin.systemd:
+    name: smartmontools
+    state: restarted
+    enabled: true
