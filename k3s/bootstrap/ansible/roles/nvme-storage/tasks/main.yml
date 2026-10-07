@@ -68,6 +68,36 @@
         dev: "/dev/{{ nvme_storage.vg_name }}/{{ item.name }}"
       loop: "{{ nvme_storage.volumes }}"
 
+    # With nofail and the drive gone, a consumer (Longhorn) would write into the empty mountpoint
+    # on the root fs. An immutable (chattr +i) mountpoint makes those writes fail instead. Only
+    # set it while unmounted: on a mounted path the flag would land on the volume's root dir.
+    - name: Check which volume mountpoints are currently mounted
+      ansible.builtin.command: mountpoint -q {{ item.mount }}
+      loop: "{{ nvme_storage.volumes }}"
+      register: nvme_mountpoint_check
+      changed_when: false
+      failed_when: false
+      check_mode: false  # read-only
+
+    - name: Create mountpoint directories
+      ansible.builtin.file:
+        path: "{{ item.item.mount }}"
+        state: directory
+        mode: "0755"
+      loop: "{{ nvme_mountpoint_check.results }}"
+      loop_control:
+        label: "{{ item.item.mount }}"
+      when: item.rc != 0
+
+    - name: Make unmounted mountpoints immutable
+      ansible.builtin.file:
+        path: "{{ item.item.mount }}"
+        attributes: +i
+      loop: "{{ nvme_mountpoint_check.results }}"
+      loop_control:
+        label: "{{ item.item.mount }}"
+      when: item.rc != 0
+
     # nofail: a dead or missing NVMe must not block boot (SSH stays reachable for repair).
     - name: Mount volumes and persist in fstab
       ansible.posix.mount:
@@ -99,3 +129,19 @@
         opts: bind,nofail
         state: mounted
       loop: "{{ nvme_storage.bind_mounts | default([]) }}"
+
+    # The 980 PRO has shown SMART media errors: keep it monitored and trimmed.
+    - name: Monitor the NVMe drive with smartd
+      ansible.builtin.blockinfile:
+        path: /etc/smartd.conf
+        marker: "# {mark} ANSIBLE MANAGED BLOCK (nvme-storage)"
+        insertbefore: '^DEVICESCAN'
+        block: |
+          {{ nvme_storage.device }} -d nvme -a -m root
+      notify: Restart smartd
+
+    - name: Enable periodic TRIM
+      ansible.builtin.systemd:
+        name: fstrim.timer
+        enabled: true
+        state: started
