@@ -1,0 +1,13 @@
+---
+# k3s/infrastructure/configs/kopiur-policies/snapshotschedule-prometheus.yaml
+apiVersion: kopiur.home-operations.com/v1alpha1
+kind: SnapshotSchedule
+metadata:
+  name: prometheus-scheduled
+  namespace: monitoring
+spec:
+  policyRef:
+    name: prometheus
+  schedule:
+    cron: "20 21 * * *"
+    runOnCreate: false

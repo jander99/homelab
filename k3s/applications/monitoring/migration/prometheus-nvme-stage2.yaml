@@ -1,0 +1,69 @@
+---
+# prometheus migration, stage 2. Run only after the old PVC `prometheus-kube-prometheus-stack-prometheus-db-prometheus-kube-prometheus-stack-prometheus-0` is deleted.
+# Creates the PVC under the name the StatefulSet expects (on longhorn-nvme-local) and copies the
+# intermediate PVC into it, so the chart's volumeClaimTemplate matches what already exists.
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: prometheus-kube-prometheus-stack-prometheus-db-prometheus-kube-prometheus-stack-prometheus-0
+  namespace: monitoring
+spec:
+  accessModes:
+    - ReadWriteOnce
+  storageClassName: longhorn-nvme-local
+  resources:
+    requests:
+      storage: 50Gi
+---
+apiVersion: batch/v1
+kind: Job
+metadata:
+  name: prometheus-nvme-copy-stage2
+  namespace: monitoring
+spec:
+  backoffLimit: 2
+  ttlSecondsAfterFinished: 86400
+  template:
+    metadata:
+      labels:
+        app: prometheus-nvme-copy-stage2
+    spec:
+      restartPolicy: Never
+      containers:
+        - name: rsync
+          image: alpine:3.24
+          command:
+            - sh
+            - -c
+            - |
+              set -eu
+              apk add --no-cache rsync >/dev/null
+              echo "=== source ==="
+              ls -la /src
+              echo "=== running rsync ==="
+              rsync -aHAX --numeric-ids /src/ /dst/
+              echo "=== verify ==="
+              echo "src files: $(find /src -type f | wc -l)"
+              echo "dst files: $(find /dst -type f | wc -l)"
+              echo "src bytes: $(du -sb /src | cut -f1)"
+              echo "dst bytes: $(du -sb /dst | cut -f1)"
+              echo "DONE"
+          volumeMounts:
+            - name: source
+              mountPath: /src
+              readOnly: true
+            - name: dest
+              mountPath: /dst
+          resources:
+            requests:
+              cpu: 50m
+              memory: 128Mi
+            limits:
+              memory: 512Mi
+      volumes:
+        - name: source
+          persistentVolumeClaim:
+            claimName: prometheus-intermediate
+        - name: dest
+          persistentVolumeClaim:
+            claimName: prometheus-kube-prometheus-stack-prometheus-db-prometheus-kube-prometheus-stack-prometheus-0

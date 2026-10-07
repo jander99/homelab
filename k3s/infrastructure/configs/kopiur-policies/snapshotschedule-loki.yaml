@@ -1,0 +1,13 @@
+---
+# k3s/infrastructure/configs/kopiur-policies/snapshotschedule-loki.yaml
+apiVersion: kopiur.home-operations.com/v1alpha1
+kind: SnapshotSchedule
+metadata:
+  name: loki-scheduled
+  namespace: telemetry
+spec:
+  policyRef:
+    name: loki
+  schedule:
+    cron: "20 19 * * *"
+    runOnCreate: false

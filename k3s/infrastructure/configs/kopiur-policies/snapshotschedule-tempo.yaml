@@ -1,0 +1,13 @@
+---
+# k3s/infrastructure/configs/kopiur-policies/snapshotschedule-tempo.yaml
+apiVersion: kopiur.home-operations.com/v1alpha1
+kind: SnapshotSchedule
+metadata:
+  name: tempo-scheduled
+  namespace: telemetry
+spec:
+  policyRef:
+    name: tempo
+  schedule:
+    cron: "20 20 * * *"
+    runOnCreate: false
