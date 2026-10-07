@@ -1,0 +1,70 @@
+# K3s server configuration — managed by Ansible, do not edit manually.
+# Re-run bootstrap-k3s.yml to apply changes.
+
+# Restrict kubeconfig to root-only (0600); fetched copy also secured locally
+write-kubeconfig-mode: "0600"
+
+# Encrypt Secrets at rest (one-way door — enable before first workloads)
+secrets-encryption: true
+
+# CNI backend — vxlan is the universal default; use host-gw for L2-only networks.
+flannel-backend: "{{ k3s_flannel_backend }}"
+{% if k3s_node_ip | length > 0 %}
+
+# Pin cluster traffic to this IP (important on multi-NIC hosts)
+node-ip: "{{ k3s_node_ip }}"
+{% endif %}
+{% if k3s_tls_san | length > 0 %}
+
+# Extra TLS SANs (load balancer VIP, DNS alias, etc.)
+tls-san:
+{% for san in k3s_tls_san %}
+  - "{{ san }}"
+{% endfor %}
+{% endif %}
+{% if k3s_init_cluster %}
+
+# Start cluster with embedded etcd (HA mode)
+cluster-init: true
+
+# Serve etcd metrics (:2381) on the node IP instead of 127.0.0.1 so Prometheus can
+# scrape etcd_disk_wal_fsync_duration_seconds etc. (kubeEtcd in kube-prometheus-stack).
+etcd-expose-metrics: true
+{% endif %}
+{% if k3s_server_url | length > 0 %}
+
+# Join an existing cluster
+server: "{{ k3s_server_url }}"
+{% endif %}
+{% if k3s_token | length > 0 %}
+token: "{{ k3s_token }}"
+{% endif %}
+{% if k3s_disable_components | length > 0 %}
+
+# Disable built-in K3s components replaced by external controllers.
+disable:
+{% for component in k3s_disable_components %}
+  - "{{ component }}"
+{% endfor %}
+{% endif %}
+{% if k3s_oidc_issuer_url | length > 0 %}
+
+# OIDC integration — allows K3s API server to validate tokens issued by an
+# external OIDC provider (e.g. Authentik). Required for Headlamp SSO.
+kube-apiserver-arg:
+  - "oidc-issuer-url={{ k3s_oidc_issuer_url }}"
+  - "oidc-client-id={{ k3s_oidc_client_id }}"
+  - "oidc-username-claim={{ k3s_oidc_username_claim }}"
+  - "oidc-groups-claim={{ k3s_oidc_groups_claim }}"
+{% endif %}
+{% if k3s_disable_leader_election %}
+
+# Single server: there is no peer to fail over to, and a lease-renew timeout during an
+# etcd stall makes k3s exit (status=1) and restart every controller. Must be false for HA.
+kube-controller-manager-arg:
+  - "leader-elect=false"
+kube-scheduler-arg:
+  - "leader-elect=false"
+kube-cloud-controller-manager-arg:
+  - "leader-elect=false"
+{% endif %}
