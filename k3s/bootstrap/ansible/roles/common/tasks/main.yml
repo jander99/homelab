@@ -19,25 +19,12 @@
       and group_vars/all.yml are picked up correctly.
     quiet: true
 
-- name: Update apt cache and upgrade all packages
+# Full OS upgrades (and the reboot they may need) live in playbooks/upgrade-os.yml so a
+# provision run never upgrades or reboots a node unexpectedly.
+- name: Update apt cache
   ansible.builtin.apt:
     update_cache: true
-    upgrade: dist
     cache_valid_time: 3600
-  register: apt_upgrade_result
-
-- name: Check if reboot is required after package upgrade
-  ansible.builtin.stat:
-    path: /var/run/reboot-required
-  register: reboot_required_file
-
-- name: Reboot node if kernel was upgraded
-  ansible.builtin.reboot:
-    msg: "Rebooting to activate newly installed kernel"
-    reboot_timeout: 300
-    pre_reboot_delay: 5
-    post_reboot_delay: 30
-  when: reboot_required_file.stat.exists
 
 - name: Install common packages
   ansible.builtin.apt:

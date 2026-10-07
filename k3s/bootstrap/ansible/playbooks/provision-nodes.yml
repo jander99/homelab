@@ -3,11 +3,14 @@
 # Prepares Ubuntu nodes for K3s: OS hardening, package management, K3s prerequisites,
 # and NVIDIA GPU support (nvidia-container-toolkit + containerd runtime config).
 #
+# Does NOT upgrade OS packages; run upgrade-os.yml for that.
+#
 # Usage: ansible-playbook -i inventory/hosts.yml playbooks/provision-nodes.yml -v
 
 - name: Provision K3s nodes
   hosts: all
   become: true
+  serial: 1  # one node at a time: keeps etcd quorum if a task restarts or reboots a node
   roles:
     - common
     - network-bond
