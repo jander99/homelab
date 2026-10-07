@@ -29,23 +29,17 @@ k3s_firewall_rules:
   - { port: 6443,  proto: tcp, comment: "Kubernetes API server" }
   - { port: 10250, proto: tcp, comment: "Kubelet API" }
   - { port: 8472,  proto: udp, comment: "Flannel VXLAN" }
-  - { port: 51820, proto: udp, comment: "Flannel WireGuard (optional)" }
-# Etcd peer/client ports are HA-only; see BOOTSTRAP.md Part 2 for HA upgrade path.
+  # Embedded etcd client/peer, for the HA servers only (LAN-restricted). Harmless on one node.
+  - { port: 2379,  proto: tcp, from: 192.168.1.0/24, comment: "etcd client" }
+  - { port: 2380,  proto: tcp, from: 192.168.1.0/24, comment: "etcd peer" }
+# WireGuard (51820/udp) is not opened: flannel-backend is vxlan.
 
-# Kernel modules required for K3s / Kubernetes networking
-k3s_kernel_modules:
-  - br_netfilter
-  - overlay
-
-# sysctl settings required for Kubernetes networking
-k3s_sysctl_params:
-  net.bridge.bridge-nf-call-iptables: 1
-  net.bridge.bridge-nf-call-ip6tables: 1
-  net.ipv4.ip_forward: 1
-  vm.swappiness: 0
+# Kernel modules and base sysctls come from the k3s-prereqs role defaults. Only additions go
+# here: k3s_sysctl_extra is merged over k3s_sysctl_params (role default), never replaces it.
+k3s_sysctl_extra:
   # Inotify limits for fsnotify-based controllers (nvidia-device-plugin,
   # kube-state-metrics, cilium, etc.). The Linux kernel defaults to
-  # max_user_instances=128; containerd-shim on cgroup v2 holds ≥1 inotify
+  # max_user_instances=128; containerd-shim on cgroup v2 holds >=1 inotify
   # instance per container for memory.events monitoring, plus every fsnotify
   # watcher adds another. Dense nodes exhaust the default at ~70 pods and the
   # nvidia-device-plugin (and similar) CrashLoopBackOff with
@@ -56,12 +50,6 @@ k3s_sysctl_params:
   # at hundreds of pods without re-tuning.
   fs.inotify.max_user_watches: 1048576
   fs.inotify.max_user_instances: 8192
-  # Cap dirty page cache so bulk writers (SABnzbd, Tdarr) flush in small steady
-  # chunks instead of multi-GB bursts that stall etcd fdatasync on the shared SSD.
-  # Setting the *_bytes knobs makes the kernel ignore the *_ratio ones.
-  # NOTE: this dict replaces the k3s-prereqs role default wholesale (no merge).
-  vm.dirty_background_bytes: 67108864  # 64 MiB
-  vm.dirty_bytes: 268435456  # 256 MiB
 
 # K3s version installed on NEW nodes. Existing nodes are never touched by Ansible: upgrades are
 # done by system-upgrade-controller from the Plan in infrastructure/configs/system-upgrade-controller.

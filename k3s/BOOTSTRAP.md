@@ -103,7 +103,7 @@ Key settings in `inventory/group_vars/all.yml`:
 | `timezone` | `America/New_York` | Node timezone |
 | `k3s_firewall_rules` | SSH, API, kubelet, Flannel | UFW ports to open |
 | `k3s_kernel_modules` | `br_netfilter`, `overlay` | Required kernel modules |
-| `k3s_sysctl_params` | bridge-nf, ip-forward, swappiness | Required sysctl settings |
+| `k3s_sysctl_params` | bridge-nf, ip-forward, swappiness | Required sysctl settings (extend via `k3s_sysctl_extra`) |
 | `flux_github_owner` | `jander99` | GitHub owner for Flux bootstrap |
 | `flux_github_repo` | `homelab` | GitHub repo for Flux bootstrap |
 | `flux_git_branch` | `master` | Branch reconciled by Flux |

@@ -42,7 +42,7 @@
     sysctl_file: /etc/sysctl.d/k3s.conf
     reload: true
     state: present
-  loop: "{{ k3s_sysctl_params | dict2items }}"
+  loop: "{{ k3s_sysctl_params | combine(k3s_sysctl_extra) | dict2items }}"
 
 - name: Install open-iscsi (required by the Longhorn CSI driver's engine pods)
   ansible.builtin.apt:
