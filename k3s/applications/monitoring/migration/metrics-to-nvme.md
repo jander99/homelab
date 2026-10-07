@@ -4,8 +4,8 @@ Moves Prometheus, Loki and Tempo from `local-path` (SATA root disk, no snapshots
 `longhorn-nvme-local` (NVMe, strict-local, backed up by kopiur). Same two-stage rsync pattern as the
 alertmanager and Grafana moves. Do one service at a time, Tempo first (pilot), then Loki, then Prometheus.
 
-Measured usage before the move: Prometheus 13G/20Gi, Loki 304M/20Gi, Tempo 1.1M/5Gi.
-New sizes: 20Gi, 5Gi, 2Gi (must match the HelmRelease values in this PR).
+Measured usage before the move: Prometheus 13G/20Gi at full 30d retention, Loki 304M/20Gi, Tempo 1.1M/5Gi.
+New sizes: 50Gi (with `retentionSize: 40GB`), 5Gi, 2Gi (must match the HelmRelease values in this PR).
 
 **Do not merge the PR until all three cutovers are done.** Loki/Tempo StatefulSet volume templates are
 immutable, so the new values must only reach Helm after the StatefulSets and PVCs already match.

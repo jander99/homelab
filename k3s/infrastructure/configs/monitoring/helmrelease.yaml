@@ -91,6 +91,9 @@ spec:
       prometheusSpec:
         scrapeInterval: "60s"
         retention: 30d
+        # Size cap below the 50Gi PVC: if the series count grows, Prometheus drops the oldest
+        # blocks instead of filling the disk. Measured steady state at 30d is ~13GB.
+        retentionSize: 40GB
         podMonitorSelectorNilUsesHelmValues: false
         serviceMonitorSelectorNilUsesHelmValues: false
         scrapeConfigSelectorNilUsesHelmValues: false
@@ -111,7 +114,7 @@ spec:
               storageClassName: longhorn-nvme-local
               resources:
                 requests:
-                  storage: 20Gi
+                  storage: 50Gi
       ingress:
         enabled: true
         ingressClassName: traefik

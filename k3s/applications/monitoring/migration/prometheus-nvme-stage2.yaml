@@ -13,7 +13,7 @@ spec:
   storageClassName: longhorn-nvme-local
   resources:
     requests:
-      storage: 20Gi
+      storage: 50Gi
 ---
 apiVersion: batch/v1
 kind: Job
