@@ -47,3 +47,9 @@ resources:
   - snapshotschedule-tdarr-server-data.yaml
   - snapshotpolicy-tdarr-node-config.yaml
   - snapshotschedule-tdarr-node-config.yaml
+  - snapshotpolicy-prometheus.yaml
+  - snapshotschedule-prometheus.yaml
+  - snapshotpolicy-loki.yaml
+  - snapshotschedule-loki.yaml
+  - snapshotpolicy-tempo.yaml
+  - snapshotschedule-tempo.yaml

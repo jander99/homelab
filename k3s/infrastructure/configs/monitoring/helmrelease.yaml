@@ -106,7 +106,9 @@ spec:
             spec:
               accessModes:
                 - ReadWriteOnce
-              storageClassName: local-path
+              # Moved local-path -> longhorn-nvme-local (backed up by kopiur) via the
+              # procedure in applications/monitoring/migration/metrics-to-nvme.md.
+              storageClassName: longhorn-nvme-local
               resources:
                 requests:
                   storage: 20Gi

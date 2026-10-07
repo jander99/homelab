@@ -59,8 +59,9 @@ spec:
     singleBinary:
       replicas: 1
       persistence:
-        size: 20Gi
-        storageClassName: local-path
+        # Moved local-path -> longhorn-nvme-local; ~300Mi used, so sized down from 20Gi.
+        size: 5Gi
+        storageClassName: longhorn-nvme-local
         accessModes:
           - ReadWriteOnce
 

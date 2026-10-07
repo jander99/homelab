@@ -1,0 +1,41 @@
+---
+# k3s/infrastructure/configs/kopiur-policies/snapshotpolicy-loki.yaml
+apiVersion: kopiur.home-operations.com/v1alpha1
+kind: SnapshotPolicy
+metadata:
+  name: loki
+  namespace: telemetry
+spec:
+  repository:
+    kind: ClusterRepository
+    name: nas
+  sources:
+    - pvc:
+        name: storage-loki-0
+      sourcePathOverride: /var/loki
+  copyMethod: Snapshot
+  volumeSnapshotClassName: longhorn-snapclass
+  compression:
+    compressor: zstd
+  # Metrics are rebuildable and large: keep fewer, less frequent restore points than config volumes.
+  retention:
+    keepDaily: 7
+    keepWeekly: 4
+    keepMonthly: 3
+  verification:
+    quick:
+      schedule:
+        cron: "H 3 * * *"
+  credentialProjection:
+    enabled: true
+  mover:
+    securityContext:
+      runAsUser: 10001
+      runAsGroup: 10001
+    podSecurityContext:
+      fsGroup: 10001
+      fsGroupChangePolicy: OnRootMismatch
+    cache:
+      capacity: 1Gi
+      storageClassName: local-path
+      mode: Ephemeral
