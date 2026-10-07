@@ -1,0 +1,15 @@
+---
+# inventory/host_vars/testbed.yml
+# Host vars that Ansible actually loads when running playbooks/*.yml (inventory-adjacent).
+# NOTE: ../../host_vars/testbed.yml is NOT loaded by playbooks/ (it sits beside neither the
+# playbooks nor the inventory), so network_bond there is currently inert. Keep new vars here.
+
+# Samsung 980 PRO 2TB (PCIe Gen2 x4 on this board). ~260G of the VG is left unallocated
+# on purpose so volumes can grow with `lvextend -r` later.
+nvme_storage:
+  enabled: true
+  device: /dev/disk/by-id/nvme-Samsung_SSD_980_PRO_2TB_S6B0NG0RA47707K
+  vg_name: nvme-vg
+  volumes:
+    - { name: longhorn, size: 1500g, mount: /mnt/nvme/longhorn }
+    - { name: k3s-db, size: 100g, mount: /mnt/nvme/k3s-db }

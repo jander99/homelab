@@ -12,4 +12,5 @@
     - common
     - network-bond
     - k3s-prereqs
+    - nvme-storage
     - nvidia-gpu
