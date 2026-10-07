@@ -5,3 +5,5 @@
 
 nvme_storage:
   enabled: false
+
+# Optional, per host: bind_mounts: [{ src: /mnt/nvme/<vol>/<dir>, path: /target/path }]

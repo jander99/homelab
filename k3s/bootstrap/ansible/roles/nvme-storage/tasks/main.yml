@@ -77,3 +77,25 @@
         opts: noatime,nofail
         state: mounted
       loop: "{{ nvme_storage.volumes }}"
+
+    # Bind mounts expose a directory of an NVMe volume at a path that software hardcodes
+    # (e.g. k3s's etcd dir). A subdirectory is used so ext4's lost+found never shows up there.
+    # The consumer must declare RequiresMountsFor= on the target, or it can start on the
+    # empty underlying directory (see k3s_required_mounts in the k3s-server role).
+    - name: Create bind mount source directories
+      ansible.builtin.file:
+        path: "{{ item.src }}"
+        state: directory
+        owner: root
+        group: root
+        mode: "0700"
+      loop: "{{ nvme_storage.bind_mounts | default([]) }}"
+
+    - name: Bind mount directories and persist in fstab
+      ansible.posix.mount:
+        path: "{{ item.path }}"
+        src: "{{ item.src }}"
+        fstype: none
+        opts: bind,nofail
+        state: mounted
+      loop: "{{ nvme_storage.bind_mounts | default([]) }}"
