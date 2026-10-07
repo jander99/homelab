@@ -1,0 +1,71 @@
+---
+# Storage tiers, selected by Longhorn disk tags (`nvme` / `sata`) on each node's disks.
+# The tags are set on the Longhorn Node object, not by Flux — until a disk carries the
+# tag, volumes from these classes stay unschedulable. See PR description for the patch.
+#
+# StorageClass parameters are immutable: to change replica counts later, recreate the class
+# (kustomize.toolkit.fluxcd.io/force) and patch existing Volumes' numberOfReplicas.
+#
+# All tiers stay at 1 replica while only the testbed node exists. Raise
+# longhorn-nvme (2-3) and longhorn-sata (2) when the 3-node cluster is up.
+#
+# Not the default: local-path stays the cluster default; apps opt in explicitly.
+# kopiur backs up via CSI snapshots (longhorn-snapclass), so every class here is backup-capable.
+# Longhorn replication is not a backup.
+apiVersion: storage.k8s.io/v1
+kind: StorageClass
+metadata:
+  name: longhorn-nvme
+  annotations:
+    storageclass.kubernetes.io/is-default-class: "false"
+provisioner: driver.longhorn.io
+reclaimPolicy: Delete
+volumeBindingMode: Immediate
+allowVolumeExpansion: true
+parameters:
+  dataEngine: v1
+  fsType: ext4
+  numberOfReplicas: "1"  # 2-3 once the cluster has 3 nodes
+  dataLocality: disabled
+  diskSelector: nvme
+  staleReplicaTimeout: "30"
+---
+# Fast, backed-up, single replica on the node running the pod: write-heavy data that is
+# rebuildable or self-replicating (metrics stack). strict-local requires exactly 1 replica
+# and is incompatible with RWX. WaitForFirstConsumer lets the scheduler pick the node first.
+apiVersion: storage.k8s.io/v1
+kind: StorageClass
+metadata:
+  name: longhorn-nvme-local
+  annotations:
+    storageclass.kubernetes.io/is-default-class: "false"
+provisioner: driver.longhorn.io
+reclaimPolicy: Delete
+volumeBindingMode: WaitForFirstConsumer
+allowVolumeExpansion: true
+parameters:
+  dataEngine: v1
+  fsType: ext4
+  numberOfReplicas: "1"
+  dataLocality: strict-local
+  diskSelector: nvme
+  staleReplicaTimeout: "30"
+---
+# Slow tier for bulk or cold data.
+apiVersion: storage.k8s.io/v1
+kind: StorageClass
+metadata:
+  name: longhorn-sata
+  annotations:
+    storageclass.kubernetes.io/is-default-class: "false"
+provisioner: driver.longhorn.io
+reclaimPolicy: Delete
+volumeBindingMode: Immediate
+allowVolumeExpansion: true
+parameters:
+  dataEngine: v1
+  fsType: ext4
+  numberOfReplicas: "1"  # 2 once the cluster has 3 nodes
+  dataLocality: disabled
+  diskSelector: sata
+  staleReplicaTimeout: "30"
