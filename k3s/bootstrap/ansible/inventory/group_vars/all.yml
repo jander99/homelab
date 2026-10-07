@@ -63,9 +63,11 @@ k3s_sysctl_params:
   vm.dirty_background_bytes: 67108864  # 64 MiB
   vm.dirty_bytes: 268435456  # 256 MiB
 
-# K3s version installed on all nodes — pin to a specific release.
-# Find the latest: https://github.com/k3s-io/k3s/releases
-k3s_version: "v1.36.4+k3s1"
+# K3s version installed on NEW nodes. Existing nodes are never touched by Ansible: upgrades are
+# done by system-upgrade-controller from the Plan in infrastructure/configs/system-upgrade-controller.
+# Renovate bumps this together with that Plan's `version`.
+# renovate: datasource=github-releases depName=k3s-io/k3s versioning=regex:^v(?<major>\d+)\.(?<minor>\d+)\.(?<patch>\d+)(?<prerelease>)\+k3s(?<build>\d+)$
+k3s_version: "v1.36.5+k3s1"
 
 # Use embedded etcd instead of SQLite. K3s migrates existing SQLite data into
 # etcd in place on restart (state.db is renamed aside afterward, not reused) —
