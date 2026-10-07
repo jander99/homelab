@@ -1,8 +1,24 @@
 ---
 # inventory/host_vars/testbed.yml
 # Host vars that Ansible actually loads when running playbooks/*.yml (inventory-adjacent).
-# NOTE: ../../host_vars/testbed.yml is NOT loaded by playbooks/ (it sits beside neither the
-# playbooks nor the inventory), so network_bond there is currently inert. Keep new vars here.
+
+# i7-4770k, ASUS Z87-PRO, Intel I217-V (eno1) + TP-LINK TX201/RTL8125 (enp2s0)
+network_bond:
+  enabled: true
+  name: bond0
+  interfaces:
+    - eno1
+    - enp2s0
+  # Pin to eno1 MAC so Unifi DHCP reservation survives (unused with static IP,
+  # but kept for clarity and in case DHCP is ever re-enabled).
+  macaddress: "e0:3f:49:9f:b3:dd"
+  address: "192.168.1.128/24"
+  gateway: "192.168.1.1"
+  parameters:
+    mode: 802.3ad
+    lacp_rate: fast
+    mii_monitor_interval: 100
+    transmit_hash_policy: layer3+4
 
 # Samsung 980 PRO 2TB (PCIe Gen2 x4 on this board). ~260G of the VG is left unallocated
 # on purpose so volumes can grow with `lvextend -r` later.

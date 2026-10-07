@@ -1,7 +1,7 @@
 ---
 # roles/nvme-storage/defaults/main.yml
 # Skipped on hosts where nvme_storage.enabled is false (the default).
-# Set per host in host_vars/<host>.yml; see host_vars/testbed.yml.
+# Set per host in inventory/host_vars/<host>.yml; see inventory/host_vars/testbed.yml.
 
 nvme_storage:
   enabled: false

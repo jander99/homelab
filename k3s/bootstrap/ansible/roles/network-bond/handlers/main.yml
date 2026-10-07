@@ -1,4 +1,19 @@
 ---
 # roles/network-bond/handlers/main.yml
-# Intentionally empty: relies on the "Apply netplan" handler from roles/common,
-# which runs netplan apply asynchronously (async: 30, poll: 0) to avoid SSH drops.
+# Own handlers so the role works alone or with --tags. Both listen on one topic so that
+# `netplan generate` validates the rendered config before the async apply (no revert on a
+# bad bond otherwise: SSH is gone).
+
+- name: Validate netplan config
+  ansible.builtin.command:
+    cmd: netplan generate
+  changed_when: false
+  listen: Apply bond netplan
+
+- name: Apply netplan (bond)
+  ansible.builtin.command:
+    cmd: netplan apply
+  async: 30
+  poll: 0
+  changed_when: true
+  listen: Apply bond netplan

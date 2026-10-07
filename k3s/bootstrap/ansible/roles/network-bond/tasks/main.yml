@@ -34,16 +34,16 @@
         owner: root
         group: root
         mode: "0600"
-      notify: Apply netplan
+      notify: Apply bond netplan
 
     - name: Remove subiquity installer netplan config (superseded by bond config)
       ansible.builtin.file:
         path: /etc/netplan/00-installer-config.yaml
         state: absent
-      notify: Apply netplan
+      notify: Apply bond netplan
 
     - name: Remove DNS override netplan config (DNS now in bond config)
       ansible.builtin.file:
         path: /etc/netplan/99-homelab-dns.yaml
         state: absent
-      notify: Apply netplan
+      notify: Apply bond netplan
