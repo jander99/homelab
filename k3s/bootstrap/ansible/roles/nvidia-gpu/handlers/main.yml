@@ -1,7 +1,12 @@
 ---
 # roles/nvidia-gpu/handlers/main.yml
+# Distinct name from the k3s-server handler so the two never collide. Skipped when K3s is not
+# installed yet (first provision): K3s detects the NVIDIA runtime when it first starts.
 
-- name: Restart k3s
+- name: Restart k3s for NVIDIA runtime
   ansible.builtin.systemd:
     name: "{{ 'k3s' if 'k3s.service' in ansible_facts.services else 'k3s-agent' }}"
     state: restarted
+  when: >-
+    'k3s.service' in ansible_facts.services or
+    'k3s-agent.service' in ansible_facts.services

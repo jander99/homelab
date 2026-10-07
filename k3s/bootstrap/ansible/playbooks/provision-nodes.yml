@@ -16,4 +16,9 @@
     - network-bond
     - k3s-prereqs
     - nvme-storage
+
+- name: Provision NVIDIA GPU nodes
+  hosts: gpu_nodes
+  become: true
+  roles:
     - nvidia-gpu
