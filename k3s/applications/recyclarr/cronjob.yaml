@@ -22,7 +22,7 @@ spec:
           restartPolicy: OnFailure
           containers:
             - name: recyclarr
-              image: ghcr.io/recyclarr/recyclarr:8.7.2
+              image: ghcr.io/recyclarr/recyclarr:8.7.3
               # recyclarr exits 0 even when a profile fails validation; fail the
               # Job on any [ERR] line so KubeJobFailed fires instead of silence.
               command:
