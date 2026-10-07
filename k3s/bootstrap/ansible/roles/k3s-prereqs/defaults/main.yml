@@ -16,3 +16,7 @@ k3s_sysctl_params:
   # Setting the *_bytes knobs makes the kernel ignore the *_ratio ones.
   vm.dirty_background_bytes: 67108864  # 64 MiB
   vm.dirty_bytes: 268435456  # 256 MiB
+
+# Per-environment additions, merged over k3s_sysctl_params (same key wins). Set this in
+# group_vars instead of redefining k3s_sysctl_params, which would replace it wholesale.
+k3s_sysctl_extra: {}

@@ -60,6 +60,7 @@
     rule: allow
     port: "{{ item.port }}"
     proto: "{{ item.proto }}"
+    from_ip: "{{ item.from | default('any') }}"
     comment: "{{ item.comment }}"
   loop: "{{ k3s_firewall_rules }}"
 
