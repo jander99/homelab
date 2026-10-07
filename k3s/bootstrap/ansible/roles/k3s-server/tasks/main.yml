@@ -181,6 +181,26 @@
     mode: "0644"
   notify: Restart k3s
 
+- name: Require data mounts before K3s starts
+  ansible.builtin.copy:
+    dest: /etc/systemd/system/k3s.service.d/required-mounts.conf
+    content: |
+      # Managed by Ansible (k3s-server role).
+      [Unit]
+      RequiresMountsFor={{ k3s_required_mounts | join(' ') }}
+    owner: root
+    group: root
+    mode: "0644"
+  when: k3s_required_mounts | length > 0
+  notify: Restart k3s
+
+- name: Remove required-mounts drop-in when none are configured
+  ansible.builtin.file:
+    path: /etc/systemd/system/k3s.service.d/required-mounts.conf
+    state: absent
+  when: k3s_required_mounts | length == 0
+  notify: Restart k3s
+
 - name: Enable and start K3s service
   ansible.builtin.systemd:
     name: k3s

@@ -13,3 +13,11 @@ nvme_storage:
   volumes:
     - { name: longhorn, size: 1500g, mount: /mnt/nvme/longhorn }
     - { name: k3s-db, size: 100g, mount: /mnt/nvme/k3s-db }
+  # etcd's WAL fsync latency is what the cluster feels; keep its dir on NVMe. snapshots/ stays
+  # on the root disk on purpose (a backup should not share a device with the data it protects).
+  bind_mounts:
+    - { src: /mnt/nvme/k3s-db/etcd, path: /var/lib/rancher/k3s/server/db/etcd }
+
+# k3s must never start before these are mounted, or it would create a fresh empty etcd.
+k3s_required_mounts:
+  - /var/lib/rancher/k3s/server/db/etcd

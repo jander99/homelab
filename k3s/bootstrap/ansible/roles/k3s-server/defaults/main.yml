@@ -60,3 +60,8 @@ k3s_disable_leader_election: false
 # "leaderelection lost for k3s-etcd". Raising them only slows failover between HA servers.
 k3s_election_lease_duration: "90s"
 k3s_election_renew_deadline: "60s"
+
+# Paths that must be mounted before k3s starts (systemd RequiresMountsFor=). Set this for any
+# path backed by a separate volume, e.g. the etcd dir; k3s then refuses to start rather than
+# initialising a new empty datastore on the underlying directory.
+k3s_required_mounts: []

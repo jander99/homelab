@@ -19,7 +19,7 @@ ansible/
 └── roles/
     ├── common/                        # apt upgrade, packages, timezone, UFW, passwordless sudo
     ├── k3s-prereqs/                   # swap disable, kernel modules (br_netfilter, overlay), sysctl, open-iscsi (Longhorn)
-    ├── nvme-storage/                  # NVMe → LVM VG + ext4 volumes (Longhorn, k3s DB); opt-in via host_vars nvme_storage.enabled
+    ├── nvme-storage/                  # NVMe → LVM VG + ext4 volumes (Longhorn, k3s DB) + bind mounts (etcd dir); opt-in via host_vars nvme_storage.enabled
     ├── k3s-server/                    # K3s install, config, kubeconfig fetch, token persistence
     ├── flux-bootstrap/                # Flux CLI, age key, sops-age Secret, GitHub bootstrap (first-time only)
     └── flux-upgrade/                  # Flux CLI install, CRD storedVersions migration, flux install
