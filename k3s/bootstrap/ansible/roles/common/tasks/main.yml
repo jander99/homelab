@@ -64,6 +64,15 @@
     comment: "{{ item.comment }}"
   loop: "{{ k3s_firewall_rules }}"
 
+- name: Remove retired UFW rules
+  community.general.ufw:
+    rule: allow
+    port: "{{ item.port }}"
+    proto: "{{ item.proto }}"
+    from_ip: "{{ item.from | default('any') }}"
+    delete: true
+  loop: "{{ k3s_firewall_absent_rules }}"
+
 - name: Enable UFW
   community.general.ufw:
     state: enabled

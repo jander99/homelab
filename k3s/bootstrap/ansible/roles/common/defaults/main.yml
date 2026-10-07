@@ -5,3 +5,7 @@
 timezone: America/New_York
 common_packages: []
 k3s_firewall_rules: []
+
+# Rules to remove from UFW. Ansible only adds rules, so retired ones must be listed here.
+# Same shape as k3s_firewall_rules (port/proto, optional from).
+k3s_firewall_absent_rules: []
