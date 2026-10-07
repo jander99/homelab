@@ -42,13 +42,19 @@ kubectl -n $NS wait --for=condition=complete job/${SVC}-nvme-copy-stage1 --timeo
 kubectl -n $NS logs job/${SVC}-nvme-copy-stage1 | tail -8      # file and byte counts must match
 
 # 4. Remove the old PVC and the StatefulSet (keeps volumeClaimTemplate immutability out of the way).
+#    Delete the stage-1 Job first: its finished pod still references the old PVC and holds it in
+#    Terminating. Run these one at a time and check each result; stage 2 reuses the old PVC's name, so
+#    applying it before the old PVC is fully gone makes its pod grab the dying PVC (this happened on Tempo).
+kubectl -n $NS delete job ${SVC}-nvme-copy-stage1
 kubectl -n $NS delete pvc $PVC
+kubectl -n $NS get pvc $PVC     # must say NotFound before continuing
 kubectl -n $NS delete sts $SVC --cascade=orphan     # Prometheus: delete the sts; the operator recreates it at replicas 0
 
 # 5. Stage 2: intermediate -> PVC with the original name, now on longhorn-nvme-local.
 kubectl apply -f <stage2 manifest>
 kubectl -n $NS wait --for=condition=complete job/${SVC}-nvme-copy-stage2 --timeout=1h
 kubectl -n $NS logs job/${SVC}-nvme-copy-stage2 | tail -8
+kubectl -n $NS delete job ${SVC}-nvme-copy-stage2
 kubectl -n $NS delete pvc ${SVC}-intermediate
 ```
 
