@@ -1,0 +1,50 @@
+---
+# Repository storage for kopiur snapshot Jobs in the telemetry namespace (Loki, Tempo).
+# Static PV + PVC pair bound to the smb-media CSI provisioner, same backup SMB source as
+# every other kopiur-repo PV; each namespace has its own mount = its own SMB session.
+#
+# uid/gid=10001 matches the Loki and Tempo containers. One PV per namespace is shared by
+# the loki and tempo SnapshotPolicies.
+apiVersion: v1
+kind: PersistentVolume
+metadata:
+  name: kopiur-repo-telemetry
+spec:
+  capacity:
+    storage: 50Gi
+  accessModes:
+    - ReadWriteMany
+  persistentVolumeReclaimPolicy: Retain
+  storageClassName: smb-media
+  mountOptions:
+    - vers=3.0
+    - dir_mode=0777
+    - file_mode=0777
+    - uid=10001
+    - gid=10001
+    - noperm
+    - cache=strict
+    - noserverino
+  csi:
+    driver: smb.csi.k8s.io
+    readOnly: false
+    volumeHandle: kopiur-repo-telemetry-vol
+    volumeAttributes:
+      source: //192.168.1.20/backups
+    nodeStageSecretRef:
+      name: smbcreds
+      namespace: kube-system
+---
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: kopiur-repo
+  namespace: telemetry
+spec:
+  accessModes:
+    - ReadWriteMany
+  storageClassName: smb-media
+  volumeName: kopiur-repo-telemetry
+  resources:
+    requests:
+      storage: 50Gi

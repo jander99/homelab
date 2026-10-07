@@ -26,6 +26,7 @@ resources:
   - pv-sabnzbd.yaml
   - pv-portainer.yaml
   - pv-monitoring.yaml
+  - pv-telemetry.yaml
   - pv-authentik.yaml
   - pv-tdarr.yaml
   - clusterrepository.yaml
