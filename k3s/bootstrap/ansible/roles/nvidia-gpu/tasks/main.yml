@@ -3,6 +3,7 @@
 # Installs nvidia-container-toolkit and libnvidia-encode (required for NVENC GPU
 # transcoding). K3s 1.35+ auto-detects the NVIDIA container runtime at startup
 # and adds it to containerd config automatically.
+# Runs only on hosts in the gpu_nodes inventory group.
 # Assumes base NVIDIA drivers are already installed on the node (e.g. via
 # nvidia-headless-no-dkms-*-server-open). libnvidia-encode is a separate package
 # not included in the headless variant; without it NVENC encoding fails inside
@@ -42,7 +43,7 @@
       - "{{ nvidia_encode_package }}"
     state: present
     update_cache: true
-  notify: Restart k3s
+  notify: Restart k3s for NVIDIA runtime
 
 # ── 2. Restart k3s so it regenerates config.toml with NVIDIA runtime ─────────
 # K3s detects nvidia-container-runtime at startup and registers it automatically.
