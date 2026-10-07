@@ -1,0 +1,79 @@
+---
+# roles/nvme-storage/tasks/main.yml
+# Puts the fast NVMe drive under LVM and mounts one ext4 volume per purpose
+# (Longhorn replicas, k3s DB), so one consumer filling up cannot starve another.
+# Never touches a disk that carries any signature other than our own LVM PV.
+# Skipped entirely on hosts where nvme_storage.enabled is false (the default).
+
+- name: Configure NVMe storage
+  when: nvme_storage.enabled | default(false)
+  block:
+    - name: Validate required nvme_storage variables
+      ansible.builtin.assert:
+        that:
+          - nvme_storage.device is defined
+          - nvme_storage.device.startswith('/dev/disk/by-id/')
+          - nvme_storage.vg_name is defined
+          - nvme_storage.volumes is defined
+          - nvme_storage.volumes | length > 0
+          - nvme_storage.volumes | map(attribute='name') | list | length == nvme_storage.volumes | map(attribute='name') | list | unique | length
+        fail_msg: >-
+          nvme_storage requires: device (a stable /dev/disk/by-id/ path, never /dev/nvmeXn1),
+          vg_name, and a non-empty list of volumes (unique names, each with name/size/mount).
+        quiet: true
+
+    - name: Install lvm2
+      ansible.builtin.apt:
+        name: lvm2
+        state: present
+
+    - name: Check the device exists
+      ansible.builtin.stat:
+        path: "{{ nvme_storage.device }}"
+      register: nvme_device_stat
+      failed_when: not nvme_device_stat.stat.exists
+
+    - name: Read any existing signature on the device
+      ansible.builtin.command: blkid -o value -s TYPE {{ nvme_storage.device }}
+      register: nvme_signature
+      changed_when: false
+      check_mode: false  # read-only; the assert below needs it even under --check
+      failed_when: nvme_signature.rc not in [0, 2]  # rc 2 = no signature found
+
+    - name: Refuse to use a disk that already holds data
+      ansible.builtin.assert:
+        that: nvme_signature.rc == 2 or nvme_signature.stdout == 'LVM2_member'
+        fail_msg: >-
+          {{ nvme_storage.device }} already has a '{{ nvme_signature.stdout }}' signature.
+          Wipe it by hand (wipefs -a) if you are certain it is disposable.
+        quiet: true
+
+    - name: Create the volume group
+      community.general.lvg:
+        vg: "{{ nvme_storage.vg_name }}"
+        pvs: "{{ nvme_storage.device }}"
+        state: present
+
+    - name: Create logical volumes
+      community.general.lvol:
+        vg: "{{ nvme_storage.vg_name }}"
+        lv: "{{ item.name }}"
+        size: "{{ item.size }}"
+        shrink: false
+      loop: "{{ nvme_storage.volumes }}"
+
+    - name: Create filesystems
+      community.general.filesystem:
+        fstype: ext4
+        dev: "/dev/{{ nvme_storage.vg_name }}/{{ item.name }}"
+      loop: "{{ nvme_storage.volumes }}"
+
+    # nofail: a dead or missing NVMe must not block boot (SSH stays reachable for repair).
+    - name: Mount volumes and persist in fstab
+      ansible.posix.mount:
+        path: "{{ item.mount }}"
+        src: "/dev/{{ nvme_storage.vg_name }}/{{ item.name }}"
+        fstype: ext4
+        opts: noatime,nofail
+        state: mounted
+      loop: "{{ nvme_storage.volumes }}"
