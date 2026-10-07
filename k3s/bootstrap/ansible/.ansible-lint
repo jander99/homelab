@@ -1,0 +1,13 @@
+---
+# Baseline: existing violations are skipped so CI can gate NEW ones. Burn the list down over time.
+profile: basic
+exclude_paths:
+  - .omc/
+skip_list:
+  - role-name              # roles use hyphens (k3s-server, ...)
+  - risky-shell-pipe
+  - command-instead-of-module
+  - no-handler
+  - yaml[commas]
+  - yaml[empty-lines]
+  - var-naming[no-role-prefix]  # role vars are shared with group_vars by name
