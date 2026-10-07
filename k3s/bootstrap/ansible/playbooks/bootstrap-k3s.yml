@@ -8,5 +8,6 @@
 - name: Install and configure K3s server
   hosts: k3s_servers
   become: true
+  serial: 1  # restart servers one by one so etcd keeps quorum
   roles:
     - k3s-server
