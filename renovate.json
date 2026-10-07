@@ -22,7 +22,26 @@
       "/(^|/)k3s/.+\\.yaml$/"
     ]
   },
+  "customManagers": [
+    {
+      "description": "k3s version pins annotated with '# renovate:' (upgrade Plan + Ansible bootstrap)",
+      "customType": "regex",
+      "managerFilePatterns": [
+        "/^k3s/infrastructure/configs/system-upgrade-controller/plan\\.yaml$/",
+        "/^k3s/bootstrap/ansible/inventory/group_vars/all\\.yml$/"
+      ],
+      "matchStrings": [
+        "# renovate: datasource=(?<datasource>\\S+) depName=(?<depName>\\S+) versioning=(?<versioning>\\S+)\\n\\s*(?:version|k3s_version): \"?(?<currentValue>[^\"\\s]+)\"?"
+      ]
+    }
+  ],
   "packageRules": [
+    {
+      "description": "One PR bumps the k3s pin everywhere; a merged PR triggers the upgrade, so never automerge",
+      "matchDepNames": ["k3s-io/k3s"],
+      "groupName": "k3s",
+      "automerge": false
+    },
     {
       "description": "Pin nx to a specific version instead of latest",
       "matchPackageNames": ["nx"],

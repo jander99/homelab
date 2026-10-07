@@ -1,11 +1,12 @@
 ---
 # Plan resource for system-upgrade-controller.
 #
-# Follows the k3s stable release channel and upgrades the single
-# control-plane node. No external trigger is needed: the controller
-# polls `channel` on its own reconcile loop and creates an Apply Job
-# whenever the channel-resolved latestVersion differs from the
-# running node's version, constrained to the `window` below.
+# Upgrades the single control-plane node to the k3s version pinned in
+# `version` below. Renovate bumps that pin (and the matching Ansible
+# bootstrap pin) in one PR; merging it is the upgrade trigger: Flux
+# applies the Plan and the controller creates an Apply Job whenever
+# `version` differs from the running node's version, constrained to the
+# `window` below. Ansible is not involved in upgrades.
 #
 # History, for whoever touches this next: #349 originally shipped
 # this Plan with a `window:` block. #350 removed it, claiming the
@@ -57,12 +58,13 @@ spec:
   # evict; k3s-system pods are DaemonSet-managed and ignored.
   cordon: true
   upgrade:
-    # The tag is irrelevant — `channel` below drives the actual k3s
+    # The tag is irrelevant — `version` below drives the actual k3s
     # release selected.
     image: rancher/k3s-upgrade
-  # Stable k3s release channel URL — controller polls this on each
-  # reconcile and pins the latest version advertised at that time.
-  channel: https://update.k3s.io/v1-release/channels/stable
+  # Pinned k3s release; bumped by Renovate (see renovate.json). Keep in
+  # sync with k3s_version in ansible/inventory/group_vars/all.yml.
+  # renovate: datasource=github-releases depName=k3s-io/k3s versioning=regex:^v(?<major>\d+)\.(?<minor>\d+)\.(?<patch>\d+)(?<prerelease>)\+k3s(?<build>\d+)$
+  version: v1.36.5+k3s1
   # Only generate Apply Jobs inside this window. Sundays 04:00-05:00
   # UTC: single-server cluster, ~30-60s unavailability during the
   # binary swap is acceptable at this hour. Requires controller
