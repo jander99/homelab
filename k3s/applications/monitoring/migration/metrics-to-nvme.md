@@ -61,8 +61,9 @@ kubectl -n $NS delete pvc ${SVC}-intermediate
 ## After all three are cut over
 
 1. Merge the PR. Policies and schedules apply; the HelmRelease values now match the live PVCs.
-2. Resume and verify, per service: `flux resume hr $HR -n $NS`. Prometheus: the HelmRelease resets the CR to
-   1 replica. Confirm the pod starts and the PVC is `longhorn-nvme-local`.
+2. Resume and verify, per service: `flux resume hr $HR -n $NS`. Prometheus: Helm does not revert the manual
+   `replicas: 0` on the CR, so patch it back (`kubectl -n monitoring patch prometheus kube-prometheus-stack-prometheus
+   --type merge -p '{"spec":{"replicas":1}}'`). Confirm the pod starts and the PVC is `longhorn-nvme-local`.
 3. Check the data survived: Prometheus range query reaching back past the migration time, a Loki
    `{namespace=~".+"}` query over the last 24h, a Tempo search in Grafana.
 4. Confirm each kopiur `Snapshot` completes (`kubectl get kopiasnap -A`).
