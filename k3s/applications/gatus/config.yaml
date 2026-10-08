@@ -7,7 +7,7 @@ metadata:
   namespace: gatus
 data:
   config.yaml: |
-    metrics: false
+    metrics: true
     storage:
       type: sqlite
       path: /data/data.db
@@ -54,6 +54,18 @@ data:
         interval: 60s
         conditions:
           - "[STATUS] == 200"
+
+      - name: goldilocks
+        group: dashboards
+        # Behind the Authentik proxy outpost: unauthenticated requests get a 302
+        # to the login page, which is what the blackbox probe also accepts.
+        url: https://goldilocks.homelab.properties/
+        interval: 60s
+        client:
+          follow-redirects: false
+          timeout: 10s
+        conditions:
+          - "[STATUS] < 400"
 
       # media group
       - name: tdarr
