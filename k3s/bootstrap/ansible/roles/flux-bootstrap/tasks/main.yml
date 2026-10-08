@@ -19,6 +19,19 @@
 
 # ─── Prerequisites ────────────────────────────────────────────────────────────
 
+- name: Check that kubectl is installed on the controller
+  ansible.builtin.command: kubectl version --client
+  register: kubectl_check
+  changed_when: false
+  failed_when: false
+  delegate_to: localhost
+  become: false
+
+- name: Fail if kubectl is missing on the controller
+  ansible.builtin.fail:
+    msg: kubectl was not found on the Ansible controller; install it before running bootstrap-flux.yml.
+  when: kubectl_check.rc != 0
+
 - name: Check that kubeconfig exists on controller
   ansible.builtin.stat:
     path: "{{ flux_kubeconfig }}"
