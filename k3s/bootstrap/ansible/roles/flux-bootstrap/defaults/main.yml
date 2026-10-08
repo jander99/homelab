@@ -46,7 +46,8 @@ age_install_dir: "{{ lookup('env', 'HOME') }}/.local/bin"
 # Pinned age version — check https://github.com/FiloSottile/age/releases for updates.
 age_version: "1.2.0"
 
-# Optional SHA256 checksum for the age archive (without the 'sha256:' prefix).
-# Find at: https://github.com/FiloSottile/age/releases/download/v{{ age_version }}/age-v{{ age_version }}-linux-amd64.tar.gz.sha256
-# Leave empty to skip verification (not recommended for production).
-age_checksum: ""
+# SHA256 of the age archive per controller arch (without the 'sha256:' prefix). Update these
+# together with age_version: sha256sum age-v<version>-linux-<arch>.tar.gz
+age_checksums:
+  amd64: "2ae71cb3ea761118937a944083f057cfd42f0ef11d197ce72fc2b8780d50c4ef"
+  arm64: "d25a81f3ac011884009d18362eeb8154ce1bca4d151834c35c718654bd6c6353"

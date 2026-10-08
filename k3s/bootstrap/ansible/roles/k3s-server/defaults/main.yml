@@ -6,7 +6,11 @@
 # Find the latest release at: https://github.com/k3s-io/k3s/releases
 # k3s_version: "v1.35.4+k3s1"  # Source of truth is inventory/group_vars/all.yml — edit there instead.
 
-k3s_install_script_url: "https://get.k3s.io"
+# The install script is fetched from the repo at the k3s_version tag, not from get.k3s.io (which
+# serves whatever is on master). It is re-downloaded on every run. The script itself verifies the
+# k3s binary's sha256 against the release.
+k3s_install_script_url: "https://raw.githubusercontent.com/k3s-io/k3s/{{ k3s_version | urlencode }}/install.sh"
+k3s_install_script_path: /usr/local/share/k3s-install.sh
 
 # File paths
 k3s_config_dir: /etc/rancher/k3s
