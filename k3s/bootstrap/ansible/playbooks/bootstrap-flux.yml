@@ -7,15 +7,14 @@
 #   export GITHUB_TOKEN=ghp_xxxx
 #   ansible-playbook -i inventory/hosts.yml playbooks/bootstrap-flux.yml -v
 #
-# This playbook is for FIRST-TIME installs only. If Flux controllers are already
-# running, use upgrade-flux.yml instead:
-#   ansible-playbook -i inventory/hosts.yml playbooks/upgrade-flux.yml -v
+# This playbook is for FIRST-TIME installs only. Once running, Flux upgrades itself through
+# the flux2 HelmRelease (k3s/infrastructure/controllers/flux2/), bumped by Renovate.
 #
 # The playbook runs tooling on the Ansible controller (delegate_to: localhost)
 # using the kubeconfig fetched by bootstrap-k3s.yml.
 #
 # What it does:
-#   1. Fails fast if Flux controllers are already installed (use upgrade-flux.yml)
+#   1. Fails fast if Flux controllers are already installed (upgrades go through the flux2 HelmRelease)
 #   2. Installs flux CLI and age CLI on the controller (if not present)
 #   3. Pre-creates the flux-system namespace
 #   4. Generates an age key and creates the sops-age Secret in flux-system
