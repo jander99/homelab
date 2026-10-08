@@ -34,6 +34,12 @@ k3s_firewall_rules:
   - { port: 2380,  proto: tcp, from: 192.168.1.0/24, comment: "etcd peer" }
 # WireGuard (51820/udp) is not opened: flannel-backend is vxlan.
 
+# Removed from UFW if present (WireGuard is unused; etcd is LAN-scoped above, not open to all).
+k3s_firewall_absent_rules:
+  - { port: 51820, proto: udp }
+  - { port: 2379,  proto: tcp }
+  - { port: 2380,  proto: tcp }
+
 # Kernel modules and base sysctls come from the k3s-prereqs role defaults. Only additions go
 # here: k3s_sysctl_extra is merged over k3s_sysctl_params (role default), never replaces it.
 k3s_sysctl_extra:
