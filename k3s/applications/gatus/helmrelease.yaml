@@ -89,6 +89,12 @@ spec:
       limits:
         memory: 128Mi
 
+    # Scraped by kube-prometheus-stack (selectors are open, see
+    # serviceMonitorSelectorNilUsesHelmValues: false). Needs `metrics: true`
+    # in config.yaml.
+    serviceMonitor:
+      enabled: true
+
     service:
       type: ClusterIP
       port: 80
