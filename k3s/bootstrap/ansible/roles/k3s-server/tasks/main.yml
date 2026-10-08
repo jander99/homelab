@@ -60,9 +60,11 @@
 - name: Download K3s install script
   ansible.builtin.get_url:
     url: "{{ k3s_install_script_url }}"
-    dest: /tmp/k3s-install.sh
+    dest: "{{ k3s_install_script_path }}"
+    owner: root
+    group: root
     mode: "0700"
-    force: false
+    force: true
 
 - name: Check whether K3s binary is already present
   ansible.builtin.stat:
@@ -71,7 +73,7 @@
 
 - name: Install K3s
   ansible.builtin.command:
-    cmd: /tmp/k3s-install.sh
+    cmd: "{{ k3s_install_script_path }}"
   environment:
     INSTALL_K3S_VERSION: "{{ k3s_version }}"
     INSTALL_K3S_SKIP_START: "true"

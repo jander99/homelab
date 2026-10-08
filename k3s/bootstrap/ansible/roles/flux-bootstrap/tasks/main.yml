@@ -188,7 +188,7 @@
     url: "https://github.com/FiloSottile/age/releases/download/v{{ age_version }}/age-v{{ age_version }}-linux-{{ flux_arch }}.tar.gz"
     dest: "/tmp/age-v{{ age_version }}-linux-{{ flux_arch }}.tar.gz"
     mode: "0644"
-    checksum: "{{ ('sha256:' + age_checksum) if age_checksum else omit }}"
+    checksum: "sha256:{{ age_checksums[flux_arch] }}"
   when: age_check.rc != 0
   delegate_to: localhost
   become: false
