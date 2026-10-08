@@ -1,8 +1,0 @@
----
-# Flux CLI version to install/upgrade to
-flux_cli_version: "2.9.4"
-flux_cli_checksum: "c2c397a52930f52d2005c01d276116b059d062de379386d58e98115380a766a2"
-flux_install_dir: "{{ lookup('env', 'HOME') }}/.local/bin"
-
-# Kubeconfig for the target cluster
-flux_kubeconfig: "{{ k3s_kubeconfig_local_file | default(lookup('env', 'HOME') + '/.kube/k3s-' + inventory_hostname + '.yaml') }}"

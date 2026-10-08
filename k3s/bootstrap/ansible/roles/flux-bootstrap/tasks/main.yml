@@ -7,7 +7,7 @@
 #
 # Ordering is intentional:
 #   1. Verify kubeconfig exists (cluster must be up)
-#   2. Fail fast if Flux controllers are already running (use upgrade-flux.yml instead)
+#   2. Fail fast if Flux controllers are already running (upgrades go through the flux2 HelmRelease)
 #   3. Assert GITHUB_TOKEN and repository settings are present
 #   4. Install tooling (flux CLI, age CLI)
 #   5. Pre-create {{ sops_secret_namespace }} namespace
@@ -38,8 +38,8 @@
   become: false
 
 # ─── Fail-fast if Flux is already installed ───────────────────────────────────
-# bootstrap-flux.yml is for first-time installs only. Upgrades must use
-# upgrade-flux.yml which handles CRD storedVersions migration safely.
+# bootstrap-flux.yml is for first-time installs only. Upgrades are GitOps-managed through the
+# flux2 HelmRelease (k3s/infrastructure/controllers/flux2/), bumped by Renovate.
 
 - name: Check if Flux controllers are already installed
   ansible.builtin.command: >
@@ -56,9 +56,8 @@
   ansible.builtin.fail:
     msg: >-
       Flux controllers are already installed in this cluster.
-      Use the upgrade playbook to update to a new version:
-
-        ansible-playbook -i inventory/hosts.yml playbooks/upgrade-flux.yml -v
+      Flux upgrades itself via the flux2 HelmRelease in
+      k3s/infrastructure/controllers/flux2/ (bump the chart version in Git).
 
       Running bootstrap-flux.yml on an existing installation is not supported
       and may overwrite cluster state managed by GitOps.

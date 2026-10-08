@@ -95,23 +95,7 @@ export GITHUB_TOKEN=ghp_xxxx
 ansible-playbook -i inventory/hosts.yml playbooks/bootstrap-flux.yml -v
 ```
 
-**This playbook is for first-time installs only.** If Flux controllers are already running, see [Upgrade Flux CD](#upgrade-flux-cd) below.
-
-### Upgrade Flux CD
-
-`upgrade-flux.yml` updates Flux controllers on a cluster where Flux is already bootstrapped.
-No GITHUB_TOKEN is required — it applies updated manifests directly via `flux install`.
-
-Before running, bump `flux_cli_version` and `flux_cli_checksum` in
-`roles/flux-upgrade/defaults/main.yml` to the target Flux version.
-
-```bash
-ansible-playbook -i inventory/hosts.yml playbooks/upgrade-flux.yml -v
-```
-
-The playbook automatically migrates stale CRD `storedVersions` before running `flux install`.
-If any resources are stored in a deprecated API version that cannot be migrated automatically,
-the playbook will fail with instructions for manually re-writing those resources.
+**This playbook is for first-time installs only.** Once running, Flux upgrades itself through the `flux2` HelmRelease in `k3s/infrastructure/controllers/flux2/`; Renovate bumps the chart version. There is no Ansible upgrade path (`upgrade-flux.yml` was retired, as it would pin Flux to the CLI version here and fight the HelmRelease).
 
 ### Full bootstrap
 
