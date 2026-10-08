@@ -13,28 +13,52 @@
 
 # ── 1. Prerequisites ─────────────────────────────────────────────────────────
 
-- name: Install gnupg and curl for toolkit repo setup
+- name: Install python3-debian (required by deb822_repository)
   ansible.builtin.apt:
-    name:
-      - curl
-      - gnupg
+    name: python3-debian
     state: present
     update_cache: false
 
-# ── 2. nvidia-container-toolkit ─────────────────────────────────────────────
-- name: Download and dearmor NVIDIA container toolkit GPG key
-  ansible.builtin.shell:
-    cmd: >
-      curl -fsSL https://nvidia.github.io/libnvidia-container/gpgkey
-      | gpg --dearmor -o /usr/share/keyrings/nvidia-container-toolkit-keyring.gpg
-    creates: /usr/share/keyrings/nvidia-container-toolkit-keyring.gpg
+# ── 2. Driver / encode library consistency ──────────────────────────────────
+# libnvidia-encode must come from the same driver series as the installed driver, or NVENC
+# fails inside containers. Fail early with a clear message instead.
+
+- name: Read installed NVIDIA driver version
+  ansible.builtin.command: nvidia-smi --query-gpu=driver_version --format=csv,noheader
+  register: nvidia_driver_version
+  changed_when: false
+  check_mode: false  # read-only
+
+- name: Assert nvidia_encode_package matches the installed driver series
+  ansible.builtin.assert:
+    that: >-
+      '-' ~ (nvidia_driver_version.stdout_lines[0] | trim).split('.')[0] ~ '-'
+      in nvidia_encode_package
+    fail_msg: >-
+      Installed driver is {{ nvidia_driver_version.stdout_lines[0] | trim }} but
+      nvidia_encode_package is {{ nvidia_encode_package }}. Set nvidia_encode_package to the
+      libnvidia-encode-<series>-server package for that driver series.
+    quiet: true
+
+# ── 3. nvidia-container-toolkit ─────────────────────────────────────────────
 
 - name: Add NVIDIA container toolkit apt repo
-  ansible.builtin.copy:
-    dest: /etc/apt/sources.list.d/nvidia-container-toolkit.list
-    mode: "0644"
-    content: |
-      deb [signed-by=/usr/share/keyrings/nvidia-container-toolkit-keyring.gpg] https://nvidia.github.io/libnvidia-container/stable/deb/$(ARCH) /
+  ansible.builtin.deb822_repository:
+    name: nvidia-container-toolkit
+    types: deb
+    uris: https://nvidia.github.io/libnvidia-container/stable/deb/$(ARCH)
+    suites: /
+    signed_by: https://nvidia.github.io/libnvidia-container/gpgkey
+    state: present
+
+# Superseded by the deb822 .sources file above; left in place apt would warn about duplicates.
+- name: Remove legacy toolkit apt list file and dearmored key
+  ansible.builtin.file:
+    path: "{{ item }}"
+    state: absent
+  loop:
+    - /etc/apt/sources.list.d/nvidia-container-toolkit.list
+    - /usr/share/keyrings/nvidia-container-toolkit-keyring.gpg
 
 - name: Install nvidia-container-toolkit and NVENC encode library
   ansible.builtin.apt:
@@ -45,14 +69,14 @@
     update_cache: true
   notify: Restart k3s for NVIDIA runtime
 
-# ── 2. Restart k3s so it regenerates config.toml with NVIDIA runtime ─────────
+# ── 4. Restart k3s so it regenerates config.toml with NVIDIA runtime ─────────
 # K3s detects nvidia-container-runtime at startup and registers it automatically.
 # No custom containerd template needed.
 
 - name: Gather service facts (needed by restart handler)
   ansible.builtin.service_facts:
 
-# ── 3. Verify ─────────────────────────────────────────────────────────────────
+# ── 5. Verify ─────────────────────────────────────────────────────────────────
 
 - name: Verify nvidia-container-cli can see the GPU
   ansible.builtin.command: nvidia-container-cli info

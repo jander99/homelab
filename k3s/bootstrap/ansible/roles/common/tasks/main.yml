@@ -31,10 +31,10 @@
     name: "{{ common_packages }}"
     state: present
 
-- name: Configure passwordless sudo for k3s user
+- name: Configure passwordless sudo for the Ansible user
   ansible.builtin.copy:
     dest: /etc/sudoers.d/k3s-nopasswd
-    content: "k3s ALL=(ALL) NOPASSWD: ALL\n"
+    content: "{{ ansible_user | default('k3s') }} ALL=(ALL) NOPASSWD: ALL\n"
     mode: "0440"
     validate: 'visudo -cf %s'
 
