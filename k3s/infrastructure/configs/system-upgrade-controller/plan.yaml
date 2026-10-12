@@ -64,7 +64,7 @@ spec:
   # Pinned k3s release; bumped by Renovate (see renovate.json). Keep in
   # sync with k3s_version in ansible/inventory/group_vars/all.yml.
   # renovate: datasource=github-releases depName=k3s-io/k3s versioning=regex:^v(?<major>\d+)\.(?<minor>\d+)\.(?<patch>\d+)(?<prerelease>)\+k3s(?<build>\d+)$
-  version: v1.36.5+k3s1
+  version: v1.37.1+k3s1
   # Only generate Apply Jobs inside this window. Sundays 04:00-05:00
   # UTC: single-server cluster, ~30-60s unavailability during the
   # binary swap is acceptable at this hour. Requires controller
