@@ -9,17 +9,19 @@ Single repo, two production stacks:
 - **Docker** — 9 services on a Synology NAS (macvlan networking): media automation, monitoring, networking, utilities. Operational; not migrating.
 - **K3s** — single-node testbed (192.168.1.128, SQLite datastore), managed by **Flux CD v2** rooted at `k3s/clusters/homelab/`. Target is 3-node HA on Dell Optiplexes (.40/.41/.42) with embedded etcd; hardware acquired, not yet provisioned.
 
-Flux-managed layers (wider than the previous AGENTS.md suggested):
+Flux-managed layers:
 
 ```
 platform  →  infra-controllers  →  infra-configs  →  apps
 (namespaces)  (CRD-bearing HelmReleases)  (configs that need those CRDs)  (workloads)
 ```
 
-- **platform/namespaces/**: cert-manager, headlamp, monitoring, pihole, telemetry
-- **infra-controllers/**: cert-manager, metallb, opentelemetry-collector, tempo, dcgm-exporter, external-dns, csi-driver-smb, node-feature-discovery, nvidia-device-plugin
-- **infra-configs/**: cert-manager ClusterIssuers, metallb IPAddressPool/L2Advertisement, kube-prometheus-stack (`configs/monitoring/`), Grafana datasources
-- **apps/**: headlamp, pihole, portainer, prowlarr, qbittorrent, radarr, recyclarr, sabnzbd, sense-exporter, sonarr, tdarr, unpoller, monitoring
+- **platform/namespaces/**: authentik, cert-manager, external-dns, flux-system, gatus, goldilocks, headlamp, kopiur-system, media, monitoring, pihole, portainer, qbittorrent, sabnzbd, sense-exporter, tdarr, telemetry, unpoller
+- **infra-controllers/**: alloy, cert-manager, csi-driver-smb, dcgm-exporter, external-dns, flux2, goldilocks, kopiur, loki, longhorn, metallb, node-feature-discovery, nvidia-device-plugin, opentelemetry-collector, snapshot-controller, system-upgrade-controller, tempo
+- **infra-configs/**: authentik, cert-manager ClusterIssuers, coredns, kopiur + kopiur-policies (separate Kustomization, `dependsOn: infra-configs`), longhorn-storageclasses, metallb IPAddressPool/L2Advertisement, kube-prometheus-stack + Grafana datasources (`configs/monitoring/`), smb-storage, snapshot-storage, system-upgrade-controller Plan
+- **apps/**: authentik, gatus, headlamp, monitoring, pihole, portainer, prowlarr, qbittorrent, radarr, recyclarr, sabnzbd, sense-exporter, sonarr, tdarr, unpoller
+
+**k3s upgrades are in-cluster, not Ansible.** system-upgrade-controller applies `k3s/infrastructure/configs/system-upgrade-controller/plan.yaml`. Renovate bumps the Plan `version` (and the Ansible pin) in one PR; after merge the controller upgrades the node during the Sunday 04:00–05:00 UTC window. Ansible is for bootstrap only. Check with `kubectl get plans.upgrade.cattle.io -A`.
 
 Subdirectory deep-dives: `docker/AGENTS.md`, `docker/media/AGENTS.md`, `docker/prometheus/AGENTS.md`, `k3s/AGENTS.md`, `k3s/infrastructure/AGENTS.md`, `k3s/bootstrap/ansible/AGENTS.md`, `applications/cdk8s/AGENTS.md`. This file is the entry point only.
 
