@@ -54,6 +54,11 @@
       "enabled": false
     },
     {
+      "description": "linuxserver/qbittorrent also publishes legacy Ubuntu-based tags (e.g. 20.04.1, qBittorrent 4.3.9); only follow real 5.x releases",
+      "matchPackageNames": ["lscr.io/linuxserver/qbittorrent"],
+      "allowedVersions": "/^5\\./"
+    },
+    {
       "description": "Group Flux HelmRelease infrastructure controller updates",
       "matchManagers": ["flux"],
       "matchFileNames": ["k3s/infrastructure/controllers/**"],
