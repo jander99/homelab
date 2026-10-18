@@ -24,7 +24,7 @@ spec:
         runAsGroup: 65532
       containers:
         - name: unpoller
-          image: ghcr.io/unpoller/unpoller:v5.5.1
+          image: ghcr.io/unpoller/unpoller:v5.6.2
           imagePullPolicy: IfNotPresent
           ports:
             - name: metrics
