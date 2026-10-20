@@ -574,20 +574,20 @@ __metadata:
   languageName: node
   linkType: hard
 
-"cdk8s-cli@npm:2.207.64":
-  version: 2.207.64
-  resolution: "cdk8s-cli@npm:2.207.64"
+"cdk8s-cli@npm:2.207.67":
+  version: 2.207.67
+  resolution: "cdk8s-cli@npm:2.207.67"
   dependencies:
     "@types/node": "npm:^16"
     ajv: "npm:^8.20.0"
-    cdk8s: "npm:^2.70.109"
-    cdk8s-plus-33: "npm:^2.5.61"
+    cdk8s: "npm:^2.70.111"
+    cdk8s-plus-33: "npm:^2.5.63"
     codemaker: "npm:^1.141.0"
     colors: "npm:1.4.0"
     constructs: "npm:^10.8.1"
     fs-extra: "npm:^8"
     jsii-pacmak: "npm:^1.141.0"
-    jsii-rosetta: "npm:^5.9.69"
+    jsii-rosetta: "npm:^5.9.70"
     jsii-srcmak: "npm:0.1.1319"
     json2jsii: "npm:0.5.19"
     semver: "npm:^7.8.5"
@@ -597,11 +597,11 @@ __metadata:
     yargs: "npm:^15"
   bin:
     cdk8s: bin/cdk8s
-  checksum: 10c0/1da8bd675b72c10abb04902c4500d2b07bf15e1450df0fd6352b8804e8b46db900f76aeb7a16eeb2817c96821c37f0ab3b246a614c1dd44340524560ae219a6d
+  checksum: 10c0/f4ac698aed3716629efc45f7f70b23a116045c8ba884648bf224d9176a3f9510acdc0ea80c0b090a834aba40f1af131d93ea70631df41afee5c390fd1ae16cd1
   languageName: node
   linkType: hard
 
-"cdk8s-plus-33@npm:^2.5.61":
+"cdk8s-plus-33@npm:^2.5.63":
   version: 2.5.63
   resolution: "cdk8s-plus-33@npm:2.5.63"
   dependencies:
@@ -626,16 +626,16 @@ __metadata:
   languageName: node
   linkType: hard
 
-"cdk8s@npm:^2.70.109":
-  version: 2.70.111
-  resolution: "cdk8s@npm:2.70.111"
+"cdk8s@npm:^2.70.111":
+  version: 2.70.112
+  resolution: "cdk8s@npm:2.70.112"
   dependencies:
     fast-json-patch: "npm:^3.1.1"
     follow-redirects: "npm:^1.16.1"
     yaml: "npm:2.9.1"
   peerDependencies:
     constructs: ^10
-  checksum: 10c0/4691fc9da93c439c9e90af229290cd9ad317a95662c5faed1cd236002aa3af196d39c24228384110103071ba2ab99fc572dec1f5d62fab5acce54caa7c666240
+  checksum: 10c0/fd358bec10099e19a1b68cbca7b52be57ddb4d85218a008ddc60e79a54d0bfec04177fc205c771a96f53dc16a62da533f5e5f722e3a50cba537d4f998fd9d5e9
   languageName: node
   linkType: hard
 
@@ -645,7 +645,7 @@ __metadata:
   dependencies:
     "@types/node": "npm:24.19.2"
     cdk8s: "npm:2.70.59"
-    cdk8s-cli: "npm:2.207.64"
+    cdk8s-cli: "npm:2.207.67"
     constructs: "npm:10.8.1"
     ts-node: "npm:10.9.2"
     typescript: "npm:6.0.3"
@@ -1521,9 +1521,9 @@ __metadata:
   languageName: node
   linkType: hard
 
-"jsii-rosetta@npm:^5.9.69":
-  version: 5.9.70
-  resolution: "jsii-rosetta@npm:5.9.70"
+"jsii-rosetta@npm:^5.9.70":
+  version: 5.9.71
+  resolution: "jsii-rosetta@npm:5.9.71"
   dependencies:
     "@jsii/check-node": "npm:^1.141.0"
     "@jsii/spec": "npm:^1.141.0"
@@ -1540,7 +1540,7 @@ __metadata:
     yargs: "npm:^17.7.3"
   bin:
     jsii-rosetta: bin/jsii-rosetta
-  checksum: 10c0/35148de5f7a8f27dfd3372a1250d20061c66ceae7a586c362713319a1e4e2d998add3f787837990527b2b6664d2b2715981e84c0c82128b6c8f566374957ca53
+  checksum: 10c0/c98f4829e2efdb8f93e7ef6b78fbbc6f7513b389a1606fd79555de6c70ea93dd700b5758ba1303b56a305d41530a5657b3c02800dfa30dcda9ad6a5b47d7be55
   languageName: node
   linkType: hard
 
