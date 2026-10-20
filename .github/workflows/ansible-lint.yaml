@@ -12,7 +12,7 @@ permissions:
 
 env:
   # renovate: datasource=pypi depName=ansible-lint versioning=pep440
-  ANSIBLE_LINT_VERSION: "26.9.0"
+  ANSIBLE_LINT_VERSION: "26.10.1"
   # Keep in step with the controller's ansible-core; collection majors raise their minimum.
   # renovate: datasource=pypi depName=ansible-core versioning=pep440
   ANSIBLE_CORE_VERSION: "2.21.5"
