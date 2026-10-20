@@ -24,6 +24,14 @@
   },
   "customManagers": [
     {
+      "description": "Python tool pins annotated with '# renovate:' in the ansible-lint workflow",
+      "customType": "regex",
+      "managerFilePatterns": ["/^\\.github/workflows/ansible-lint\\.yaml$/"],
+      "matchStrings": [
+        "# renovate: datasource=(?<datasource>\\S+) depName=(?<depName>\\S+) versioning=(?<versioning>\\S+)\\n\\s*\\w+: \"(?<currentValue>[^\"]+)\""
+      ]
+    },
+    {
       "description": "k3s version pins annotated with '# renovate:' (upgrade Plan + Ansible bootstrap)",
       "customType": "regex",
       "managerFilePatterns": [
@@ -36,6 +44,12 @@
     }
   ],
   "packageRules": [
+    {
+      "description": "ansible-core pin and collections move together: a collection major can raise the minimum core",
+      "matchDepNames": ["ansible-core", "ansible-lint", "community.general", "ansible.posix"],
+      "groupName": "ansible",
+      "automerge": false
+    },
     {
       "description": "One PR bumps the k3s pin everywhere; a merged PR triggers the upgrade, so never automerge",
       "matchDepNames": ["k3s-io/k3s"],

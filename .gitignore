@@ -18,3 +18,4 @@ applications/cdk8s/dist/out-tsc/
 
 # SOPS encryption temp files (created by sops CLI during in-place re-encryption)
 *.sops.yaml.tmp
+.ansible/

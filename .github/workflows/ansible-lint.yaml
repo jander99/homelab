@@ -11,7 +11,11 @@ permissions:
   contents: read
 
 env:
+  # renovate: datasource=pypi depName=ansible-lint versioning=pep440
   ANSIBLE_LINT_VERSION: "26.9.0"
+  # Keep in step with the controller's ansible-core; collection majors raise their minimum.
+  # renovate: datasource=pypi depName=ansible-core versioning=pep440
+  ANSIBLE_CORE_VERSION: "2.21.5"
 
 jobs:
   ansible-lint:
@@ -28,8 +32,8 @@ jobs:
         with:
           python-version: '3.14'
 
-      - name: Install ansible-lint
-        run: pip install ansible-lint==${{ env.ANSIBLE_LINT_VERSION }}
+      - name: Install ansible-core and ansible-lint
+        run: pip install ansible-core==${{ env.ANSIBLE_CORE_VERSION }} ansible-lint==${{ env.ANSIBLE_LINT_VERSION }}
 
       - name: Install collections
         run: ansible-galaxy collection install -r requirements.yml
@@ -37,6 +41,11 @@ jobs:
       - name: Syntax check
         run: |
           for pb in playbooks/*.yml; do ansible-playbook --syntax-check "$pb"; done
+
+      # Loads the real ansible.cfg and its plugins (stdout callback etc.); syntax-check and
+      # lint don't, so a removed plugin or too-old ansible-core would otherwise pass CI.
+      - name: Smoke test ansible.cfg
+        run: ansible localhost -i localhost, -c local -e ansible_become=false -m ansible.builtin.ping
 
       - name: ansible-lint
         run: ansible-lint
