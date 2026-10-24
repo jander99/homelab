@@ -21,7 +21,7 @@ spec:
         name: prometheus-community
         namespace: flux-system
       interval: 12h
-      version: "11.20.0"
+      version: "11.20.2"
   values:
     config:
       modules:
