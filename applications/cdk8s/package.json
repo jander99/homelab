@@ -12,7 +12,7 @@
   },
   "devDependencies": {
     "@types/node": "24.19.2",
-    "cdk8s-cli": "2.207.67",
+    "cdk8s-cli": "2.207.68",
     "ts-node": "10.9.2",
     "typescript": "6.0.3"
   }
