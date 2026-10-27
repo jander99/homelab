@@ -86,11 +86,6 @@ spec:
     indexGateway:
       replicas: 0
 
-    # Built-in MinIO subchart is deprecated and removed 2026-10-31. Disable
-    # entirely; filesystem storage doesn't need it.
-    minio:
-      enabled: false
-
     # Gateway is the cluster-internal entry point: Alloy + Grafana both dial
     # http://loki-gateway.telemetry.svc.cluster.local:80. One nginx pod is
     # plenty for this scale.
@@ -123,8 +118,10 @@ spec:
           cpu: 10m
 
     # Allow kube-prometheus-stack Prometheus to scrape Loki's metrics.
-    serviceMonitor:
-      enabled: true
+    # Moved under `monitoring:` in chart v20 (top-level key fails the schema).
+    monitoring:
+      serviceMonitor:
+        enabled: true
 
     # All three caches disabled: single-node filesystem deployment has no
     # scale pressure worth caching. memcached (chart subchart), chunksCache,
