@@ -16,6 +16,8 @@ resources:
   - probe-headlamp.yaml
   - probe-goldilocks.yaml
   - probe-authentik.yaml
+  - probe-sabnzbd.yaml
+  - probe-qbittorrent.yaml
   - authentik-middleware.yaml
   - scrapeconfig-synology.yaml
   - podmonitor-flux.yaml
