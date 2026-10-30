@@ -1,0 +1,67 @@
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: tdarr-exporter
+  namespace: tdarr
+  labels:
+    app: tdarr-exporter
+    app.kubernetes.io/name: tdarr-exporter
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: tdarr-exporter
+  template:
+    metadata:
+      labels:
+        app: tdarr-exporter
+        app.kubernetes.io/name: tdarr-exporter
+    spec:
+      automountServiceAccountToken: false
+      securityContext:
+        runAsNonRoot: true
+        runAsUser: 65532
+        runAsGroup: 65532
+      containers:
+        - name: tdarr-exporter
+          image: homeylab/tdarr-exporter:3.1.0
+          imagePullPolicy: IfNotPresent
+          ports:
+            - name: metrics
+              containerPort: 9865
+              protocol: TCP
+          env:
+            - name: TDARR_URL
+              value: http://tdarr.tdarr.svc.cluster.local:8265
+            - name: PROMETHEUS_PORT
+              value: "9865"
+            - name: PROMETHEUS_PATH
+              value: /metrics
+            - name: INSTANCE_NAME
+              value: tdarr
+            - name: LOG_LEVEL
+              value: info
+          # TCP probes only: /metrics triggers live Tdarr API calls.
+          livenessProbe:
+            tcpSocket:
+              port: metrics
+            initialDelaySeconds: 10
+            periodSeconds: 30
+          readinessProbe:
+            tcpSocket:
+              port: metrics
+            initialDelaySeconds: 5
+            periodSeconds: 15
+          resources:
+            requests:
+              cpu: 10m
+              memory: 32Mi
+            limits:
+              memory: 128Mi
+          securityContext:
+            allowPrivilegeEscalation: false
+            readOnlyRootFilesystem: true
+            capabilities:
+              drop:
+                - "ALL"
