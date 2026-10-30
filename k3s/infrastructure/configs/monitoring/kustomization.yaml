@@ -22,6 +22,7 @@ resources:
   - prometheusrule-apps.yaml
   - prometheusrule-flux.yaml
   - prometheusrule-cert-manager.yaml
+  - prometheusrule-smartctl.yaml
   - podmonitor-cert-manager.yaml
   - grafanadatasource-tempo.yaml
   - grafanadatasource-loki.yaml
