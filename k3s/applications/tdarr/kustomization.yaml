@@ -7,4 +7,7 @@ resources:
   - deployment-node.yaml
   - service.yaml
   - ingress.yaml
+  - deployment-exporter.yaml
+  - service-exporter.yaml
+  - servicemonitor.yaml
   # migration-job.yaml is intentionally excluded — apply manually, not via Flux.
