@@ -24,7 +24,7 @@ spec:
         name: prometheus-community
         namespace: flux-system
       interval: 12h
-      version: "0.17.1"
+      version: "0.19.0"
   values:
     # Only physical disks (matched by bare name, not /dev path). Longhorn's iSCSI volumes also show up as /dev/sdX
     # (vendor IET) and would produce bogus SMART status; they enumerate after the OS disk.
