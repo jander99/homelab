@@ -16,12 +16,14 @@ platform  →  infra-controllers  →  infra-configs  →  apps
 (namespaces)  (CRD-bearing HelmReleases)  (configs that need those CRDs)  (workloads)
 ```
 
-- **platform/namespaces/**: authentik, cert-manager, external-dns, flux-system, gatus, goldilocks, headlamp, kopiur-system, media, monitoring, pihole, portainer, qbittorrent, sabnzbd, sense-exporter, tdarr, telemetry, unpoller
-- **infra-controllers/**: alloy, cert-manager, csi-driver-smb, dcgm-exporter, external-dns, flux2, goldilocks, kopiur, loki, longhorn, metallb, node-feature-discovery, nvidia-device-plugin, opentelemetry-collector, snapshot-controller, system-upgrade-controller, tempo
-- **infra-configs/**: authentik, cert-manager ClusterIssuers, coredns, kopiur + kopiur-policies (separate Kustomization, `dependsOn: infra-configs`), longhorn-storageclasses, metallb IPAddressPool/L2Advertisement, kube-prometheus-stack + Grafana datasources (`configs/monitoring/`), smb-storage, snapshot-storage, system-upgrade-controller Plan
+- **platform/namespaces/**: authentik, cert-manager, external-dns, flux-system, gatus, goldilocks, headlamp, kopiur-system, media, monitoring, pihole, portainer, qbittorrent, sabnzbd, sense-exporter, tailscale, tdarr, telemetry, unpoller
+- **infra-controllers/**: alloy, cert-manager, csi-driver-smb, dcgm-exporter, external-dns, flux2, goldilocks, kopiur, loki, longhorn, metallb, node-feature-discovery, nvidia-device-plugin, opentelemetry-collector, snapshot-controller, system-upgrade-controller, tailscale-operator, tempo
+- **infra-configs/**: authentik, cert-manager ClusterIssuers, coredns, kopiur + kopiur-policies (separate Kustomization, `dependsOn: infra-configs`), longhorn-storageclasses, metallb IPAddressPool/L2Advertisement, kube-prometheus-stack + Grafana datasources (`configs/monitoring/`), smb-storage, snapshot-storage, system-upgrade-controller Plan, tailscale (subnet-router `Connector`)
 - **apps/**: authentik, gatus, headlamp, monitoring, pihole, portainer, prowlarr, qbittorrent, radarr, recyclarr, sabnzbd, sense-exporter, sonarr, tdarr, unpoller
 
 **k3s upgrades are in-cluster, not Ansible.** system-upgrade-controller applies `k3s/infrastructure/configs/system-upgrade-controller/plan.yaml`. Renovate bumps the Plan `version` (and the Ansible pin) in one PR; after merge the controller upgrades the node during the Sunday 04:00–05:00 UTC window. Ansible is for bootstrap only. Check with `kubectl get plans.upgrade.cattle.io -A`.
+
+**Remote access is Tailscale.** The Kubernetes operator (`infra-controllers/tailscale-operator/`) runs a `Connector` (`infra-configs/tailscale/connector.yaml`) that advertises `192.168.1.0/24` to the tailnet, so remote clients (laptop, iPhone) reach LAN services. The laptop must run `tailscale set --accept-routes`; the iPhone needs "Use Tailscale subnets". Tailnet settings live **outside this repo** — see `k3s/infrastructure/AGENTS.md` (tailscale-operator) for the ACL, OAuth, and DNS prerequisites. Pi-hole DNS is set as the global nameserver tailnet-wide (see Notes).
 
 Subdirectory deep-dives: `docker/AGENTS.md`, `docker/media/AGENTS.md`, `docker/prometheus/AGENTS.md`, `k3s/AGENTS.md`, `k3s/infrastructure/AGENTS.md`, `k3s/bootstrap/ansible/AGENTS.md`, `applications/cdk8s/AGENTS.md`. This file is the entry point only.
 
@@ -125,6 +127,7 @@ KUBECONFIG=~/.kube/k3s-testbed.yaml kubectl get hr,pods -A
 
 - **Testbed kubeconfig**: `~/.kube/k3s-testbed.yaml` (fetched by `bootstrap-k3s.yml`). The K3s API is reachable from the LAN.
 - **Grafana**: https://grafana.homelab.properties — credentials in BitWarden; SOPS secret at `k3s/infrastructure/configs/monitoring/grafana-secret.sops.yaml`.
+- **Tailscale DNS**: global nameservers are `192.168.1.2` (Docker Pi-hole, first) and `192.168.1.201` (K3s Pi-hole, `pihole-dns` LoadBalancer, backup) with *Override DNS servers* on. Tailscale does not guarantee nameserver order, so both Pi-holes must serve identical blocklists and local records; sync is manual today (#487). `pihole.homelab.properties` resolves to the Traefik ingress `192.168.1.200` (web UI only, not a DNS server). If the subnet router or both Pi-holes are down, tailnet devices lose DNS — turn Override off in the Tailscale admin DNS page to fall back.
 - **Watchtower metrics** require `Bearer` token auth at `/v1/metrics` (every other exporter uses plain `/metrics`). Sense and Netgear CM1000 exporters use `/` as the metrics path. Pi-hole DNS chain: pihole → `cloudflared:172.20.1.1:5053` (DoH to 1.1.1.1).
 - **`.worktrees/`, `.sisyphus/`, `.omo/`, `.claude/`, `.agents/`** are local tooling state (gitignored) and not authoritative. Don't read project structure from there.
 - **Worktrees** go in `../homelab-<branch-suffix>` (siblings of the main repo, per the user-supplied session-start instructions). Use `git worktree list` to audit before starting new work.
