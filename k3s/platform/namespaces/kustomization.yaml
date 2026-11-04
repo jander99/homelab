@@ -20,3 +20,4 @@ resources:
   - kopiur-system.yaml
   - goldilocks.yaml
   - flux-system.yaml
+  - tailscale.yaml
