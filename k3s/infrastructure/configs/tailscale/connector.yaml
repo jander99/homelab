@@ -1,0 +1,17 @@
+---
+# Subnet router exposing the home LAN to the tailnet.
+# Requires in the tailnet ACL: tag:k8s-operator owns tag:k8s, and
+# autoApprovers.routes lets tag:k8s advertise 192.168.1.0/24.
+# Bump replicas once the 3-node HA cluster is up (spread across nodes).
+apiVersion: tailscale.com/v1alpha1
+kind: Connector
+metadata:
+  name: homelab-subnet-router
+spec:
+  hostname: homelab-subnet-router
+  replicas: 1
+  tags:
+    - tag:k8s
+  subnetRouter:
+    advertiseRoutes:
+      - 192.168.1.0/24

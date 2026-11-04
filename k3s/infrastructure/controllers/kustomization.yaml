@@ -19,3 +19,4 @@ resources:
   - longhorn
   - goldilocks
   - flux2
+  - tailscale-operator
