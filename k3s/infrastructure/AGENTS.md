@@ -87,6 +87,19 @@ Flux Kustomization `infra-configs` has `dependsOn: [infra-controllers]`. This gu
 - **RBAC**: chart-managed ClusterRole (`rbac.create: true`). Cluster-wide `get/list/watch` on `pods`, `pods/log`, `namespaces`, plus discovery endpoints.
 - **HelmRepository**: `alloy` (separate from `loki`/`tempo`). URL `https://grafana.github.io/helm-charts`.
 
+### tailscale-operator
+- **Chart**: `tailscale/tailscale-operator` v1.104.4 (`https://pkgs.tailscale.com/helmcharts`) | namespace: `tailscale` (in `platform/namespaces/tailscale.yaml`). CRDs are installed by the chart (`crds: CreateReplace`).
+- **Credentials**: `controllers/tailscale-operator/operator-oauth.sops.yaml` (`client_id`, `client_secret`). The chart mounts the pre-existing `operator-oauth` secret because `oauth.clientId` is unset. Edit with `SOPS_AGE_KEY_FILE=~/.kube/k3s-homelab-age.agekey EDITOR=<editor> sops <file>`.
+- **Subnet router**: `configs/tailscale/connector.yaml` — `Connector` `homelab-subnet-router`, `replicas: 1`, tag `tag:k8s`, advertises `192.168.1.0/24`. Lives in `configs/` because it needs the operator's CRDs. Bump `replicas` when the 3-node HA cluster is up. Connector tags cannot be changed after the node is created.
+- **Tailnet prerequisites (not managed in git)**:
+  - ACL `tagOwners`: `tag:k8s-operator: []`, `tag:k8s: ["tag:k8s-operator"]`
+  - ACL `autoApprovers.routes`: `"192.168.1.0/24": ["tag:k8s"]` (otherwise the route needs manual approval in the admin console)
+  - OAuth client (Settings → Trust credentials): scopes Devices:Core (write) + Keys:Auth Keys (write), tag `tag:k8s-operator`
+  - DNS: global nameservers `192.168.1.2` then `192.168.1.201`, Override DNS servers on
+  - A rebuilt tailnet needs all of the above re-created before the operator can authenticate.
+- **Verify**: `kubectl get connector` (ConnectorReady), `kubectl get pods -n tailscale`, admin console → Machines → `homelab-subnet-router` shows `192.168.1.0/24` under Approved.
+- **Gotchas**: Subnet-router traffic is SNATed, so LAN hosts (including Pi-hole) see the router's address, not the remote client's. Clients running another VPN (NordVPN) must allowlist `100.64.0.0/10` and `192.168.1.0/24` and disable its DNS override. iOS allows one VPN at a time.
+
 ### Headlamp (reference — lives in `k3s/applications/headlamp/`)
 - Uses `cert-manager.io/cluster-issuer: letsencrypt-prod` in Traefik ingress
 - URL: `headlamp.homelab.properties`
@@ -105,6 +118,8 @@ Flux Kustomization `infra-configs` has `dependsOn: [infra-controllers]`. This gu
 | Edit Cloudflare token secret | `configs/cert-manager/cloudflare-token.sops.yaml` via `sops` CLI |
 | Edit Grafana admin secret | `configs/monitoring/grafana-secret.sops.yaml` via `sops` CLI |
 | Modify monitoring stack values | `configs/monitoring/helmrelease.yaml` |
+| Change the Tailscale subnet router | `configs/tailscale/connector.yaml` |
+| Rotate Tailscale OAuth credentials | `controllers/tailscale-operator/operator-oauth.sops.yaml` via `sops` CLI |
 ## ANTI-PATTERNS
 
 - **Do not hand-edit `*.sops.yaml` files** — SOPS-encrypted; edit only with `sops <file>` using the age key at `~/.kube/k3s-homelab-age.agekey`.
@@ -112,6 +127,7 @@ Flux Kustomization `infra-configs` has `dependsOn: [infra-controllers]`. This gu
 - **Do not duplicate ClusterIssuers** — `letsencrypt-prod` and `letsencrypt-staging` already exist; reference by name in ingress annotations.
 - **Do not add a new controller without a matching entry** in the `infra-controllers` Kustomization's `resources:` list at `k3s/clusters/homelab/infra-controllers.yaml`.
 - **Do not place namespaces inside `configs/`** — namespaces belong in `k3s/platform/namespaces/` (see monitoring namespace as the established pattern).
+- **Do not change the Connector's `tags` in place** — they are fixed at creation; delete and recreate the Connector (and remove the old device in the Tailscale console) instead.
 - **Do not enable kubeScheduler/kubeControllerManager/kubeProxy scrapers** — K3s binds these to 127.0.0.1; they will always fail to scrape. kubeEtcd is the exception (needs `etcd-expose-metrics: true`; add each server IP to `kubeEtcd.endpoints` when HA nodes join).
 
 ## NOTES
