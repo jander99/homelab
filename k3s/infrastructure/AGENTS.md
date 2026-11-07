@@ -90,10 +90,11 @@ Flux Kustomization `infra-configs` has `dependsOn: [infra-controllers]`. This gu
 ### tailscale-operator
 - **Chart**: `tailscale/tailscale-operator` v1.104.4 (`https://pkgs.tailscale.com/helmcharts`) | namespace: `tailscale` (in `platform/namespaces/tailscale.yaml`). CRDs are installed by the chart (`crds: CreateReplace`).
 - **Credentials**: `controllers/tailscale-operator/operator-oauth.sops.yaml` (`client_id`, `client_secret`). The chart mounts the pre-existing `operator-oauth` secret because `oauth.clientId` is unset. Edit with `SOPS_AGE_KEY_FILE=~/.kube/k3s-homelab-age.agekey EDITOR=<editor> sops <file>`.
-- **Subnet router**: `configs/tailscale/connector.yaml` — `Connector` `homelab-subnet-router`, `replicas: 1`, tag `tag:k8s`, advertises `192.168.1.0/24`. Lives in `configs/` because it needs the operator's CRDs. Bump `replicas` when the 3-node HA cluster is up. Connector tags cannot be changed after the node is created.
+- **Subnet router**: `configs/tailscale/connector.yaml` — `Connector` `homelab-subnet-router`, `replicas: 1`, tag `tag:k8s`, advertises `192.168.1.0/24` and is also an exit node (`exitNode: true`). Lives in `configs/` because it needs the operator's CRDs. Bump `replicas` when the 3-node HA cluster is up. Connector tags cannot be changed after the node is created.
 - **Tailnet prerequisites (not managed in git)**:
   - ACL `tagOwners`: `tag:k8s-operator: []`, `tag:k8s: ["tag:k8s-operator"]`
   - ACL `autoApprovers.routes`: `"192.168.1.0/24": ["tag:k8s"]` (otherwise the route needs manual approval in the admin console)
+  - ACL `autoApprovers.exitNode`: `["tag:k8s"]` (otherwise approve the exit node in the admin console). Clients opt in with `tailscale set --exit-node=homelab-subnet-router` (iOS: Exit Node picker)
   - OAuth client (Settings → Trust credentials): scopes Devices:Core (write) + Keys:Auth Keys (write), tag `tag:k8s-operator`
   - DNS: global nameservers `192.168.1.2` then `192.168.1.201`, Override DNS servers on
   - A rebuilt tailnet needs all of the above re-created before the operator can authenticate.
