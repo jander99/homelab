@@ -1,7 +1,10 @@
 ---
-# Subnet router exposing the home LAN to the tailnet.
+# Subnet router exposing the home LAN to the tailnet, and an exit node so
+# clients can route all internet traffic through the home connection.
 # Requires in the tailnet ACL: tag:k8s-operator owns tag:k8s, and
-# autoApprovers.routes lets tag:k8s advertise 192.168.1.0/24.
+# autoApprovers.routes lets tag:k8s advertise 192.168.1.0/24, and
+# autoApprovers.exitNode lets tag:k8s advertise as an exit node (otherwise
+# approve it manually in the admin console).
 # Bump replicas once the 3-node HA cluster is up (spread across nodes).
 apiVersion: tailscale.com/v1alpha1
 kind: Connector
@@ -12,6 +15,7 @@ spec:
   replicas: 1
   tags:
     - tag:k8s
+  exitNode: true
   subnetRouter:
     advertiseRoutes:
       - 192.168.1.0/24
