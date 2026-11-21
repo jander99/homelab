@@ -714,30 +714,30 @@ __metadata:
   languageName: node
   linkType: hard
 
-"cdk8s-cli@npm:2.207.73":
-  version: 2.207.73
-  resolution: "cdk8s-cli@npm:2.207.73"
+"cdk8s-cli@npm:2.207.83":
+  version: 2.207.83
+  resolution: "cdk8s-cli@npm:2.207.83"
   dependencies:
     "@types/node": "npm:^16"
     ajv: "npm:^8.20.0"
-    cdk8s: "npm:^2.70.116"
+    cdk8s: "npm:^2.70.123"
     cdk8s-plus-33: "npm:^2.5.63"
     codemaker: "npm:^1.142.0"
     colors: "npm:1.4.0"
     constructs: "npm:^10.8.1"
     fs-extra: "npm:^8"
     jsii-pacmak: "npm:^1.142.0"
-    jsii-rosetta: "npm:^5.9.72"
+    jsii-rosetta: "npm:^5.9.74"
     jsii-srcmak: "npm:0.1.1319"
     json2jsii: "npm:0.5.19"
-    semver: "npm:^7.8.5"
+    semver: "npm:^7.8.6"
     sscaff: "npm:^1.2.274"
-    table: "npm:^6.9.0"
+    table: "npm:^6.10.1"
     yaml: "npm:2.9.1"
     yargs: "npm:^15"
   bin:
     cdk8s: bin/cdk8s
-  checksum: 10c0/25437d1207179c079f82926cfa34d990a1822d3bd0d2f17f01a1bc0804248fbd164a25194df4022ea10e69cf7aa43339f79c799d2f48427775bc65a456e5b6c0
+  checksum: 10c0/6a4451648cc53e87038d9205997c734d1318c83645a483635dfa039770b23edc49f84b4c374ee3e04b2f9dad31161f4b8a4177df9e5bf9bf8f767e5190cfd087
   languageName: node
   linkType: hard
 
@@ -766,16 +766,16 @@ __metadata:
   languageName: node
   linkType: hard
 
-"cdk8s@npm:^2.70.116":
-  version: 2.70.119
-  resolution: "cdk8s@npm:2.70.119"
+"cdk8s@npm:^2.70.123":
+  version: 2.70.126
+  resolution: "cdk8s@npm:2.70.126"
   dependencies:
     fast-json-patch: "npm:^3.1.1"
-    follow-redirects: "npm:^1.16.2"
+    follow-redirects: "npm:^1.16.3"
     yaml: "npm:2.9.1"
   peerDependencies:
     constructs: ^10
-  checksum: 10c0/ce0cf588da3cbf0bbe3641e5ba3f8b4fd29566388425d713a18f4246fe77d97530b79f907a16acadcdffe489e6fb8275bb9f94c061b17590061f58f445b54f3d
+  checksum: 10c0/74f68fbb8349e8df6377bdc35d8e55d9989017317cf929291cf2185d091b54235c6db4ea6e69747039b1eb13092483fd8780878cd3ad549e2d4ae68e05b192bc
   languageName: node
   linkType: hard
 
@@ -785,7 +785,7 @@ __metadata:
   dependencies:
     "@types/node": "npm:26.6.6"
     cdk8s: "npm:2.70.59"
-    cdk8s-cli: "npm:2.207.73"
+    cdk8s-cli: "npm:2.207.83"
     constructs: "npm:10.8.1"
     ts-node: "npm:10.9.2"
     typescript: "npm:7.0.2"
@@ -1267,13 +1267,13 @@ __metadata:
   languageName: node
   linkType: hard
 
-"follow-redirects@npm:^1.16.2":
-  version: 1.16.2
-  resolution: "follow-redirects@npm:1.16.2"
+"follow-redirects@npm:^1.16.3":
+  version: 1.16.3
+  resolution: "follow-redirects@npm:1.16.3"
   peerDependenciesMeta:
     debug:
       optional: true
-  checksum: 10c0/ff38c8ceb904e505021057f58d395ea5f2e7c34257032960a76b21df1726395ce753f5678b6ee3b15210a557277c00b2607c67b682ee4dec1f33cb5147e08e90
+  checksum: 10c0/0ad440d1d921ce8d7e8cbb3a2f25a15e682086209eb49a84cf2f1d5960d0f238b697d5613893f72e7deb9c915f0bc4c7924f04a0e0c5544b8b7d3b797af5121d
   languageName: node
   linkType: hard
 
@@ -1661,9 +1661,9 @@ __metadata:
   languageName: node
   linkType: hard
 
-"jsii-rosetta@npm:^5.9.72":
-  version: 5.9.72
-  resolution: "jsii-rosetta@npm:5.9.72"
+"jsii-rosetta@npm:^5.9.74":
+  version: 5.9.75
+  resolution: "jsii-rosetta@npm:5.9.75"
   dependencies:
     "@jsii/check-node": "npm:^1.142.0"
     "@jsii/spec": "npm:^1.142.0"
@@ -1672,15 +1672,15 @@ __metadata:
     commonmark: "npm:^0.31.2"
     fast-glob: "npm:^3.3.3"
     jsii: "npm:~5.9.1"
-    semver: "npm:^7.8.5"
+    semver: "npm:^7.8.6"
     semver-intersect: "npm:^1.5.0"
-    stream-json: "npm:^3.7.0"
+    stream-json: "npm:^3.9.0"
     typescript: "npm:~5.9"
     workerpool: "npm:^6.5.1"
     yargs: "npm:^17.7.3"
   bin:
     jsii-rosetta: bin/jsii-rosetta
-  checksum: 10c0/444f10c60db0e596962a1acd63e9f3763e6e51dd7e3399a62bab8a58e2935ae02088f6425cc54037d9d5d0f5049c2e983d635c1bf7de64f8997e9952d00503b3
+  checksum: 10c0/b8392dc068c8b72198f884433241e5cc59e5efe9bcd1191e9d628b2a321c432bc5be7ca450d34e94d9ad7bf92803674310adb2d9e65681aad48339507904f9ae
   languageName: node
   linkType: hard
 
@@ -1801,13 +1801,6 @@ __metadata:
   dependencies:
     p-locate: "npm:^4.1.0"
   checksum: 10c0/33a1c5247e87e022f9713e6213a744557a3e9ec32c5d0b5efb10aa3a38177615bf90221a5592674857039c1a0fd2063b82f285702d37b792d973e9e72ace6c59
-  languageName: node
-  linkType: hard
-
-"lodash.truncate@npm:^4.4.2":
-  version: 4.4.2
-  resolution: "lodash.truncate@npm:4.4.2"
-  checksum: 10c0/4e870d54e8a6c86c8687e057cec4069d2e941446ccab7f40b4d9555fa5872d917d0b6aa73bece7765500a3123f1723bcdba9ae881b679ef120bba9e1a0b0ed70
   languageName: node
   linkType: hard
 
@@ -2365,6 +2358,15 @@ __metadata:
   languageName: node
   linkType: hard
 
+"semver@npm:^7.8.6":
+  version: 7.8.6
+  resolution: "semver@npm:7.8.6"
+  bin:
+    semver: bin/semver.js
+  checksum: 10c0/bf0a4d16eb067e5391323649e46b4a268644d7f8ee88e37c7668d35e861ec145b6e7df576d898007fc0d9a2cedcbc33f71460aa3bbea18eedfa5af58c064d7fe
+  languageName: node
+  linkType: hard
+
 "set-blocking@npm:^2.0.0":
   version: 2.0.0
   resolution: "set-blocking@npm:2.0.0"
@@ -2448,10 +2450,10 @@ __metadata:
   languageName: node
   linkType: hard
 
-"stream-chain@npm:^4.2.5":
-  version: 4.2.5
-  resolution: "stream-chain@npm:4.2.5"
-  checksum: 10c0/c47e3895344e356d0aa641b08735c9f4cc7486a12275cef9549a114ea0e8348f75443f31f75053eefef0eee620a13bf6e9841479c64954b8d4dcc1a41a5511b8
+"stream-chain@npm:^4.4.2":
+  version: 4.4.2
+  resolution: "stream-chain@npm:4.4.2"
+  checksum: 10c0/171d4f0ee4f4b697a22fed9734ad5e39a1190cb3dc9ffbae5682fd6036dddf3aefd3685a00a935c72b8478c34c800c031c078c2ec382356127df537fad6c30c9
   languageName: node
   linkType: hard
 
@@ -2464,12 +2466,12 @@ __metadata:
   languageName: node
   linkType: hard
 
-"stream-json@npm:^3.7.0":
-  version: 3.7.0
-  resolution: "stream-json@npm:3.7.0"
+"stream-json@npm:^3.9.0":
+  version: 3.9.0
+  resolution: "stream-json@npm:3.9.0"
   dependencies:
-    stream-chain: "npm:^4.2.5"
-  checksum: 10c0/5f56acbd01245580f947697de546f469c67714656ee31765631972841aed336984a25ebeb70fcb6cccf1c638827a9655d552a4f7a4ab9687bf26463e0cf24394
+    stream-chain: "npm:^4.4.2"
+  checksum: 10c0/07c2691057d874f78bb9dd1453666dbdd4e66819125def54140665677fd344f1156b756c9529aec212e6145bcb9a0c4ff3f5fc794fc607c58aa3881d596febb4
   languageName: node
   linkType: hard
 
@@ -2529,16 +2531,15 @@ __metadata:
   languageName: node
   linkType: hard
 
-"table@npm:^6.9.0":
-  version: 6.9.0
-  resolution: "table@npm:6.9.0"
+"table@npm:^6.10.1":
+  version: 6.10.1
+  resolution: "table@npm:6.10.1"
   dependencies:
     ajv: "npm:^8.0.1"
-    lodash.truncate: "npm:^4.4.2"
     slice-ansi: "npm:^4.0.0"
     string-width: "npm:^4.2.3"
     strip-ansi: "npm:^6.0.1"
-  checksum: 10c0/35646185712bb65985fbae5975dda46696325844b78735f95faefae83e86df0a265277819a3e67d189de6e858c509b54e66ca3958ffd51bde56ef1118d455bf4
+  checksum: 10c0/0aa3cd90766294e6f31676009e1fb2fa80249f803ac8f314ffd8c5c6db3fe888261fe7cefa21dc5c017eb2dbf3f9bc8cea1ee59e8cab855ea9af16ffed0f8d46
   languageName: node
   linkType: hard
 
