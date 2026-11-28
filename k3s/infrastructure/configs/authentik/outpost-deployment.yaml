@@ -30,7 +30,7 @@ spec:
         runAsGroup: 1000
       containers:
         - name: proxy
-          image: ghcr.io/goauthentik/proxy:2026.8.6
+          image: ghcr.io/goauthentik/proxy:2026.8.7
           securityContext:
             allowPrivilegeEscalation: false
             readOnlyRootFilesystem: true
