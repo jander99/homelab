@@ -4,10 +4,11 @@
   "timezone": "America/New_York",
   "schedule": ["before 6am on Monday"],
   "prHourlyLimit": 5,
-  "prConcurrentLimit": 10,
+  "prConcurrentLimit": 25,
   "ignorePaths": [
     "**/*.sops.yaml",
     "**/gotk-components.yaml",
+    "**/migration/**",
     "docker/**",
     "node_modules/**",
     ".venv*/**"
@@ -57,12 +58,6 @@
       "automerge": false
     },
     {
-      "description": "One PR bumps the k3s pin everywhere; a merged PR triggers the upgrade, so never automerge",
-      "matchDepNames": ["k3s-io/k3s"],
-      "groupName": "k3s",
-      "automerge": false
-    },
-    {
       "description": "Pin nx to a specific version instead of latest",
       "matchPackageNames": ["nx"],
       "rangeStrategy": "pin"
@@ -79,27 +74,19 @@
       "allowedVersions": "/^5\\./"
     },
     {
-      "description": "Group Flux HelmRelease infrastructure controller updates",
-      "matchManagers": ["flux"],
-      "matchFileNames": ["k3s/infrastructure/controllers/**"],
-      "groupName": "flux-infra-controllers"
+      "description": "One branch per k3s folder name so a service can be merged and reverted alone",
+      "matchFileNames": ["k3s/applications/**", "k3s/infrastructure/**"],
+      "groupName": "k3s-workloads",
+      "additionalBranchPrefix": "{{parentDir}}-",
+      "semanticCommitScope": "{{parentDir}}"
     },
     {
-      "description": "Group Flux HelmRelease infrastructure config updates",
-      "matchManagers": ["flux"],
-      "matchFileNames": ["k3s/infrastructure/configs/**"],
-      "groupName": "flux-infra-configs"
-    },
-    {
-      "description": "Group Flux application HelmRelease updates",
-      "matchManagers": ["flux"],
-      "matchFileNames": ["k3s/applications/**"],
-      "groupName": "flux-applications"
-    },
-    {
-      "description": "Group Kubernetes container image updates",
-      "matchManagers": ["kubernetes"],
-      "groupName": "kubernetes-images"
+      "description": "One PR bumps the k3s pin everywhere; a merged PR triggers the upgrade, so never automerge",
+      "matchDepNames": ["k3s-io/k3s"],
+      "groupName": "k3s",
+      "additionalBranchPrefix": "",
+      "semanticCommitScope": "deps",
+      "automerge": false
     },
     {
       "description": "Group GitHub Actions version updates",
